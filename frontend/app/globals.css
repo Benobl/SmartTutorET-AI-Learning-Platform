@@ -1,0 +1,235 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Primary Colors - Modern Blue #4a90e2 (dashboard theme) */
+  --primary: #4a90e2;
+  --primary-foreground: #ffffff;
+
+  /* Secondary Colors - Light Cyan/Blue #5ba3f5 */
+  --secondary: #5ba3f5;
+  --secondary-foreground: #ffffff;
+
+  /* Accent Colors - Light Gray-Blue #e8eef7 */
+  --accent: #e8eef7;
+  --accent-foreground: #1a1f36;
+
+  /* Card Backgrounds - Light theme variations */
+  --card-stats: #ffffff;
+  --card-progress: #ffffff;
+  --card-achievement: #ffffff;
+  --card-action: #ffffff;
+  --card-resource: #ffffff;
+  --card-chart: #ffffff;
+
+  /* Neutral Colors - Light theme for dashboards */
+  --background: #f8f9fa;
+  --foreground: #1a1f36;
+  --card: #ffffff;
+  --card-foreground: #1a1f36;
+  --popover: #ffffff;
+  --popover-foreground: #1a1f36;
+  --muted: #a0a8b8;
+  --muted-foreground: #687488;
+  --border: #e3e8f3;
+  --input: #f0f2f5;
+  --ring: #4a90e2;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  /* Chart Colors - Modern light palette */
+  --chart-1: #4a90e2;
+  --chart-2: #5ba3f5;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #8b5cf6;
+
+  /* Design Tokens */
+  --radius: 0.75rem; /* Preserved existing value from user, overrides Shadcn default 0.625rem */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05); /* Preserved existing value */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05); /* Preserved existing value */
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05); /* Preserved existing value */
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.05); /* Preserved existing value */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08); /* Preserved existing value */
+  --sidebar: oklch(0.985 0 0); /* Preserved existing value */
+  --sidebar-foreground: oklch(0.145 0 0); /* Preserved existing value */
+  --sidebar-primary: oklch(0.205 0 0); /* Preserved existing value */
+  --sidebar-primary-foreground: oklch(0.985 0 0); /* Preserved existing value */
+  --sidebar-accent: oklch(0.97 0 0); /* Preserved existing value */
+  --sidebar-accent-foreground: oklch(0.205 0 0); /* Preserved existing value */
+  --sidebar-border: oklch(0.922 0 0); /* Preserved existing value */
+  --sidebar-ring: oklch(0.708 0 0); /* Preserved existing value */
+}
+
+.dark {
+  /* Dark mode - same as light for now, can adjust if needed */
+  --primary: #4a90e2;
+  --primary-foreground: #ffffff;
+  --secondary: #5ba3f5;
+  --secondary-foreground: #ffffff;
+  --accent: #e8eef7;
+  --accent-foreground: #1a1f36;
+  --card-stats: #ffffff;
+  --card-progress: #ffffff;
+  --card-achievement: #ffffff;
+  --card-action: #ffffff;
+  --card-resource: #ffffff;
+  --card-chart: #ffffff;
+  --background: #f8f9fa;
+  --foreground: #1a1f36;
+  --card: #ffffff;
+  --card-foreground: #1a1f36;
+  --popover: #ffffff;
+  --popover-foreground: #1a1f36;
+  --muted: #a0a8b8;
+  --muted-foreground: #687488;
+  --border: #e3e8f3;
+  --input: #f0f2f5;
+  --ring: #4a90e2;
+  --chart-1: #4a90e2;
+  --chart-2: #5ba3f5;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #8b5cf6;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12), 0 4px 6px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1f36;
+  --sidebar-primary: #4a90e2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8eef7;
+  --sidebar-accent-foreground: #1a1f36;
+  --sidebar-border: #e3e8f3;
+  --sidebar-ring: #4a90e2;
+}
+
+@theme inline {
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .card-stats {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-stats)];
+  }
+  .card-progress {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-progress)];
+  }
+  .card-achievement {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-achievement)];
+  }
+  .card-action {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-action)];
+  }
+  .card-resource {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-resource)];
+  }
+  .card-chart {
+    @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-chart)];
+  }
+  .badge-primary {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold;
+  }
+  .badge-secondary {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-semibold;
+  }
+  .badge-accent {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-semibold;
+  }
+  .badge-success {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-semibold;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
+  }
+  .glass {
+    @apply backdrop-blur-md bg-background/40 border border-border/50;
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(66, 80, 165, 0.3);
+  }
+  .glow-secondary {
+    box-shadow: 0 0 20px rgba(75, 166, 158, 0.3);
+  }
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(212, 162, 78, 0.3);
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-card-lg {
+    box-shadow: var(--shadow-lg);
+  }
+  .shadow-card-xl {
+    box-shadow: var(--shadow-xl);
+  }
+  .backdrop-sm {
+    @apply backdrop-blur-sm;
+  }
+  .backdrop-md {
+    @apply backdrop-blur-md;
+  }
+  .text-subtle {
+    @apply text-muted-foreground;
+  }
+  .text-accent-strong {
+    @apply font-semibold text-accent;
+  }
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+}
