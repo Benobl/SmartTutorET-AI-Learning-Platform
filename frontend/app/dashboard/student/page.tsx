@@ -1,554 +1,204 @@
-"use client";
+"use client"
 
-import { StudentHeader } from "@/components/dashboards/student/header";
-import { StudentSidebar } from "@/components/dashboards/student/sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  Award,
-  BookOpen,
-  Calendar,
-  Flame,
-  Star,
-  TrendingUp,
-} from "lucide-react";
-import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Progress } from "@/components/ui/progress"
+import { BookOpen, Clock, Calendar, GraduationCap, ChevronRight, PlayCircle, Bell, FileText, AlertCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { courses, upcomingDeadlines, recentActivity, announcements } from "@/lib/student-data"
+import Link from "next/link"
 
-const studyTimeData = [
-  { day: "Mon", hours: 2.5 },
-  { day: "Tue", hours: 3.2 },
-  { day: "Wed", hours: 1.8 },
-  { day: "Thu", hours: 4.1 },
-  { day: "Fri", hours: 2.9 },
-  { day: "Sat", hours: 5.2 },
-  { day: "Sun", hours: 3.5 },
-];
-
-const progressData = [
-  { subject: "Mathematics", progress: 75, color: "hsl(var(--color-primary))" },
-  { subject: "English", progress: 82, color: "hsl(var(--color-secondary))" },
-  { subject: "Biology", progress: 68, color: "hsl(var(--color-accent))" },
-  { subject: "Chemistry", progress: 71, color: "hsl(var(--color-chart-4))" },
-];
-
-const TAB_SECTIONS = [
-  { id: "overview", label: "Overview", icon: "📊" },
-  { id: "progress", label: "Progress", icon: "📈" },
-  { id: "subjects", label: "Subjects", icon: "📚" },
-  { id: "sessions", label: "Sessions", icon: "📅" },
-];
-
-export default function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [hoveredSubject, setHoveredSubject] = useState<number | null>(null);
+/**
+ * Student Dashboard Overview — quick stats, active courses, upcoming deadlines,
+ * recent announcements, and activity timeline.
+ */
+export default function StudentOverview() {
+  const topCourses = courses.slice(0, 2)
+  const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <StudentSidebar />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Greeting Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-slate-900 mb-2">
+          Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-600">Sarah!</span> 👋
+        </h1>
+        <p className="text-slate-500 flex items-center gap-2 font-medium">
+          <GraduationCap className="w-4 h-4 text-sky-500" />
+          You have 3 classes today. Keep up the great work!
+        </p>
+      </div>
 
-      <div className="flex-1 overflow-auto">
-        <StudentHeader />
-
-        <main className="container px-4 md:px-8 py-8 space-y-8">
-          {/* Welcome Section */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold text-[#1D2637]">
-                Welcome back, Alex! 👋
-              </h1>
-              <p className="text-gray-600">
-                You're making excellent progress. Keep pushing forward!
-              </p>
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Overall Progress", value: "78%", icon: BookOpen, color: "sky", sub: "12/15 Modules Complete" },
+          { label: "Learning Hours", value: "42.5h", icon: Clock, color: "emerald", sub: "+5.2h this week" },
+          { label: "Attendance", value: "96%", icon: Calendar, color: "indigo", sub: "12-day streak" },
+          { label: "Current GPA", value: "3.8", icon: GraduationCap, color: "amber", sub: "Top 5% of class" },
+        ].map((stat) => (
+          <div key={stat.label} className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-sky-100 transition-all group relative overflow-hidden">
+            <div className={cn(
+              "absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-10 blur-2xl transition-all group-hover:opacity-20",
+              `bg-${stat.color}-500`
+            )} />
+            <div className="flex items-start justify-between mb-4">
+              <div className={cn("p-3 rounded-2xl bg-slate-50 border border-slate-100", `text-${stat.color}-500`)}>
+                <stat.icon className="w-6 h-6" />
+              </div>
             </div>
-            <Badge className="flex items-center gap-2 px-4 py-2 text-base bg-green-100 text-green-700">
-              <TrendingUp className="w-4 h-4" />
-              On Track
-            </Badge>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-400">{stat.label}</p>
+              <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{stat.value}</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Active Courses + Deadlines */}
+        <div className="xl:col-span-2 space-y-8">
+          {/* Continue Learning */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-sky-500 rounded-full" />
+                <h2 className="text-xl font-bold text-slate-900">Continue Learning</h2>
+              </div>
+              <Link href="/dashboard/student/courses" className="text-sky-600 text-sm font-bold hover:text-sky-500 transition-colors flex items-center gap-1 group">
+                View All Courses
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {topCourses.map((course) => (
+                <div key={course.name} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden hover:border-sky-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className="h-32 relative">
+                    <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest bg-sky-50 px-2 py-1 rounded-lg border border-sky-100 shadow-sm">Active Course</span>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-900 group-hover:text-sky-600 transition-colors">{course.name}</h4>
+                      <p className="text-xs font-medium text-slate-500">{course.tutor}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-slate-500">Module Progress</span>
+                        <span className="text-sky-600">{course.progress}%</span>
+                      </div>
+                      <Progress value={course.progress} className="h-1.5 bg-slate-100" />
+                    </div>
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Next Lesson</span>
+                        <span className="text-xs font-bold text-slate-700">{course.nextLesson}</span>
+                      </div>
+                      <button className="p-2.5 rounded-xl bg-sky-50 text-sky-600 hover:bg-sky-500 hover:text-white transition-all shadow-sm">
+                        <PlayCircle className="w-5 h-5 transition-transform group-hover:scale-110" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex flex-wrap gap-2 border-b border-border pb-4">
-            {TAB_SECTIONS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 rounded-t-lg font-semibold text-sm transition-all duration-300 ease-out flex items-center gap-2 ${
-                  activeTab === tab.id
-                    ? "bg-card border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-card/50"
-                }`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
+          {/* Upcoming Deadlines */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
+                <h2 className="text-xl font-bold text-slate-900">Upcoming Deadlines</h2>
+              </div>
+              <Link href="/dashboard/student/assignments" className="text-sky-600 text-sm font-bold hover:text-sky-500 transition-colors flex items-center gap-1 group">
+                All Assignments
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {upcomingDeadlines.map((d, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 hover:border-slate-200 transition-all shadow-sm group">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                    d.color === "red" ? "bg-red-50 text-red-500" :
+                      d.color === "amber" ? "bg-amber-50 text-amber-500" :
+                        d.color === "sky" ? "bg-sky-50 text-sky-500" :
+                          "bg-emerald-50 text-emerald-500"
+                  )}>
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-slate-800 truncate">{d.title}</h4>
+                    <p className="text-xs font-medium text-slate-400">{d.course}</p>
+                  </div>
+                  <span className={cn(
+                    "text-xs font-bold px-3 py-1 rounded-lg shrink-0",
+                    d.color === "red" ? "bg-red-50 text-red-600" :
+                      d.color === "amber" ? "bg-amber-50 text-amber-600" :
+                        "bg-slate-50 text-slate-500"
+                  )}>
+                    {d.dueLabel}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar: Announcements & Activity */}
+        <div className="space-y-8">
+          {/* Announcements */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-bold text-slate-900">Announcements</h2>
+              <Link href="/dashboard/student/announcements" className="text-sky-600 text-xs font-bold hover:text-sky-500 transition-colors flex items-center gap-1">
+                View All
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            {topAnnouncements.map((ann) => (
+              <div key={ann.id} className="p-5 rounded-3xl border border-sky-100 bg-gradient-to-br from-indigo-50 to-sky-50 relative overflow-hidden group shadow-sm">
+                <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-sky-400/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
+                <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                  {ann.title}
+                </h4>
+                <p className="text-sm text-slate-600 leading-relaxed mb-4 line-clamp-2 font-medium">{ann.body}</p>
+                <Link href="/dashboard/student/announcements" className="w-full py-2.5 bg-white hover:bg-sky-500 hover:text-white text-sky-600 text-xs font-bold rounded-xl border border-sky-100 transition-all shadow-sm block text-center">
+                  Read Announcement
+                </Link>
+              </div>
             ))}
           </div>
 
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {[
-                  {
-                    icon: TrendingUp,
-                    label: "Study Time",
-                    value: "42 hrs",
-                    change: "+5 hrs this week",
-                    bgColor: "#e8f0ff",
-                    iconColor: "#4a90e2",
-                  },
-                  {
-                    icon: Flame,
-                    label: "Learning Streak",
-                    value: "12 days",
-                    change: "Keep it going!",
-                    bgColor: "#fff4e6",
-                    iconColor: "#f59e0b",
-                  },
-                  {
-                    icon: Award,
-                    label: "Average Grade",
-                    value: "A-",
-                    change: "+2% improvement",
-                    bgColor: "#f0f9ff",
-                    iconColor: "#0ea5e9",
-                  },
-                  {
-                    icon: Star,
-                    label: "Badges Earned",
-                    value: "24",
-                    change: "+3 new",
-                    bgColor: "#ede9fe",
-                    iconColor: "#8b5cf6",
-                  },
-                ].map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl border border-gray-200 transition-all duration-300 hover:scale-105"
-                  >
-                    <div className="flex flex-col items-center text-center mb-4">
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
-                        style={{ backgroundColor: stat.bgColor }}
-                      >
-                        <stat.icon
-                          className="w-8 h-8"
-                          style={{ color: stat.iconColor }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                        {stat.change}
-                      </span>
-                    </div>
-                    <p className="text-xs md:text-sm text-gray-500 font-medium uppercase tracking-wide mb-2">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl md:text-3xl font-bold text-[#1a1f36]">
-                      {stat.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Charts Grid */}
-              <div className="grid lg:grid-cols-3 gap-6">
-                {/* Study Time Chart */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 shadow-lg border border-blue-100">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-bold text-[#1D2637]">
-                      Study Time Trend
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Daily study hours for the past week
-                    </p>
-                  </div>
-                  <div className="h-80 -mx-6 -mb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={studyTimeData}
-                        margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="rgba(59, 130, 246, 0.2)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="day"
-                          stroke="#64748b"
-                          axisLine={{ stroke: "rgba(100, 116, 139, 0.2)" }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          stroke="#64748b"
-                          axisLine={{ stroke: "rgba(100, 116, 139, 0.2)" }}
-                          tickLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid rgba(59, 130, 246, 0.3)",
-                            borderRadius: "12px",
-                            padding: "12px",
-                            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-                          }}
-                          labelStyle={{
-                            color: "#1D2637",
-                            fontWeight: "600",
-                            fontSize: "14px",
-                          }}
-                          formatter={(value) => [
-                            `${value} hours`,
-                            "Study Time",
-                          ]}
-                        />
-                        <Bar
-                          dataKey="hours"
-                          fill="#3b82f6"
-                          radius={[8, 8, 0, 0]}
-                          stroke="#2563eb"
-                          strokeWidth={1}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="space-y-4">
-                  <div className="card-action shadow-card border border-border/40 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-foreground text-sm">
-                        Focus Score
-                      </h4>
-                      <span className="text-2xl font-bold text-accent">
-                        87%
-                      </span>
-                    </div>
-                    <Progress value={87} className="h-2" />
-                  </div>
-
-                  <div className="card-progress shadow-card border border-border/40 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-foreground text-sm">
-                        Completion
-                      </h4>
-                      <span className="text-2xl font-bold text-secondary">
-                        62%
-                      </span>
-                    </div>
-                    <Progress value={62} className="h-2" />
-                  </div>
-
-                  <div className="card-resource shadow-card border border-border/40 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-foreground text-sm">
-                        Consistency
-                      </h4>
-                      <span className="text-2xl font-bold text-primary">
-                        94%
-                      </span>
-                    </div>
-                    <Progress value={94} className="h-2" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="card-resource shadow-card border border-border/40 space-y-6">
-                <div className="flex items-center justify-between">
+          {/* Activity Timeline */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-slate-900 px-2">Recent Activity</h2>
+            <div className="relative pl-6 space-y-6 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-200">
+              {recentActivity.map((act, i) => (
+                <div key={i} className="relative group">
+                  <div className={cn(
+                    "absolute -left-[30px] top-1 w-2.5 h-2.5 rounded-full border-2 border-[#f8f9fa] transition-all group-hover:scale-125",
+                    act.color === "emerald" ? "bg-emerald-500" :
+                      act.color === "sky" ? "bg-sky-500" :
+                        act.color === "amber" ? "bg-amber-500" :
+                          "bg-indigo-500"
+                  )} />
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">
-                      AI Recommendations
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Personalized content based on your learning
-                    </p>
+                    <p className="text-sm font-bold text-slate-800">{act.title}</p>
+                    <p className="text-xs font-medium text-slate-500">{act.sub}</p>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 block">{act.time}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-transparent"
-                  >
-                    View All
-                  </Button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    {
-                      title: "Quadratic Equations",
-                      type: "Video",
-                      duration: "45 min",
-                      icon: "📹",
-                    },
-                    {
-                      title: "Photosynthesis",
-                      type: "Interactive",
-                      duration: "1h",
-                      icon: "🔬",
-                    },
-                    {
-                      title: "Essay Writing",
-                      type: "PDF",
-                      duration: "20 pgs",
-                      icon: "📄",
-                    },
-                    {
-                      title: "Chemical Bonds",
-                      type: "Quiz",
-                      duration: "15 min",
-                      icon: "🧪",
-                    },
-                  ].map((resource, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-lg border border-border/60 hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm transition-all duration-300 cursor-pointer"
-                    >
-                      <div className="space-y-3 text-center">
-                        <span className="text-3xl block">{resource.icon}</span>
-                        <div>
-                          <h4 className="font-semibold text-sm text-foreground">
-                            {resource.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {resource.duration}
-                          </p>
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-semibold mx-auto"
-                        >
-                          {resource.type}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          )}
-
-          {/* Progress Tab */}
-          {activeTab === "progress" && (
-            <div className="space-y-6">
-              <div className="card-progress shadow-card border border-border/40">
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-foreground mb-2">
-                    Subject Progress
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your current standing in each subject
-                  </p>
-                </div>
-                <div className="space-y-6">
-                  {progressData.map((subject, idx) => (
-                    <div
-                      key={idx}
-                      onMouseEnter={() => setHoveredSubject(idx)}
-                      onMouseLeave={() => setHoveredSubject(null)}
-                      className={`space-y-2 p-4 rounded-lg transition-all ${hoveredSubject === idx ? "bg-primary/5" : ""}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`font-semibold text-sm transition-colors ${
-                            hoveredSubject === idx
-                              ? "text-primary"
-                              : "text-foreground"
-                          }`}
-                        >
-                          {subject.subject}
-                        </span>
-                        <span className="text-sm font-bold text-primary">
-                          {subject.progress}%
-                        </span>
-                      </div>
-                      <Progress value={subject.progress} className="h-3" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="card-stats shadow-card border border-border/40">
-                  <h3 className="text-lg font-bold text-foreground mb-6">
-                    Weekly Progress
-                  </h3>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={studyTimeData}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="hsl(var(--color-border))"
-                        />
-                        <XAxis
-                          dataKey="day"
-                          stroke="hsl(var(--color-muted-foreground))"
-                        />
-                        <YAxis stroke="hsl(var(--color-muted-foreground))" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--color-card))",
-                            border: "1px solid hsl(var(--color-border))",
-                            borderRadius: "12px",
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="hours"
-                          stroke="hsl(var(--color-secondary))"
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--color-secondary))", r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="card-achievement shadow-card border border-border/40">
-                  <h3 className="text-lg font-bold text-foreground mb-6">
-                    Milestones
-                  </h3>
-                  <div className="space-y-4">
-                    {[
-                      { label: "100 Study Hours", progress: 75, icon: "🎯" },
-                      { label: "Perfect Score", progress: 45, icon: "⭐" },
-                      { label: "Streak Master", progress: 80, icon: "🔥" },
-                    ].map((milestone, idx) => (
-                      <div key={idx} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <span>{milestone.icon}</span> {milestone.label}
-                          </span>
-                          <span className="text-xs font-bold text-accent">
-                            {milestone.progress}%
-                          </span>
-                        </div>
-                        <Progress value={milestone.progress} className="h-2" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Subjects Tab */}
-          {activeTab === "subjects" && (
-            <div className="grid md:grid-cols-2 gap-6">
-              {["Mathematics", "English", "Biology", "Chemistry"].map(
-                (subject, idx) => (
-                  <div
-                    key={idx}
-                    className="card-stats shadow-card border border-border/40 space-y-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-foreground">
-                        {subject}
-                      </h3>
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary border border-primary/20">
-                        <BookOpen className="w-5 h-5" />
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Current Grade
-                        </span>
-                        <span className="font-bold text-primary">A-</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Topics Completed
-                        </span>
-                        <span className="font-bold text-secondary">18/24</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Study Hours
-                        </span>
-                        <span className="font-bold text-accent">42h</span>
-                      </div>
-                    </div>
-                    <Button
-                      className="w-full text-sm bg-transparent"
-                      variant="outline"
-                    >
-                      Continue Learning
-                    </Button>
-                  </div>
-                ),
-              )}
-            </div>
-          )}
-
-          {/* Sessions Tab */}
-          {activeTab === "sessions" && (
-            <div className="space-y-6">
-              <div className="card-action shadow-card border border-border/40 space-y-4">
-                <h3 className="text-lg font-bold text-foreground">
-                  Upcoming Sessions
-                </h3>
-                {[
-                  {
-                    tutor: "Sarah Johnson",
-                    subject: "Mathematics",
-                    time: "Today, 4:00 PM",
-                    status: "upcoming",
-                  },
-                  {
-                    tutor: "Ahmed Hassan",
-                    subject: "Chemistry",
-                    time: "Tomorrow, 2:00 PM",
-                    status: "upcoming",
-                  },
-                  {
-                    tutor: "Abeba Tesfaye",
-                    subject: "English",
-                    time: "Wed, 3:30 PM",
-                    status: "upcoming",
-                  },
-                ].map((session, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-lg border border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
-                        <h4 className="font-semibold text-foreground">
-                          {session.tutor}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {session.subject}
-                        </p>
-                        <p className="text-xs font-medium text-secondary flex items-center gap-2">
-                          <Calendar className="w-3 h-3" /> {session.time}
-                        </p>
-                      </div>
-                      <Button className="text-xs">Join</Button>
-                    </div>
-                  </div>
-                ))}
-                <Button className="w-full mt-4 font-semibold">
-                  + Book New Session
-                </Button>
-              </div>
-            </div>
-          )}
-        </main>
+          </div>
+        </div>
       </div>
     </div>
-  );
+  )
 }

@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { SmartTutorBrand } from "@/components/brand-logo"
 import {
   CheckCircle2,
   Users,
@@ -25,7 +24,6 @@ import {
   MessageSquare,
   Video,
   FileText,
-  AwardIcon,
   Phone,
   Mail,
   MapPin,
@@ -64,20 +62,16 @@ import {
   Music,
   Palette,
   Dumbbell,
-  Heart as HeartIcon,
   Coffee,
   Moon,
   Sun,
   Book,
-  School,
-  TestTube,
-  Globe as GlobeIcon,
   History,
   Code,
-  Music2,
-  Paintbrush,
-  Dumbbell as SportsIcon,
 } from "lucide-react"
+
+// HeartIcon alias for use in feature cards
+const HeartIcon = Heart
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -152,7 +146,7 @@ export default function LandingPage() {
                 {[
                   { label: "Home", icon: "🏠", badge: null },
                   { label: "Features", icon: "✨", badge: "AI" },
-                  { label: "Courses", icon: "📚", badge: "1-12" },
+                  { label: "Courses", icon: "📚", badge: "9-12" },
                   { label: "Subjects", icon: "🧪", badge: "8+" },
                   { label: "For Schools", icon: "🏫", badge: null },
                   { label: "About", icon: "👥", badge: null },
@@ -222,7 +216,7 @@ export default function LandingPage() {
                   {[
                     { label: "Home", icon: "🏠", desc: "Welcome page", badge: null },
                     { label: "Features", icon: "✨", desc: "AI-powered tools", badge: "AI" },
-                    { label: "Courses", icon: "📚", desc: "Grade 1-12 courses", badge: "1-12" },
+                    { label: "Courses", icon: "📚", desc: "Grade 9-12 courses", badge: "1-12" },
                     { label: "Subjects", icon: "🧪", desc: "8+ subjects", badge: "8+" },
                     { label: "For Schools", icon: "🏫", desc: "School packages", badge: null },
                     { label: "About", icon: "👥", desc: "Our story", badge: null },
@@ -356,7 +350,7 @@ export default function LandingPage() {
                 {[
                   { value: "12,543", label: "Students", icon: "👨‍🎓", color: "#3D7FA2" },
                   { value: "98%", label: "Success Rate", icon: "📈", color: "#206687" },
-                  { value: "1-12", label: "All Grades", icon: "🎯", color: "#1B5A6C" },
+                  { value: "9-12", label: "All Grades", icon: "🎯", color: "#1B5A6C" },
                 ].map((stat, idx) => (
                   <div key={idx} className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group relative overflow-hidden">
                     {/* Glowing effect */}
@@ -404,9 +398,9 @@ export default function LandingPage() {
                   {/* Interactive Course Cards */}
                   <div className="space-y-4 mb-6">
                     {[
-                      { title: "Grade 8 Mathematics", progress: 85, color: "#3D7FA2", icon: "🧮" },
-                      { title: "Grade 8 Science", progress: 62, color: "#206687", icon: "⚛️" },
-                      { title: "Grade 8 English", progress: 78, color: "#1B5A6C", icon: "🔤" },
+                      { title: "Grade 12 Mathematics", progress: 85, color: "#3D7FA2", icon: "🧮" },
+                      { title: "Grade 12 Science", progress: 62, color: "#206687", icon: "⚛️" },
+                      { title: "Grade 12 English", progress: 78, color: "#1B5A6C", icon: "🔤" },
                     ].map((course, idx) => (
                       <div
                         key={idx}
@@ -503,7 +497,7 @@ export default function LandingPage() {
                 className={`px-6 py-3 rounded-full font-medium transition-all duration-300 ${activeTab === tab
                   ? 'bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white shadow-lg'
                   : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-                }`}
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
@@ -572,9 +566,8 @@ export default function LandingPage() {
                 key={idx}
                 onMouseEnter={() => setHoveredFeature(idx)}
                 onMouseLeave={() => setHoveredFeature(null)}
-                className={`group p-8 rounded-[32px] backdrop-blur-sm transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden ${
-                  activeTab === "all" || activeTab === feature.category ? "block" : "hidden"
-                }`}
+                className={`group p-8 rounded-[32px] backdrop-blur-sm transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden ${activeTab === "all" || activeTab === feature.category ? "block" : "hidden"
+                  }`}
               >
                 {/* Glowing Border and Background - Applied as default */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${cardGradients[feature.gradientIndex]} opacity-20 rounded-[32px]`} />
@@ -647,8 +640,7 @@ export default function LandingPage() {
           {/* Course Categories */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-12">
             {[
-              { icon: "1️⃣", label: "Grade 1-4", count: 48, color: "#3D7FA2" },
-              { icon: "5️⃣", label: "Grade 5-8", count: 52, color: "#206687" },
+
               { icon: "9️⃣", label: "Grade 9-10", count: 40, color: "#1B5A6C" },
               { icon: "🔟", label: "Grade 11-12", count: 32, color: "#294B61" },
               { icon: "🧮", label: "Mathematics", count: 72, color: "#2E4360" },
@@ -795,7 +787,7 @@ export default function LandingPage() {
                 className="rounded-full border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg group relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center">
-                  Browse All Courses (Grade 1-12)
+                  Browse All Courses (Grade -12)
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
