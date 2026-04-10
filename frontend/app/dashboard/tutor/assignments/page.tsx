@@ -107,7 +107,7 @@ export default function TeacherAssignmentsPage() {
                             <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
                                 <Paperclip className="w-4 h-4 text-slate-400" />
                                 <span className="text-sm text-slate-500 font-medium">Attach files (PDF, DOCX, XLSX)</span>
-                                <button className="ml-auto text-xs font-bold text-indigo-600 hover:text-indigo-500 transition-colors">Browse</button>
+                                <button className="ml-auto text-xs font-bold text-sky-600 hover:text-sky-500 transition-colors">Browse</button>
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setCreating(false)} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
@@ -123,9 +123,9 @@ export default function TeacherAssignmentsPage() {
             )}
 
             {submitted && (
-                <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <p className="text-sm font-bold text-emerald-700">Assignment created and published to students successfully!</p>
+                <div className="flex items-center gap-3 p-4 bg-sky-50 rounded-2xl border border-sky-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <CheckCircle2 className="w-5 h-5 text-sky-600 shrink-0" />
+                    <p className="text-sm font-bold text-sky-700">Assignment created and published to students successfully!</p>
                 </div>
             )}
 
@@ -134,7 +134,7 @@ export default function TeacherAssignmentsPage() {
                 {[
                     { label: "Total Assignments", value: teacherAssignments.length, color: "slate" },
                     { label: "Active", value: teacherAssignments.filter(a => a.status === "active").length, color: "sky" },
-                    { label: "Total Submissions", value: teacherAssignments.reduce((s, a) => s + a.submitted, 0), color: "emerald" },
+                    { label: "Total Submissions", value: teacherAssignments.reduce((s, a) => s + a.submitted, 0), color: "sky" },
                     { label: "Pending Grading", value: teacherAssignments.reduce((s, a) => s + (a.submitted - a.graded), 0), color: "rose" },
                 ].map(stat => (
                     <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 text-center">
@@ -169,7 +169,7 @@ export default function TeacherAssignmentsPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <h3 className="text-lg font-black text-slate-900 group-hover:text-rose-600 transition-colors">{assignment.title}</h3>
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg", assignment.status === "active" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-100 text-slate-400")}>
+                                            <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg", assignment.status === "active" ? "bg-sky-50 text-sky-600 border border-sky-100" : "bg-slate-100 text-slate-400")}>
                                                 {assignment.status}
                                             </span>
                                         </div>
@@ -206,7 +206,7 @@ export default function TeacherAssignmentsPage() {
                                     <div>
                                         <div className="flex justify-between text-xs font-bold mb-2">
                                             <span className="text-slate-400">Graded</span>
-                                            <span className="text-emerald-600">{assignment.graded}/{assignment.submitted}</span>
+                                            <span className="text-sky-600">{assignment.graded}/{assignment.submitted}</span>
                                         </div>
                                         <Progress value={gradingRate} className="h-2 bg-slate-100" />
                                     </div>

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 interface DashboardNavbarProps {
@@ -21,6 +21,11 @@ interface DashboardNavbarProps {
 
 export function DashboardNavbar({ className }: DashboardNavbarProps) {
     const [isSearchFocused, setIsSearchFocused] = useState(false)
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
 
     return (
         <header className={cn(
@@ -55,43 +60,45 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                     <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-sky-500 rounded-full border-2 border-white" />
                 </Button>
 
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-10 pl-1 pr-2 py-1 gap-2 rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors group">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                                SJ
-                            </div>
-                            <span className="text-sm font-bold hidden md:inline-block">Sarah Jones</span>
-                            <ChevronDown className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200 text-slate-900 rounded-xl p-2 shadow-2xl backdrop-blur-xl bg-white/90">
-                        <DropdownMenuLabel className="font-normal p-2">
-                            <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-bold leading-none">Sarah Jones</p>
-                                <p className="text-xs leading-none text-slate-500">sarah.j@example.com</p>
-                            </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-slate-100" />
-                        <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
-                            <User className="w-4 h-4 text-slate-400" />
-                            <span>My Profile</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
-                            <CreditCard className="w-4 h-4 text-slate-400" />
-                            <span>Subscription</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
-                            <Settings className="w-4 h-4 text-slate-400" />
-                            <span>Settings</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-slate-100" />
-                        <DropdownMenuItem className="rounded-lg focus:bg-red-50 focus:text-red-600 flex items-center gap-2 py-2 cursor-pointer text-red-600 font-medium">
-                            <LogOut className="w-4 h-4" />
-                            <span>Log out</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {isMounted && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-10 pl-1 pr-2 py-1 gap-2 rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors group">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                                    SJ
+                                </div>
+                                <span className="text-sm font-bold hidden md:inline-block">Sarah Jones</span>
+                                <ChevronDown className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200 text-slate-900 rounded-xl p-2 shadow-2xl backdrop-blur-xl bg-white/90">
+                            <DropdownMenuLabel className="font-normal p-2">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-bold leading-none">Sarah Jones</p>
+                                    <p className="text-xs leading-none text-slate-500">sarah.j@example.com</p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-slate-100" />
+                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
+                                <User className="w-4 h-4 text-slate-400" />
+                                <span>My Profile</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
+                                <CreditCard className="w-4 h-4 text-slate-400" />
+                                <span>Subscription</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
+                                <Settings className="w-4 h-4 text-slate-400" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-100" />
+                            <DropdownMenuItem className="rounded-lg focus:bg-red-50 focus:text-red-600 flex items-center gap-2 py-2 cursor-pointer text-red-600 font-medium">
+                                <LogOut className="w-4 h-4" />
+                                <span>Log out</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
         </header>
     )

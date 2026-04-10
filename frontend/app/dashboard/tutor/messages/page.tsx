@@ -43,11 +43,11 @@ export default function TeacherMessagesPage() {
                                 onClick={() => setSelectedThread(m.id)}
                                 className={cn(
                                     "w-full flex items-start gap-3 p-4 text-left border-b border-slate-50 transition-colors hover:bg-slate-50",
-                                    selectedThread === m.id && "bg-indigo-50 border-l-2 border-l-indigo-500"
+                                    selectedThread === m.id && "bg-sky-50 border-l-2 border-l-sky-500"
                                 )}
                             >
-                                <div className="w-10 h-10 rounded-2xl bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0">
-                                    <span className="text-xs font-black text-indigo-600">{m.initials}</span>
+                                <div className="w-10 h-10 rounded-2xl bg-sky-100 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <span className="text-xs font-black text-sky-600">{m.initials}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-0.5">
@@ -56,7 +56,7 @@ export default function TeacherMessagesPage() {
                                     </div>
                                     <p className="text-xs text-slate-400 font-medium truncate">{m.lastMessage}</p>
                                     {m.unread > 0 && (
-                                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-black mt-1">{m.unread}</span>
+                                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-500 text-white text-[10px] font-black mt-1">{m.unread}</span>
                                     )}
                                 </div>
                             </button>
@@ -68,8 +68,8 @@ export default function TeacherMessagesPage() {
                 <div className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-w-0">
                     {/* Chat Header */}
                     <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center">
-                            <span className="text-sm font-black text-indigo-600">{thread.initials}</span>
+                        <div className="w-10 h-10 rounded-2xl bg-sky-100 flex items-center justify-center">
+                            <span className="text-sm font-black text-sky-600">{thread.initials}</span>
                         </div>
                         <div>
                             <p className="font-black text-slate-900">{thread.studentName}</p>
@@ -84,11 +84,11 @@ export default function TeacherMessagesPage() {
                                 <div className={cn(
                                     "max-w-sm px-4 py-3 rounded-2xl shadow-sm text-sm",
                                     msg.from === "teacher"
-                                        ? "bg-indigo-600 text-white rounded-br-none"
+                                        ? "bg-sky-600 text-white rounded-br-none"
                                         : "bg-slate-100 text-slate-800 rounded-bl-none border border-slate-200"
                                 )}>
                                     <p className="leading-relaxed">{msg.text}</p>
-                                    <p className={cn("text-[10px] mt-1.5", msg.from === "teacher" ? "text-indigo-200" : "text-slate-400")}>{msg.time}</p>
+                                    <p className={cn("text-[10px] mt-1.5", msg.from === "teacher" ? "text-sky-200" : "text-slate-400")}>{msg.time}</p>
                                 </div>
                             </div>
                         ))}
@@ -106,7 +106,7 @@ export default function TeacherMessagesPage() {
                         <button
                             onClick={handleSend}
                             disabled={!reply.trim()}
-                            className="w-11 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shadow-md shadow-indigo-600/20"
+                            className="w-11 h-11 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shadow-md shadow-sky-600/20"
                         >
                             <Send className="w-4 h-4" />
                         </button>

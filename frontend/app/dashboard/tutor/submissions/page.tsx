@@ -50,9 +50,9 @@ export default function TeacherSubmissionsPage() {
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Submitted Files</p>
                                 {viewedSub.files.map(f => (
                                     <div key={f} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 mt-2">
-                                        <FileText className="w-4 h-4 text-indigo-500" />
+                                        <FileText className="w-4 h-4 text-sky-500" />
                                         <span className="text-sm font-bold text-slate-700 flex-1">{f}</span>
-                                        <button className="text-indigo-500 hover:text-indigo-600 transition-colors">
+                                        <button className="text-sky-500 hover:text-sky-600 transition-colors">
                                             <Download className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -63,13 +63,13 @@ export default function TeacherSubmissionsPage() {
                                 <p className="font-bold text-slate-700">{formatTime(viewedSub.submittedAt)}</p>
                             </div>
                             {viewedSub.score !== null && (
-                                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                    <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">Score</p>
-                                    <p className="text-2xl font-black text-emerald-700">{viewedSub.score}/{getAssignment(viewedSub.assignmentId)?.maxScore}</p>
-                                    {viewedSub.feedback && <p className="text-sm text-emerald-600 mt-2">{viewedSub.feedback}</p>}
+                                <div className="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+                                    <p className="text-xs font-black text-sky-600 uppercase tracking-widest mb-1">Score</p>
+                                    <p className="text-2xl font-black text-sky-700">{viewedSub.score}/{getAssignment(viewedSub.assignmentId)?.maxScore}</p>
+                                    {viewedSub.feedback && <p className="text-sm text-sky-600 mt-2">{viewedSub.feedback}</p>}
                                 </div>
                             )}
-                            <button onClick={() => setSelectedSub(null)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-colors">Close Preview</button>
+                            <button onClick={() => setSelectedSub(null)} className="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-sm transition-colors">Close Preview</button>
                         </div>
                     </div>
                 </div>
@@ -79,7 +79,7 @@ export default function TeacherSubmissionsPage() {
             <div className="grid grid-cols-3 gap-4">
                 {[
                     { label: "Total Submissions", value: submissions.length, color: "sky" },
-                    { label: "Graded", value: submissions.filter(s => s.status === "graded").length, color: "emerald" },
+                    { label: "Graded", value: submissions.filter(s => s.status === "graded").length, color: "sky" },
                     { label: "Awaiting Review", value: submissions.filter(s => s.status === "submitted").length, color: "rose" },
                 ].map(stat => (
                     <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 text-center">
@@ -124,8 +124,8 @@ export default function TeacherSubmissionsPage() {
                     return (
                         <div key={sub.id} className={cn("grid grid-cols-[1fr_2fr_1fr_1fr_auto] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors", i < filtered.length - 1 && "border-b border-slate-100")}>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                                    <span className="text-xs font-black text-indigo-600">{sub.studentName.split(" ").map(n => n[0]).join("")}</span>
+                                <div className="w-9 h-9 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <span className="text-xs font-black text-sky-600">{sub.studentName.split(" ").map(n => n[0]).join("")}</span>
                                 </div>
                                 <span className="font-bold text-slate-800 text-sm truncate">{sub.studentName}</span>
                             </div>
@@ -135,13 +135,13 @@ export default function TeacherSubmissionsPage() {
                                 <span className="text-xs font-medium">{formatTime(sub.submittedAt)}</span>
                             </div>
                             <div>
-                                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-lg", sub.status === "graded" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
+                                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-lg", sub.status === "graded" ? "bg-sky-50 text-sky-600 border border-sky-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
                                     {sub.status === "graded" ? `${sub.score}/${assignment?.maxScore}` : "Pending Review"}
                                 </span>
                             </div>
                             <button
                                 onClick={() => setSelectedSub(sub.id)}
-                                className="p-2 rounded-xl hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
+                                className="p-2 rounded-xl hover:bg-sky-50 text-slate-400 hover:text-sky-600 transition-colors"
                             >
                                 <Eye className="w-4 h-4" />
                             </button>

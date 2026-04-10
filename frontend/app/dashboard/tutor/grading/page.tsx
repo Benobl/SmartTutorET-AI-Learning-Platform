@@ -33,7 +33,7 @@ export default function TeacherGradingPage() {
             </div>
 
             {/* Progress Card */}
-            <div className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-violet-500/20 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-violet-600 to-sky-600 rounded-3xl p-6 text-white shadow-xl shadow-violet-500/20 relative overflow-hidden">
                 <div className="absolute -right-8 -top-8 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
                 <div className="relative z-10 flex items-center justify-between flex-wrap gap-6">
                     <div>
@@ -84,7 +84,7 @@ export default function TeacherGradingPage() {
 
                 {ungradedSubmissions.length === 0 ? (
                     <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-sm">
-                        <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+                        <CheckCircle2 className="w-16 h-16 text-sky-400 mx-auto mb-4" />
                         <h3 className="text-xl font-black text-slate-900">All caught up!</h3>
                         <p className="text-slate-400 font-bold text-sm mt-2">All submissions have been graded.</p>
                     </div>
@@ -124,7 +124,7 @@ export default function TeacherGradingPage() {
                                                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Submitted Files</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {sub.files.map(f => (
-                                                        <span key={f} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">{f}</span>
+                                                        <span key={f} className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-100">{f}</span>
                                                     ))}
                                                 </div>
                                             </div>
@@ -156,9 +156,9 @@ export default function TeacherGradingPage() {
                                             </div>
 
                                             {isSaved ? (
-                                                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                                    <p className="text-sm font-bold text-emerald-700">Grade saved and student notified!</p>
+                                                <div className="flex items-center gap-2 p-3 bg-sky-50 rounded-xl border border-sky-100">
+                                                    <CheckCircle2 className="w-4 h-4 text-sky-600" />
+                                                    <p className="text-sm font-bold text-sky-700">Grade saved and student notified!</p>
                                                 </div>
                                             ) : (
                                                 <button

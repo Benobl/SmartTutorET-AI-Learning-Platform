@@ -21,9 +21,9 @@ export default function TeacherAnnouncementsPage() {
 
     const categoryColor = (cat: string) => {
         switch (cat) {
-            case "academic": return "bg-indigo-50 text-indigo-600 border-indigo-100"
+            case "academic": return "bg-sky-50 text-sky-600 border-sky-100"
             case "urgent": return "bg-red-50 text-red-600 border-red-100"
-            case "administrative": return "bg-emerald-50 text-emerald-600 border-emerald-100"
+            case "administrative": return "bg-sky-50 text-sky-600 border-sky-100"
             default: return "bg-amber-50 text-amber-600 border-amber-100"
         }
     }
@@ -90,9 +90,9 @@ export default function TeacherAnnouncementsPage() {
             )}
 
             {sent && (
-                <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Check className="w-5 h-5 text-emerald-600" />
-                    <p className="text-sm font-bold text-emerald-700">Announcement sent successfully to all students!</p>
+                <div className="flex items-center gap-3 p-4 bg-sky-50 rounded-2xl border border-sky-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Check className="w-5 h-5 text-sky-600" />
+                    <p className="text-sm font-bold text-sky-700">Announcement sent successfully to all students!</p>
                 </div>
             )}
 

@@ -19,6 +19,8 @@ import {
     ChevronRight,
     Sparkles,
     Users,
+    DollarSign,
+    BarChart3,
 } from "lucide-react"
 import {
     Sidebar,
@@ -112,55 +114,59 @@ const studentNavItems: NavItem[] = [
  */
 const teacherNavItems: NavItem[] = [
     {
-        title: "Overview",
-        url: "/dashboard/teacher",
+        title: "Dashboard",
+        url: "/dashboard/tutor",
         icon: LayoutDashboard,
         activeColor: "sky",
     },
     {
         title: "My Courses",
-        url: "/dashboard/teacher/courses",
+        url: "/dashboard/tutor/courses",
         icon: BookOpen,
-        activeColor: "blue",
+        activeColor: "sky",
+    },
+    {
+        title: "My Students",
+        url: "/dashboard/tutor/students",
+        icon: Users,
+        activeColor: "sky",
     },
     {
         title: "Assignments",
-        url: "/dashboard/teacher/assignments",
+        url: "/dashboard/tutor/homework",
         icon: FileText,
-        activeColor: "rose",
+        activeColor: "sky",
         badge: 2,
     },
     {
-        title: "Submissions",
-        url: "/dashboard/teacher/submissions",
+        title: "Live Classes",
+        url: "/dashboard/tutor/live",
         icon: CalendarCheck,
-        activeColor: "emerald",
-        badge: 6,
+        activeColor: "sky",
     },
     {
-        title: "Grading",
-        url: "/dashboard/teacher/grading",
+        title: "Earnings",
+        url: "/dashboard/tutor/earnings",
+        icon: DollarSign,
+        activeColor: "sky",
+    },
+    {
+        title: "Class Squad",
+        url: "/dashboard/tutor/squads",
+        icon: Users,
+        activeColor: "sky",
+    },
+    {
+        title: "Quizzes",
+        url: "/dashboard/tutor/quizzes",
         icon: GraduationCap,
-        activeColor: "violet",
-    },
-    {
-        title: "Announcements",
-        url: "/dashboard/teacher/announcements",
-        icon: Bell,
-        activeColor: "orange",
-    },
-    {
-        title: "Messages",
-        url: "/dashboard/teacher/messages",
-        icon: MessageSquare,
-        activeColor: "indigo",
-        badge: 3,
+        activeColor: "sky",
     },
     {
         title: "Analytics",
-        url: "/dashboard/teacher/analytics",
-        icon: CalendarDays,
-        activeColor: "amber",
+        url: "/dashboard/tutor/analytics",
+        icon: BarChart3,
+        activeColor: "sky",
     },
 ]
 
@@ -203,7 +209,7 @@ export function DashboardSidebar() {
     const isCollapsed = state === "collapsed"
     const [expandedItem, setExpandedItem] = useState<string | null>(null)
 
-    const isTeacher = pathname.startsWith("/dashboard/teacher")
+    const isTeacher = pathname.startsWith("/dashboard/teacher") || pathname.startsWith("/dashboard/tutor")
     const navigationItems = isTeacher ? teacherNavItems : studentNavItems
     const navLabel = isTeacher ? "Teacher Menu" : "Main Menu"
 

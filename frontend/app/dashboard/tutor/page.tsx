@@ -1,477 +1,233 @@
 "use client"
 
-import { useState } from "react"
+import {
+    Users, BookOpen, Clock, Activity, Video,
+    Sparkles, ArrowUpRight, GraduationCap,
+    CheckCircle2, AlertCircle, Brain, Calendar,
+    Plus, ChevronRight, BarChart3, TrendingUp, DollarSign
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { TutorSidebar } from "@/components/dashboards/tutor/sidebar"
-import { TutorHeader } from "@/components/dashboards/tutor/header"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts"
-import { Clock, Users, DollarSign, CheckCircle2, Mail, Star, Calendar, TrendingUp, Activity, Shield, Eye, MessageSquare, UserCheck, BarChart3, PieChart as PieChartIcon } from "lucide-react"
+import { mockTeacherData } from "@/lib/teacher-data"
 
-const earningsData = [
-  { month: "Jan", earnings: 1450, students: 8 },
-  { month: "Feb", earnings: 1820, students: 10 },
-  { month: "Mar", earnings: 2140, students: 12 },
-  { month: "Apr", earnings: 1980, students: 11 },
-  { month: "May", earnings: 2560, students: 14 },
-  { month: "Jun", earnings: 2340, students: 13 },
-  { month: "Jul", earnings: 2870, students: 15 },
-]
+export default function TeacherOverview() {
+    return (
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
-const subjectDistributionData = [
-  { name: "Mathematics", value: 35, color: "#307995" },
-  { name: "Physics", value: 25, color: "#4CAF50" },
-  { name: "Chemistry", value: 20, color: "#FF9800" },
-  { name: "Biology", value: 15, color: "#9C27B0" },
-  { name: "Other", value: 5, color: "#F44336" },
-]
-
-const studentsData = [
-  { name: "Abebe Tadesse", grade: "Grade 10", subject: "Math", status: "Active", rating: 4.8, sessions: 24 },
-  { name: "Marta Bekele", grade: "Grade 11", subject: "Physics", status: "Active", rating: 4.9, sessions: 18 },
-  { name: "Yohannes Kemal", grade: "Grade 9", subject: "Chemistry", status: "Inactive", rating: 4.7, sessions: 12 },
-  { name: "Helen Girma", grade: "Grade 12", subject: "Math", status: "Active", rating: 4.6, sessions: 30 },
-  { name: "Samuel Tekle", grade: "Grade 10", subject: "Biology", status: "Active", rating: 4.5, sessions: 15 },
-]
-
-const sessionStats = [
-  { label: "Completed", value: "42", change: "+8%" },
-  { label: "Upcoming", value: "12", change: "+3" },
-  { label: "Cancelled", value: "3", change: "-1" },
-  { label: "Rescheduled", value: "7", change: "+2" },
-]
-
-export default function TutorDashboard() {
-  const [tutorStatus] = useState<"pending" | "approved" | "verified">("verified")
-  const [hoveredStudent, setHoveredStudent] = useState<number | null>(null)
-  const [activeChart, setActiveChart] = useState<"earnings" | "students">("earnings")
-
-  return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <TutorSidebar />
-
-      <div className="flex-1 overflow-auto">
-        <TutorHeader />
-
-        <main className="container px-4 md:px-8 py-8 space-y-8">
-          {/* Dashboard Header with Stats */}
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl md:text-4xl font-bold text-[#1D2637]">Tutor Dashboard</h1>
-                  <Badge className="flex items-center gap-2 px-4 py-2 text-base bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
-                    <Shield className="w-4 h-4" />
-                    <span>PRO</span>
-                  </Badge>
-                </div>
-                <p className="text-gray-600">Monitor your tutoring performance and student engagement</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge className="flex items-center gap-2 px-4 py-2 text-base bg-green-100 text-green-700 border border-green-200">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Verified Tutor</span>
-                </Badge>
-                <Badge variant="outline" className="px-4 py-2 text-base">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  <span>Rank: Top 5%</span>
-                </Badge>
-              </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  icon: Users,
-                  label: "Active Students",
-                  value: "12",
-                  change: "+2 this month",
-                  color: "from-blue-500 to-blue-600",
-                  bgColor: "bg-blue-50",
-                  iconColor: "text-blue-600"
-                },
-                {
-                  icon: DollarSign,
-                  label: "Monthly Earnings",
-                  value: "$2,870",
-                  change: "+12.5% from last month",
-                  color: "from-emerald-500 to-emerald-600",
-                  bgColor: "bg-emerald-50",
-                  iconColor: "text-emerald-600"
-                },
-                {
-                  icon: Star,
-                  label: "Average Rating",
-                  value: "4.8/5",
-                  change: "98% satisfaction",
-                  color: "from-amber-500 to-amber-600",
-                  bgColor: "bg-amber-50",
-                  iconColor: "text-amber-600"
-                },
-                {
-                  icon: Activity,
-                  label: "Total Sessions",
-                  value: "64",
-                  change: "87% completion rate",
-                  color: "from-purple-500 to-purple-600",
-                  bgColor: "bg-purple-50",
-                  iconColor: "text-purple-600"
-                },
-              ].map((stat, idx) => (
-                <Card key={idx} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.iconColor}`}>
-                        <stat.icon className="w-6 h-6" />
-                      </div>
-                      <Badge variant="secondary" className="text-xs font-medium">
-                        {stat.change}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                        {stat.label}
-                      </p>
-                      <p className="text-2xl md:text-3xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Left Column - Charts */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Earnings/Students Chart */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Upper Welcome Section */}
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
+                <div className="space-y-6">
                     <div>
-                      <CardTitle className="text-xl">Performance Overview</CardTitle>
-                      <CardDescription>Monthly earnings and student growth</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={activeChart === "earnings" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setActiveChart("earnings")}
-                        className={`${activeChart === "earnings" ? "bg-gradient-to-r from-blue-500 to-blue-600" : ""}`}
-                      >
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Earnings
-                      </Button>
-                      <Button
-                        variant={activeChart === "students" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setActiveChart("students")}
-                        className={`${activeChart === "students" ? "bg-gradient-to-r from-emerald-500 to-emerald-600" : ""}`}
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Students
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={earningsData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis
-                          dataKey="month"
-                          stroke="#666"
-                          fontSize={12}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          stroke="#666"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                          formatter={(value) => [`$${value}`, "Earnings"]}
-                        />
-                        <Bar
-                          dataKey={activeChart === "earnings" ? "earnings" : "students"}
-                          fill={activeChart === "earnings" ? "#307995" : "#4CAF50"}
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Session Statistics */}
-              <div className="grid md:grid-cols-4 gap-4">
-                {sessionStats.map((stat, idx) => (
-                  <Card key={idx} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="text-center space-y-2">
-                        <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                        <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                        <Badge variant="outline" className={`text-xs ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                          {stat.change}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Students Table */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserCheck className="w-5 h-5" />
-                    My Students
-                  </CardTitle>
-                  <CardDescription>Active and inactive students with their performance metrics</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Student</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Grade & Subject</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Rating</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Sessions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {studentsData.map((student, idx) => (
-                          <tr
-                            key={idx}
-                            className="border-b hover:bg-gray-50 transition-colors"
-                            onMouseEnter={() => setHoveredStudent(idx)}
-                            onMouseLeave={() => setHoveredStudent(null)}
-                          >
-                            <td className="py-3 px-4">
-                              <div className="font-medium text-gray-900">{student.name}</div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="text-sm text-gray-600">
-                                {student.grade} - {student.subject}
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <Badge
-                                className={`${student.status === "Active"
-                                  ? "bg-green-100 text-green-700 border-green-200"
-                                  : "bg-gray-100 text-gray-700 border-gray-200"
-                                }`}
-                              >
-                                {student.status}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                                <span className="font-bold text-gray-900">{student.rating}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="text-sm font-medium text-gray-900">{student.sessions}</div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <Button variant="outline" className="w-full mt-4">
-                    View All Students
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Subject Distribution */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChartIcon className="w-5 h-5" />
-                    Subject Distribution
-                  </CardTitle>
-                  <CardDescription>Subjects taught by popularity</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={subjectDistributionData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {subjectDistributionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => [`${value}%`, "Share"]}
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px",
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Messages */}
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-blue-600" />
-                    Recent Messages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    {
-                      from: "Abebe Tadesse",
-                      message: "Can we schedule an extra session for trigonometry?",
-                      time: "2 mins ago",
-                      unread: true
-                    },
-                    {
-                      from: "Marta Bekele",
-                      message: "Thank you for the help with the physics problem!",
-                      time: "1 hour ago",
-                      unread: false
-                    },
-                    {
-                      from: "Parent - Mr. Tekle",
-                      message: "Regarding Samuel's progress report...",
-                      time: "3 hours ago",
-                      unread: true
-                    },
-                  ].map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-4 rounded-lg border space-y-2 transition-all hover:shadow-md ${msg.unread ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <p className="font-semibold text-gray-900">{msg.from}</p>
-                        {msg.unread && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{msg.message}</p>
-                      <p className="text-xs text-gray-500">{msg.time}</p>
-                    </div>
-                  ))}
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                    Reply to All Messages
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Upcoming Sessions */}
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-purple-600" />
-                    Upcoming Sessions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    {
-                      student: "Abebe Tadesse",
-                      time: "Today, 4:00 PM",
-                      subject: "Mathematics",
-                      duration: "1.5 hours",
-                      type: "Online"
-                    },
-                    {
-                      student: "Marta Bekele",
-                      time: "Tomorrow, 2:00 PM",
-                      subject: "Physics",
-                      duration: "2 hours",
-                      type: "In-person"
-                    },
-                    {
-                      student: "Helen Girma",
-                      time: "Tomorrow, 5:00 PM",
-                      subject: "Calculus",
-                      duration: "1 hour",
-                      type: "Online"
-                    },
-                  ].map((session, idx) => (
-                    <div key={idx} className="p-4 rounded-lg border border-gray-200 space-y-2 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900">{session.student}</p>
-                          <p className="text-sm text-gray-600">{session.subject}</p>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100/50">Educator Portal</span>
+                            <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {session.type}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-purple-600">{session.time}</span>
-                        <span className="text-gray-500">{session.duration}</span>
-                      </div>
+                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                            Welcome Back, <span className='text-sky-600'>{mockTeacherData.personal.name.split(' ')[0]}</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                            Your students are making progress. Today you have {mockTeacherData.schedule.filter(s => s.type === 'live').length} live classes scheduled.
+                        </p>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
 
-              {/* Profile Strength */}
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-gray-50 to-white">
-                <CardHeader>
-                  <CardTitle>Profile Strength</CardTitle>
-                  <CardDescription>Complete your profile to attract more students</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-gray-700">Profile Completeness</span>
-                      <span className="font-bold text-green-600">92%</span>
+                    <div className="flex items-center gap-4">
+                        <Button className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:scale-105 transition-transform active:scale-95">
+                            <Plus className="w-4 h-4 text-white" /> Create New Course
+                        </Button>
+                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all">
+                            <Calendar className="w-4 h-4 mr-2" /> View Full Calendar
+                        </Button>
                     </div>
-                    <Progress value={92} className="h-2 bg-gray-200" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-gray-700">Response Rate</span>
-                      <span className="font-bold text-blue-600">98%</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[240px]">
+                        <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100">
+                            <Users className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Active Students</p>
+                            <h2 className="text-2xl font-black text-slate-900">97</h2>
+                        </div>
                     </div>
-                    <Progress value={98} className="h-2 bg-gray-200" />
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    Complete Profile
-                  </Button>
-                </CardContent>
-              </Card>
+                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[240px]">
+                        <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100">
+                            <TrendingUp className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Class Average</p>
+                            <h2 className="text-2xl font-black text-slate-900">{mockTeacherData.classAverage}%</h2>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  )
+
+            {/* Main Dashboard Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+
+                {/* Left Column: Courses & Stats */}
+                <div className="xl:col-span-2 space-y-10">
+
+                    {/* Active Courses Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Your Active Courses</h3>
+                            <button className="text-[10px] font-black text-sky-500 uppercase tracking-widest flex items-center gap-1.5 group">
+                                View Catalog <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {mockTeacherData.courses.map(course => (
+                                <div
+                                    key={course.id}
+                                    className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 cursor-pointer relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 right-0 p-6">
+                                        <span className="px-3 py-1 rounded-xl bg-slate-50 text-slate-400 text-[8px] font-black uppercase tracking-widest border border-slate-100">Grade {course.grade}</span>
+                                    </div>
+                                    <div className="space-y-6 relative z-10">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-all shadow-sm">
+                                                <BookOpen className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-black text-slate-900 leading-tight group-hover:text-sky-600 transition-colors uppercase italic">{course.name}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{course.studentCount} Students Enrolled</p>
+                                            </div>
+                                        </div>
+                                        <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Completion</p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-sky-500 rounded-full" style={{ width: `${course.completionRate}%` }} />
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-slate-900">{course.completionRate}%</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Quizzes</p>
+                                                <p className="text-[10px] font-black text-sky-600">{course.activeQuizzes} Quizzes</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-sky-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Analytics Preview Card */}
+                    <div className="p-10 rounded-[48px] bg-slate-900 text-white relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-500/10 blur-3xl rounded-full -mr-64 -mt-64" />
+                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-black uppercase tracking-widest mb-4">AI Insight Engine</div>
+                                    <h3 className="text-3xl font-black uppercase italic leading-none tracking-tighter">Student Readiness <span className="text-sky-400 block mt-2">Analysis</span></h3>
+                                </div>
+                                <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                                    Our AI has analyzed the last Physics midterm scores. 12% of your Grade 12 students are struggling with derivation logic.
+                                </p>
+                                <Button className="h-12 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20 group">
+                                    Generate Intervention Plan <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                </Button>
+                            </div>
+                            <div className="flex justify-center lg:justify-end">
+                                <div className="w-64 h-64 rounded-[40px] bg-white/5 border border-white/10 p-8 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between">
+                                        <BarChart3 className="w-8 h-8 text-sky-400" />
+                                        <Activity className="w-5 h-5 text-sky-400" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-sky-500 w-[78%]" />
+                                        </div>
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-sky-400 w-[45%]" />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Readiness: 72%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Schedule & Tasks */}
+                <div className="space-y-10">
+
+                    {/* Live Schedule */}
+                    <div className="space-y-6">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Today's Schedule</h3>
+                        <div className="space-y-4">
+                            {mockTeacherData.schedule.map((item, idx) => (
+                                <div key={idx} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden">
+                                    <div className="flex items-start gap-4">
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm",
+                                            item.type === 'live' ? "bg-rose-50 border-rose-100 text-rose-500" :
+                                                item.type === 'office' ? "bg-sky-50 border-sky-100 text-sky-500" :
+                                                    "bg-sky-50 border-sky-100 text-sky-500"
+                                        )}>
+                                            {item.type === 'live' ? <Video className="w-5 h-5" /> :
+                                                item.type === 'office' ? <Clock className="w-5 h-5" /> :
+                                                    <GraduationCap className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.time}</span>
+                                                {item.type === 'live' && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
+                                            </div>
+                                            <h4 className="text-[13px] font-black text-slate-900 leading-tight mb-1 truncate">{item.activity}</h4>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.course}</p>
+                                        </div>
+                                    </div>
+                                    {item.type === 'live' && (
+                                        <div className="mt-4 pt-4 border-t border-slate-50">
+                                            <Button className="w-full h-10 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
+                                                Join Live Session
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Pending Tasks / Squads */}
+                    <div className="p-10 rounded-[48px] bg-sky-600 text-white relative shadow-2xl shadow-sky-500/20 group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full -mr-16 -mt-16" />
+                        <div className="relative z-10 space-y-8">
+                            <div>
+                                <h3 className="text-xl font-black uppercase italic tracking-tight mb-2">Grading Queue</h3>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl font-black text-white">{mockTeacherData.pendingHomework}</span>
+                                    <span className="text-xs font-black text-sky-300 uppercase tracking-widest">Pending</span>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                {mockTeacherData.squads.map(squad => (
+                                    <div key={squad.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 transition-all cursor-pointer">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-lg shadow-sky-500/50" />
+                                            <div>
+                                                <p className="text-[11px] font-black uppercase tracking-tight">{squad.name}</p>
+                                                <p className="text-[8px] font-medium text-sky-200 uppercase tracking-widest">{squad.studentCount} Students</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-white/50" />
+                                    </div>
+                                ))}
+                            </div>
+                            <Button className="w-full h-14 rounded-2xl bg-white text-sky-600 font-black text-[10px] uppercase tracking-widest hover:bg-sky-50 shadow-xl transition-all">
+                                Open Grading Hub
+                            </Button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    )
 }
