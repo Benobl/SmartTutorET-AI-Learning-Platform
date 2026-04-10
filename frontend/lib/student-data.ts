@@ -99,6 +99,7 @@ export const courses = [
 
 // ─── Grades & Marks ─────────────────────────────────────────────────
 export const grades = [
+    // Grade 12 - Semester 1
     {
         courseId: 1,
         courseName: "Mathematics - Calculus",
@@ -136,6 +137,7 @@ export const grades = [
             { name: "Final Exam", score: 88, total: 100, weight: 40, date: "2026-01-30" },
         ],
     },
+    // Grade 12 - Semester 2
     {
         courseId: 3,
         courseName: "English Literature",
@@ -155,6 +157,96 @@ export const grades = [
         ],
     },
     {
+        courseId: 7,
+        courseName: "Economics",
+        code: "ECON-401",
+        tutor: "Mr. Dawit Isaac",
+        letterGrade: "A-",
+        percentage: 92,
+        credits: 3,
+        trend: "up" as const,
+        gradeLevel: "12",
+        semester: 2,
+        assessments: [
+            { name: "Market Analysis", score: 94, total: 100, weight: 20, date: "2026-03-05" },
+            { name: "Midterm Exam", score: 90, total: 100, weight: 30, date: "2026-04-15" },
+            { name: "Final Paper", score: 93, total: 100, weight: 50, date: "2026-06-15" },
+        ],
+    },
+    // Grade 11 - Semester 1
+    {
+        courseId: 4,
+        courseName: "Biology - Genetics",
+        code: "BIOL-301",
+        tutor: "Ms. Tigist Wolde",
+        letterGrade: "A-",
+        percentage: 90,
+        credits: 4,
+        trend: "stable" as const,
+        gradeLevel: "11",
+        semester: 1,
+        assessments: [
+            { name: "Lab Report", score: 88, total: 100, weight: 20, date: "2024-09-30" },
+            { name: "Midterm Exam", score: 91, total: 100, weight: 30, date: "2024-11-20" },
+            { name: "Final Exam", score: 92, total: 100, weight: 50, date: "2025-01-25" },
+        ],
+    },
+    // Grade 11 - Semester 2
+    {
+        courseId: 8,
+        courseName: "World History",
+        code: "HIST-302",
+        tutor: "Mr. Solomon Girma",
+        letterGrade: "B+",
+        percentage: 87,
+        credits: 3,
+        trend: "down" as const,
+        gradeLevel: "11",
+        semester: 2,
+        assessments: [
+            { name: "Research Essay", score: 84, total: 100, weight: 30, date: "2025-03-10" },
+            { name: "Midterm Exam", score: 86, total: 100, weight: 30, date: "2025-04-15" },
+            { name: "Final Presentation", score: 91, total: 100, weight: 40, date: "2025-06-20" },
+        ],
+    },
+    // Grade 10 - Semester 1
+    {
+        courseId: 5,
+        courseName: "Chemistry - Inorganic",
+        code: "CHEM-201",
+        tutor: "Dr. Hana Mekonnen",
+        letterGrade: "A",
+        percentage: 93,
+        credits: 4,
+        trend: "up" as const,
+        gradeLevel: "10",
+        semester: 1,
+        assessments: [
+            { name: "Quiz 1", score: 95, total: 100, weight: 10, date: "2023-09-15" },
+            { name: "Midterm Exam", score: 91, total: 100, weight: 40, date: "2023-11-10" },
+            { name: "Final Exam", score: 94, total: 100, weight: 50, date: "2024-01-20" },
+        ],
+    },
+    // Grade 10 - Semester 2
+    {
+        courseId: 9,
+        courseName: "Geography",
+        code: "GEOG-202",
+        tutor: "Ms. Bethlehem Assefa",
+        letterGrade: "A-",
+        percentage: 89,
+        credits: 3,
+        trend: "stable" as const,
+        gradeLevel: "10",
+        semester: 2,
+        assessments: [
+            { name: "Map Project", score: 90, total: 100, weight: 30, date: "2024-03-12" },
+            { name: "Midterm Exam", score: 88, total: 100, weight: 30, date: "2024-04-18" },
+            { name: "Final Exam", score: 89, total: 100, weight: 40, date: "2024-06-12" },
+        ],
+    },
+    // Grade 9 - Semester 1
+    {
         courseId: 10,
         courseName: "Amharic Literature",
         code: "AMH-101",
@@ -171,6 +263,7 @@ export const grades = [
             { name: "Final Exam", score: 90, total: 100, weight: 50, date: "2023-01-30" },
         ],
     },
+    // Grade 9 - Semester 2
     {
         courseId: 11,
         courseName: "General Science",
@@ -312,11 +405,58 @@ export const upcomingDeadlines = [
     { title: "History Research Paper", course: "History", dueDate: "2026-03-23", dueLabel: "In 2 weeks", color: "emerald" },
 ]
 
-// ─── Recent Activity ────────────────────────────────────────────────
+// ─── Activity History ───────────────────────────────────────────────
 export const recentActivity = [
-    { title: "Assignment Submitted", sub: "Short Story Analysis — English", time: "2h ago", color: "emerald" },
-    { title: "New Material Uploaded", sub: "Calculus Formula Sheet — Mathematics", time: "5h ago", color: "sky" },
-    { title: "Grade Posted", sub: "Algebra Quiz #2 — 95/100", time: "1d ago", color: "amber" },
-    { title: "Meeting with Tutor", sub: "Project Review — Dr. Kebede", time: "2d ago", color: "indigo" },
-    { title: "Attendance Marked", sub: "All classes attended today", time: "3d ago", color: "emerald" },
+    { title: "Calculus Quiz", sub: "Mastered 'Derivatives'", time: "2h ago", color: "emerald", category: "Quiz" },
+    { title: "Study Group", sub: "Joined 'Physics Mech-1'", time: "4h ago", color: "sky", category: "Social" },
+    { title: "Assignment Sub", sub: "English Essay #2", time: "Yesterday", color: "indigo", category: "Assignment" },
+    { title: "Grade Posted", sub: "Biology Midterm: 92%", time: "2 days ago", color: "amber", category: "Result" },
+    { title: "Course Enrolled", sub: "Economics 101", time: "3 days ago", color: "sky", category: "Course" },
+    { title: "AI Tutor Session", sub: "Clarified Matrix algebra", time: "4 days ago", color: "purple", category: "AI" },
+    { title: "New Material", sub: "Chemistry Lab Guide", time: "1 week ago", color: "emerald", category: "Resource" },
+    { title: "System Update", sub: "V2.4 Dashboard Live", time: "Oct 12", color: "slate", category: "System" },
+]
+
+// ─── Class Squad (Communal Q&A) ───────────────────────────────────
+export const squadPosts = [
+    {
+        id: 1,
+        author: "Sarah J.",
+        avatar: "/avatars/sarah.jpg",
+        content: "Does anyone have the simplified formula for the multi-variable chain rule? The textbook explanation is a bit dense.",
+        subject: "Mathematics",
+        replies: 4,
+        likes: 12,
+        time: "45m ago",
+        tags: ["Calculus", "ChainRule"],
+        answers: [
+            { author: "Dawit I.", avatar: "/avatars/dawit.jpg", content: "Check out page 142, there's a matrix representation that makes it way clearer!", time: "12m ago" }
+        ]
+    },
+    {
+        id: 2,
+        author: "Abebe B.",
+        avatar: "/avatars/abebe.jpg",
+        content: "What's the main theme we should focus on for the 'Hamlet' essay? Is it madness or revenge?",
+        subject: "English",
+        replies: 2,
+        likes: 5,
+        time: "3h ago",
+        tags: ["Literature", "Shakespeare"],
+        answers: []
+    }
+]
+
+// ─── Study Groups ──────────────────────────────────────────────────
+export const studyGroups = [
+    { id: 1, name: "Physics Mechanics Group", course: "Physics", students: 5, status: "Active", link: "meet.google.com/abc-defg-hij" },
+    { id: 2, name: "Chemistry Lab Prep", course: "Chemistry", students: 3, status: "Pending", link: "meet.google.com/xyz-123-uvw" },
+]
+
+// ─── Friends ───────────────────────────────────────────────────────
+export const friends = [
+    { id: 1, name: "Dawit Isaac", online: true, courses: ["Math", "Physics"] },
+    { id: 2, name: "Liya Tekle", online: true, courses: ["Math", "English"] },
+    { id: 3, name: "Abebe Bikila", online: false, courses: ["History"] },
+    { id: 4, name: "Bethlehem Assefa", online: true, courses: ["Biology"] },
 ]

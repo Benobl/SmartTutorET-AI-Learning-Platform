@@ -18,6 +18,7 @@ import {
     LogOut,
     ChevronRight,
     Sparkles,
+    Users,
 } from "lucide-react"
 import {
     Sidebar,
@@ -64,10 +65,6 @@ const studentNavItems: NavItem[] = [
         url: "/dashboard/student/courses",
         icon: BookOpen,
         activeColor: "blue",
-        items: [
-            { title: "Enrolled", url: "/dashboard/student/courses" },
-            { title: "Browse Catalog", url: "/courses" },
-        ],
     },
     {
         title: "Grades & Marks",
@@ -93,6 +90,13 @@ const studentNavItems: NavItem[] = [
         icon: FileText,
         badge: 2,
         activeColor: "rose",
+    },
+    {
+        title: "Class Squad",
+        url: "/dashboard/student/squad",
+        icon: Users,
+        activeColor: "sky",
+        badge: 4,
     },
     {
         title: "Announcements",
