@@ -6,7 +6,7 @@ import {
     CheckCircle2, AlertCircle, Clock, Timer,
     GraduationCap, BookOpen, Users, BarChart3,
     ArrowUpRight, ChevronRight, ListChecks,
-    History, PenTool, Activity, Send, Filter
+    History, PenTool, Activity, Send, Filter, Trophy
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,8 +15,10 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import {
     Dialog, DialogContent, DialogHeader,
-    DialogTitle, DialogTrigger, DialogFooter
+    DialogTitle, DialogTrigger, DialogFooter,
+    DialogDescription
 } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const MOCK_QUIZZES = [
     { id: "q1", title: "Intro to Particles", type: "AI-Generated", course: "Physics G12", questions: 10, completed: 42, avgScore: "84%", status: "active" },
@@ -27,9 +29,21 @@ const MOCK_QUIZZES = [
 export default function TeacherQuizzes() {
     const { toast } = useToast()
     const [isGenerating, setIsGenerating] = useState(false)
-    const [activeTab, setActiveTab] = useState<"ai" | "manual">("ai")
+    const [isManualCreating, setIsManualCreating] = useState(false)
+    const [isAnalysisOpen, setIsAnalysisOpen] = useState(false)
+    const [selectedQuiz, setSelectedQuiz] = useState<any>(null)
+    const [prompt, setPrompt] = useState("")
+    const [selectedCourse, setSelectedCourse] = useState("Physics G12")
 
     const handleGenerate = () => {
+        if (!prompt) {
+            toast({
+                title: "Prompt Required",
+                description: "Please describe the topic for AI generation.",
+                variant: "destructive"
+            })
+            return
+        }
         setIsGenerating(true)
         setTimeout(() => {
             setIsGenerating(false)
@@ -60,10 +74,13 @@ export default function TeacherQuizzes() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform">
-                            <Plus className="w-4 h-4 text-sky-400" /> Create Static Test
+                        <Button
+                            onClick={() => setIsManualCreating(true)}
+                            className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:scale-105 transition-all"
+                        >
+                            <Plus className="w-4 h-4 text-white" /> Create Static Test
                         </Button>
-                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all">
+                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50 transition-all">
                             <History className="w-4 h-4 mr-2" /> Recent Drafts
                         </Button>
                     </div>
@@ -92,32 +109,48 @@ export default function TeacherQuizzes() {
             </div>
 
             {/* AI Generator Panel */}
-            <div className="p-10 lg:p-16 rounded-[64px] bg-sky-600 text-white relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/10 blur-3xl rounded-full -mr-64 -mt-64 group-hover:scale-110 transition-transform duration-[3000ms]" />
+            <div className="p-10 lg:p-16 rounded-[64px] bg-white border border-slate-100 shadow-2xl shadow-slate-200/20 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-sky-500/5 blur-3xl rounded-full -mr-64 -mt-64 group-hover:scale-110 transition-transform duration-[3000ms]" />
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <div className="space-y-8">
                         <div>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-widest mb-6">AI-Powered Question Engine</div>
-                            <h2 className="text-4xl lg:text-5xl font-black text-white leading-none tracking-tight uppercase italic">Instant <span className="text-sky-200">Quiz</span> Generator</h2>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest mb-6 border border-sky-100">AI-Powered Question Engine</div>
+                            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 leading-none tracking-tight uppercase italic">Instant <span className="text-sky-600">Quiz</span> Generator</h2>
                         </div>
-                        <p className="text-sky-100 text-lg font-medium leading-relaxed">
+                        <p className="text-slate-500 text-lg font-medium leading-relaxed">
                             Describe your topic or paste lesson content. Our AI will automatically generate multiple-choice, short-answer, and essay questions tailored for your grade level.
                         </p>
                         <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                                    <SelectTrigger className="h-12 w-48 rounded-xl bg-slate-50 border-slate-100 text-slate-900 font-black text-[10px] uppercase tracking-widest outline-none focus:ring-sky-500/20">
+                                        <SelectValue placeholder="Select Course" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-slate-100">
+                                        <SelectItem value="Physics G12">Physics G12</SelectItem>
+                                        <SelectItem value="Math G11">Math G11</SelectItem>
+                                        <SelectItem value="Biology G10">Biology G10</SelectItem>
+                                        <SelectItem value="Chemistry G12">Chemistry G12</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <span className="text-[10px] font-black uppercase text-sky-400">Targeting {selectedCourse}</span>
+                            </div>
                             <textarea
                                 placeholder="Topic: Ethiopian History - The Battle of Adwa... (Or Grade 12 Physics: Magnetism)"
-                                className="w-full h-32 rounded-[28px] bg-white/10 border border-white/20 p-6 text-white placeholder:text-sky-300 font-medium outline-none focus:bg-white/20 focus:ring-4 focus:ring-white/5 transition-all"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="w-full h-32 rounded-[28px] bg-slate-50 border border-slate-100 p-6 text-slate-900 placeholder:text-slate-300 font-medium outline-none focus:bg-white focus:ring-4 focus:ring-sky-500/5 transition-all shadow-inner"
                             />
                             <div className="flex items-center gap-4">
                                 <Button
                                     onClick={handleGenerate}
                                     disabled={isGenerating}
-                                    className="h-16 px-10 rounded-2xl bg-white text-sky-600 font-black text-xs uppercase tracking-widest shadow-2xl hover:scale-105 transition-all"
+                                    className="h-16 px-10 rounded-2xl bg-sky-600 text-white font-black text-xs uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:scale-105 transition-all"
                                 >
                                     {isGenerating ? "Analyzing Topic..." : "Generate 15 Questions"}
                                     {!isGenerating && <Sparkles className="ml-3 w-4 h-4" />}
                                 </Button>
-                                <Button variant="outline" className="h-16 px-10 rounded-2xl border-white/20 bg-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/20 transition-all">
+                                <Button variant="outline" className="h-16 px-10 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-xs uppercase tracking-widest hover:text-sky-600 transition-all">
                                     Advanced Settings
                                 </Button>
                             </div>
@@ -207,7 +240,14 @@ export default function TeacherQuizzes() {
 
                                 <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{quiz.type}</span>
-                                    <Button size="sm" className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-all">
+                                    <Button
+                                        onClick={() => {
+                                            setSelectedQuiz(quiz)
+                                            setIsAnalysisOpen(true)
+                                        }}
+                                        size="sm"
+                                        className="h-10 px-6 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-500/20"
+                                    >
                                         Analyze Data
                                     </Button>
                                 </div>
@@ -223,6 +263,135 @@ export default function TeacherQuizzes() {
                 </div>
             </div>
 
+            {/* Manual Creation Dialog */}
+            <Dialog open={isManualCreating} onOpenChange={setIsManualCreating}>
+                <DialogContent className="sm:max-w-[600px] rounded-[48px] border-slate-100 p-10 bg-white shadow-3xl">
+                    <DialogHeader>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Manual Entry</span>
+                            <PenTool className="w-4 h-4 text-sky-400" />
+                        </div>
+                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Create <span className="text-sky-600">Static Test</span></DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">Design your own curriculum-specific questions and upload them to the library.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-8 space-y-6">
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quiz Title</Label>
+                            <Input placeholder="e.g. Unit 3: Thermodynamics Final" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Duration (Min)</Label>
+                                <Input type="number" placeholder="45" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold" />
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Points</Label>
+                                <Input type="number" placeholder="100" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold" />
+                            </div>
+                        </div>
+                        <div className="p-8 rounded-[32px] border-2 border-dashed border-slate-100 bg-slate-50 text-center space-y-3 group cursor-pointer hover:bg-sky-50 hover:border-sky-200 transition-all relative">
+                            <input
+                                type="file"
+                                accept=".pdf,.csv,.xlsx,.json"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                        toast({
+                                            title: "File Uploading",
+                                            description: `Parsing ${file.name} for questions...`,
+                                        })
+                                    }
+                                }}
+                            />
+                            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
+                                <Activity className="w-6 h-6 text-sky-400" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Upload Question Sheet or PDF</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Accepts .PDF, .CSV, .XLSX or .JSON</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                setIsManualCreating(false)
+                                toast({ title: "Quiz Framework Created", description: "You can now start adding questions to the editor." })
+                            }}
+                            className="w-full h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest shadow-2xl shadow-sky-500/20 transition-all"
+                        >
+                            Initialize Quiz <ArrowUpRight className="ml-2 w-5 h-5" />
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Analysis Dialog */}
+            <Dialog open={isAnalysisOpen} onOpenChange={setIsAnalysisOpen}>
+                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
+                    <div className="p-10 bg-slate-50 border-b border-slate-100">
+                        <DialogHeader>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100">Performance Intelligence</span>
+                                <BarChart3 className="w-4 h-4 text-amber-500" />
+                            </div>
+                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Assessment <span className="text-sky-600">Analytics</span></DialogTitle>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedQuiz?.title} • {selectedQuiz?.course}</p>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="p-10 space-y-10">
+                        <div className="grid grid-cols-3 gap-6">
+                            {[
+                                { label: "Pass Rate", value: "88%", icon: CheckCircle2, color: "text-emerald-500" },
+                                { label: "High Score", value: "98/100", icon: Trophy, color: "text-amber-500" },
+                                { label: "Time Taken", value: "18m", icon: Clock, color: "text-sky-500" }
+                            ].map((stat, i) => (
+                                <div key={i} className="p-6 rounded-[32px] bg-white border border-slate-100 shadow-sm text-center space-y-2">
+                                    <stat.icon className={cn("w-6 h-6 mx-auto", stat.color)} />
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                    <h4 className="text-xl font-black text-slate-900">{stat.value}</h4>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="space-y-6">
+                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Difficulty Distribution</h5>
+                            <div className="space-y-4">
+                                {[
+                                    { level: "Easy", count: 12, width: "w-[85%]", color: "bg-emerald-500" },
+                                    { level: "Medium", count: 18, width: "w-[60%]", color: "bg-sky-500" },
+                                    { level: "Hard", count: 5, width: "w-[25%]", color: "bg-rose-500" }
+                                ].map((row, i) => (
+                                    <div key={i} className="space-y-2">
+                                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                            <span>{row.level} Questions</span>
+                                            <span>{row.count} Students struggle</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className={cn("h-full rounded-full transition-all duration-1000", row.color, row.width)} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-10 bg-slate-50 border-t border-slate-100 flex gap-4">
+                        <Button className="flex-1 h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px]">Export full report</Button>
+                        <Button
+                            onClick={() => setIsAnalysisOpen(false)}
+                            variant="outline"
+                            className="h-16 px-8 rounded-[24px] border-slate-200 bg-white text-slate-400 font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

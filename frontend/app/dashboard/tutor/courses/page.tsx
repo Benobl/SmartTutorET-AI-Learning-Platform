@@ -23,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function TeacherCourses() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
+    const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
     const [courses, setCourses] = useState(mockTeacherData.courses)
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
@@ -74,7 +76,7 @@ export default function TeacherCourses() {
                             <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Curriculum Manager</span>
                             <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
                             Course <span className='text-sky-600'>Library</span>
                         </h1>
                         <p className="text-slate-500 text-sm font-medium max-w-md">
@@ -145,24 +147,14 @@ export default function TeacherCourses() {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                    <div className="relative group flex-1">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                        <input
-                            placeholder="Search library..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-16 pl-14 pr-6 rounded-[28px] bg-white border border-slate-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-500/50 transition-all placeholder:text-slate-400 shadow-sm"
-                        />
-                    </div>
-
-                    <div className="bg-white px-6 py-2 rounded-[28px] border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <div className="flex flex-row items-center gap-4">
+                    <div className="bg-white px-3 py-2 rounded-[28px] border border-slate-200 shadow-sm flex items-center gap-1 flex-nowrap">
                         {["All Courses", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map(grade => (
                             <button
                                 key={grade}
                                 onClick={() => setSelectedGrade(grade)}
                                 className={cn(
-                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                    "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                                     selectedGrade === grade ? "bg-sky-50 text-sky-600" : "text-slate-400 hover:text-sky-600"
                                 )}
                             >
@@ -255,17 +247,16 @@ export default function TeacherCourses() {
                                         +42
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button size="sm" variant="outline" className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all">
+                                <div className="flex items-center gap-3 w-full">
+                                    <Button size="sm" variant="outline" className="h-12 w-12 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all flex-shrink-0">
                                         <PenTool className="w-4 h-4" />
                                     </Button>
                                     <Button
-                                        onClick={() => toast({
-                                            title: "Content Manager",
-                                            description: `Opening content editor for ${course.name}...`,
-                                            duration: 3000
-                                        })}
-                                        className="w-full h-12 rounded-xl bg-slate-900 hover:bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-slate-900/10 hover:shadow-sky-500/20"
+                                        onClick={() => {
+                                            setSelectedCourseForModules(course)
+                                            setIsModuleManagerOpen(true)
+                                        }}
+                                        className="flex-1 h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-sky-500/20"
                                     >
                                         Manage Content
                                     </Button>
@@ -280,6 +271,74 @@ export default function TeacherCourses() {
             </div>
 
             <div className="h-20" /> {/* Spacer */}
+
+            {/* Module Manager Dialog */}
+            <Dialog open={isModuleManagerOpen} onOpenChange={setIsModuleManagerOpen}>
+                <DialogContent className="sm:max-w-[800px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
+                    <div className="p-10 bg-slate-50 border-b border-slate-100">
+                        <DialogHeader>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[8px] font-black uppercase tracking-widest border border-sky-100">Content Modules</span>
+                                <BookOpen className="w-4 h-4 text-sky-400" />
+                            </div>
+                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Module <span className="text-sky-600">Manager</span></DialogTitle>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForModules?.name} • Grade {selectedCourseForModules?.grade}</p>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="p-10 space-y-8 max-h-[500px] overflow-y-auto">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Active Curriculum Units</h4>
+                            <Button size="sm" className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest">
+                                <Plus className="w-3.5 h-3.5 mr-2" /> Add Module
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {[
+                                { title: "Unit 1: Foundations", lessons: 12, progress: 85 },
+                                { title: "Unit 2: Core Principles", lessons: 8, progress: 40 },
+                                { title: "Unit 3: Advanced Applications", lessons: 15, progress: 0 },
+                            ].map((module, i) => (
+                                <div key={i} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-xl transition-all flex items-center justify-between">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center font-black text-sky-600 text-sm border border-slate-100">
+                                            {i + 1}
+                                        </div>
+                                        <div>
+                                            <h5 className="font-black text-slate-900 text-sm uppercase italic">{module.title}</h5>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{module.lessons} Lessons • Updated 2d ago</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        <div className="text-right hidden sm:block">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                                    <div className="h-full bg-sky-500 rounded-full" style={{ width: `${module.progress}%` }} />
+                                                </div>
+                                                <span className="text-[10px] font-black text-slate-900">{module.progress}%</span>
+                                            </div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Enrollment Completion</p>
+                                        </div>
+                                        <Button variant="ghost" size="sm" className="h-10 w-10 rounded-xl p-0 border border-slate-100 text-slate-400 hover:text-sky-600">
+                                            <PenTool className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <Button
+                            onClick={() => setIsModuleManagerOpen(false)}
+                            className="h-14 px-10 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Sync Curriculum
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
