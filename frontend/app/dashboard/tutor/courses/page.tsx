@@ -9,6 +9,7 @@ import {
     PenTool, Trash2, Activity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { mockTeacherData } from "@/lib/teacher-data"
 import {
@@ -22,6 +23,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function TeacherCourses() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [courses, setCourses] = useState(mockTeacherData.courses)
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedGrade, setSelectedGrade] = useState("All Courses")
+    const { toast } = useToast()
+
+    // Form state for new course
+    const [newCourse, setNewCourse] = useState({
+        name: "",
+        grade: "",
+        semester: "",
+    })
+
+    const handleCreateCourse = () => {
+        if (!newCourse.name || !newCourse.grade || !newCourse.semester) return
+
+        const course = {
+            id: `c${courses.length + 1}`,
+            name: newCourse.name,
+            grade: newCourse.grade,
+            semester: newCourse.semester,
+            studentCount: 0,
+            completionRate: 0,
+            activeQuizzes: 0
+        }
+
+        setCourses([course, ...courses])
+        setIsCreateModalOpen(false)
+        setNewCourse({ name: "", grade: "", semester: "" })
+        toast({
+            title: "Course Created",
+            description: `Successfully initialized ${newCourse.name}.`,
+        })
+    }
+
+    const filteredCourses = courses.filter(course => {
+        const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesGrade = selectedGrade === "All Courses" || `Grade ${course.grade}` === selectedGrade
+        return matchesSearch && matchesGrade
+    })
 
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
@@ -57,12 +97,17 @@ export default function TeacherCourses() {
                                 <div className="space-y-6 py-8">
                                     <div className="space-y-3">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course Title</Label>
-                                        <Input placeholder="e.g. Modern Physics: Derivations" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm" />
+                                        <Input
+                                            placeholder="e.g. Modern Physics: Derivations"
+                                            className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
+                                            value={newCourse.name}
+                                            onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
+                                        />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-3">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grade Level</Label>
-                                            <Select>
+                                            <Select value={newCourse.grade} onValueChange={(v) => setNewCourse({ ...newCourse, grade: v })}>
                                                 <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-black text-[10px] uppercase tracking-widest">
                                                     <SelectValue placeholder="Select Grade" />
                                                 </SelectTrigger>
@@ -76,7 +121,7 @@ export default function TeacherCourses() {
                                         </div>
                                         <div className="space-y-3">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Semester</Label>
-                                            <Select>
+                                            <Select value={newCourse.semester} onValueChange={(v) => setNewCourse({ ...newCourse, semester: v })}>
                                                 <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-black text-[10px] uppercase tracking-widest">
                                                     <SelectValue placeholder="Select Term" />
                                                 </SelectTrigger>
@@ -89,24 +134,41 @@ export default function TeacherCourses() {
                                     </div>
                                     <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center space-y-2 group cursor-pointer hover:bg-sky-50 hover:border-sky-200 transition-all">
                                         <LayoutGrid className="w-6 h-6 text-slate-300 mx-auto group-hover:scale-110 transition-transform" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload Syllabus (PDF)</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload Syllabus/Outline (PDF)</p>
                                     </div>
                                 </div>
                                 <DialogFooter>
-                                    <Button onClick={() => setIsCreateModalOpen(false)} className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px]">Initialize Course Framework</Button>
+                                    <Button onClick={handleCreateCourse} className="w-full h-14 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-sky-500/20">Initialize Course Framework</Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="relative group min-w-[300px]">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                    <div className="relative group flex-1">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                         <input
                             placeholder="Search library..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full h-16 pl-14 pr-6 rounded-[28px] bg-white border border-slate-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-500/50 transition-all placeholder:text-slate-400 shadow-sm"
                         />
+                    </div>
+
+                    <div className="bg-white px-6 py-2 rounded-[28px] border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
+                        {["All Courses", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map(grade => (
+                            <button
+                                key={grade}
+                                onClick={() => setSelectedGrade(grade)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                    selectedGrade === grade ? "bg-sky-50 text-sky-600" : "text-slate-400 hover:text-sky-600"
+                                )}
+                            >
+                                {grade}
+                            </button>
+                        ))}
                     </div>
                     <div className="bg-white p-1.5 rounded-[22px] border border-slate-100 shadow-sm flex gap-1">
                         <button
@@ -136,7 +198,7 @@ export default function TeacherCourses() {
                 "grid gap-8",
                 viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
             )}>
-                {mockTeacherData.courses.map(course => (
+                {filteredCourses.map(course => (
                     <div
                         key={course.id}
                         className={cn(
@@ -197,7 +259,14 @@ export default function TeacherCourses() {
                                     <Button size="sm" variant="outline" className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all">
                                         <PenTool className="w-4 h-4" />
                                     </Button>
-                                    <Button size="sm" className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-slate-800 transition-all">
+                                    <Button
+                                        onClick={() => toast({
+                                            title: "Content Manager",
+                                            description: `Opening content editor for ${course.name}...`,
+                                            duration: 3000
+                                        })}
+                                        className="w-full h-12 rounded-xl bg-slate-900 hover:bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-slate-900/10 hover:shadow-sky-500/20"
+                                    >
                                         Manage Content
                                     </Button>
                                 </div>
@@ -210,14 +279,7 @@ export default function TeacherCourses() {
                 ))}
             </div>
 
-            {/* Subject Filters (Floating bottom) */}
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl px-8 py-4 rounded-[32px] border border-white/50 shadow-2xl flex items-center gap-8 z-30">
-                {["All Courses", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map(grade => (
-                    <button key={grade} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 transition-all whitespace-nowrap">
-                        {grade}
-                    </button>
-                ))}
-            </div>
+            <div className="h-20" /> {/* Spacer */}
         </div>
     )
 }

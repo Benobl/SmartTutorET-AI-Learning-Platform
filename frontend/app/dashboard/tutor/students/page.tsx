@@ -5,10 +5,29 @@ import {
     Users, Search, Filter, Mail, MessageSquare,
     ChevronRight, ArrowUpRight, TrendingUp, TrendingDown,
     Activity, GraduationCap, Star, BookOpen, Clock,
-    LayoutGrid, List, MoreVertical, ShieldAlert
+    LayoutGrid, List, MoreVertical, ShieldAlert, Sparkles
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { mockTeacherData } from "@/lib/teacher-data"
 
 const MOCK_STUDENTS = [
@@ -21,6 +40,38 @@ const MOCK_STUDENTS = [
 
 export default function TeacherStudents() {
     const [searchQuery, setSearchQuery] = useState("")
+    const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
+    const [selectedStudent, setSelectedStudent] = useState<any>(null)
+    const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const [isChatOpen, setIsChatOpen] = useState(false)
+    const [chatMessage, setChatMessage] = useState("")
+    const { toast } = useToast()
+
+    const filteredStudents = MOCK_STUDENTS.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.course.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    const handleMessageAll = () => {
+        setIsBroadcastOpen(true)
+    }
+
+    const handleExportGradebook = () => {
+        toast({
+            title: "Export Initiated",
+            description: "Generating comprehensive gradebook export (PDF/CSV)...",
+        })
+    }
+
+    const handleMessageStudent = (student: any) => {
+        setSelectedStudent(student)
+        setIsChatOpen(true)
+    }
+
+    const handleViewProfile = (student: any) => {
+        setSelectedStudent(student)
+        setIsProfileOpen(true)
+    }
 
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
@@ -42,10 +93,17 @@ export default function TeacherStudents() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform">
+                        <Button
+                            onClick={handleMessageAll}
+                            className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform"
+                        >
                             <Mail className="w-4 h-4" /> Message All Students
                         </Button>
-                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all">
+                        <Button
+                            onClick={handleExportGradebook}
+                            variant="outline"
+                            className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all"
+                        >
                             <ArrowUpRight className="w-4 h-4 mr-2" /> Export Gradebook
                         </Button>
                     </div>
@@ -98,7 +156,7 @@ export default function TeacherStudents() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {MOCK_STUDENTS.map((student) => (
+                            {filteredStudents.map((student) => (
                                 <tr key={student.id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
                                     <td className="px-10 py-8">
                                         <div className="flex items-center gap-5">
@@ -146,10 +204,18 @@ export default function TeacherStudents() {
                                     </td>
                                     <td className="px-10 py-8 text-right">
                                         <div className="flex items-center justify-end gap-3">
-                                            <Button size="sm" variant="outline" className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all">
+                                            <Button
+                                                size="sm" variant="outline"
+                                                onClick={() => handleMessageStudent(student)}
+                                                className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all"
+                                            >
                                                 <MessageSquare className="w-4 h-4" />
                                             </Button>
-                                            <Button size="sm" className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-600 transition-all">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleViewProfile(student)}
+                                                className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-600 transition-all"
+                                            >
                                                 Full Profile
                                             </Button>
                                         </div>
@@ -159,6 +225,155 @@ export default function TeacherStudents() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Broadcast Modal */}
+                <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
+                    <DialogContent className="sm:max-w-[500px] rounded-[32px] border-slate-100 p-8">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black text-slate-900 uppercase">Broadcast Message</DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium">
+                                Send an announcement to all 97 students enrolled in your courses.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Message Content</label>
+                                <Textarea
+                                    placeholder="e.g. Remember to review the kinematics notes before tomorrow's quiz!"
+                                    className="min-h-[150px] rounded-2xl bg-slate-50 border-slate-100 font-medium text-sm p-4 focus:ring-sky-500/20"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => {
+                                setIsBroadcastOpen(false)
+                                toast({
+                                    title: "Broadcast Sent",
+                                    description: "Your message has been queued for delivery to all students.",
+                                })
+                            }} className="w-full h-14 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-sky-500/20">
+                                Send Broadcast <Mail className="w-4 h-4 ml-2" />
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Profile Sheet */}
+                <Sheet open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                    <SheetContent className="sm:max-w-md border-l-slate-100 p-0">
+                        <div className="h-full flex flex-col">
+                            <div className="p-8 bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden">
+                                <div className="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl" />
+                                <div className="relative z-10 space-y-6">
+                                    <Avatar className="w-24 h-24 rounded-3xl border-4 border-white/10 shadow-2xl">
+                                        <AvatarFallback className="bg-sky-500 text-white text-2xl font-black">
+                                            {selectedStudent?.name.split(" ").map((n: string) => n[0]).join("")}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h2 className="text-3xl font-black">{selectedStudent?.name}</h2>
+                                        <p className="text-sky-400 font-black uppercase tracking-widest text-[10px] mt-1">Grade {selectedStudent?.grade} • Student ID-8821</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Current GPA</p>
+                                        <p className="text-2xl font-black text-slate-900">{selectedStudent?.average}%</p>
+                                    </div>
+                                    <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Attendance</p>
+                                        <p className="text-2xl font-black text-slate-900">{selectedStudent?.attendance}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Enrolled Courses</h3>
+                                    <div className="space-y-3">
+                                        <div className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between group hover:border-sky-200 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center font-black text-[10px]">QM</div>
+                                                <p className="text-sm font-bold text-slate-700">{selectedStudent?.course}</p>
+                                            </div>
+                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 rounded-3xl bg-sky-50 border border-sky-100 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4 text-sky-500" />
+                                        <p className="text-[10px] font-black text-sky-600 uppercase tracking-widest">AI Performance Insight</p>
+                                    </div>
+                                    <p className="text-xs text-sky-700/80 font-medium leading-relaxed">
+                                        {selectedStudent?.status === "excellent"
+                                            ? "Exceptional performance in recent quizzes. Ready for advanced modules."
+                                            : "Showing consistent improvement. Recommend focusing on quantum superposition derivations."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="p-8 border-t border-slate-100">
+                                <Button className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] shadow-xl">
+                                    View Full Academic Record
+                                </Button>
+                            </div>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {/* Quick Chat Modal */}
+                <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+                    <DialogContent className="sm:max-w-[500px] rounded-[32px] border-slate-100 p-0 overflow-hidden">
+                        <div className="bg-sky-600 p-6 text-white flex items-center gap-4">
+                            <Avatar className="w-12 h-12 rounded-2xl border-2 border-white/20">
+                                <AvatarFallback className="bg-white/10 text-white font-black text-sm">
+                                    {selectedStudent?.name.split(" ").map((n: string) => n[0]).join("")}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-black text-lg">{selectedStudent?.name}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Direct Message Channel</p>
+                            </div>
+                        </div>
+
+                        <div className="h-[300px] bg-slate-50 p-6 overflow-y-auto space-y-4">
+                            <div className="flex justify-start">
+                                <div className="max-w-[80%] bg-white p-4 rounded-2xl rounded-bl-none shadow-sm border border-slate-100">
+                                    <p className="text-sm text-slate-700 font-medium">Hello teacher, regarding the assignment...</p>
+                                    <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase">2 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-white border-t border-slate-100">
+                            <div className="flex gap-3">
+                                <Input
+                                    placeholder="Type your message..."
+                                    value={chatMessage}
+                                    onChange={(e) => setChatMessage(e.target.value)}
+                                    className="h-12 rounded-xl bg-slate-50 border-slate-100"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        toast({
+                                            title: "Message Sent",
+                                            description: `Your message has been sent to ${selectedStudent?.name}.`,
+                                        })
+                                        setIsChatOpen(false)
+                                        setChatMessage("")
+                                    }}
+                                    className="h-12 w-12 rounded-xl bg-sky-600 text-white p-0 shadow-lg shadow-sky-500/20"
+                                >
+                                    <MessageSquare className="w-5 h-5" />
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Showing 5 of 97 enrolled students</p>
                     <div className="flex gap-2">

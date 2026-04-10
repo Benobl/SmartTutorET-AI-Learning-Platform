@@ -254,7 +254,7 @@ export function DashboardSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu className="space-y-1">
                             {navigationItems.map((item) => {
-                                const isActive = item.url === "/dashboard/student"
+                                const isActive = (item.url === "/dashboard/student" || item.url === "/dashboard/tutor")
                                     ? pathname === item.url
                                     : pathname === item.url || pathname.startsWith(item.url + "/")
                                 const isExpanded = expandedItem === item.title
