@@ -95,7 +95,7 @@ export default function TeacherStudents() {
                     <div className="flex items-center gap-4">
                         <Button
                             onClick={handleMessageAll}
-                            className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform"
+                            className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:bg-sky-700 hover:scale-105 transition-all"
                         >
                             <Mail className="w-4 h-4" /> Message All Students
                         </Button>
@@ -214,7 +214,7 @@ export default function TeacherStudents() {
                                             <Button
                                                 size="sm"
                                                 onClick={() => handleViewProfile(student)}
-                                                className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-600 transition-all"
+                                                className="h-10 px-6 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-500/20"
                                             >
                                                 Full Profile
                                             </Button>
@@ -262,8 +262,8 @@ export default function TeacherStudents() {
                 <Sheet open={isProfileOpen} onOpenChange={setIsProfileOpen}>
                     <SheetContent className="sm:max-w-md border-l-slate-100 p-0">
                         <div className="h-full flex flex-col">
-                            <div className="p-8 bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden">
-                                <div className="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl" />
+                            <div className="p-8 bg-gradient-to-br from-sky-600 to-indigo-600 text-white relative overflow-hidden">
+                                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
                                 <div className="relative z-10 space-y-6">
                                     <Avatar className="w-24 h-24 rounded-3xl border-4 border-white/10 shadow-2xl">
                                         <AvatarFallback className="bg-sky-500 text-white text-2xl font-black">
@@ -316,7 +316,7 @@ export default function TeacherStudents() {
                             </div>
 
                             <div className="p-8 border-t border-slate-100">
-                                <Button className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] shadow-xl">
+                                <Button className="w-full h-14 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-sky-500/20">
                                     View Full Academic Record
                                 </Button>
                             </div>

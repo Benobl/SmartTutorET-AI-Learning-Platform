@@ -1,468 +1,291 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
-  CheckCircle2,
-  Users,
-  Zap,
-  TrendingUp,
-  BookOpen,
-  Award,
-  ArrowRight,
-  Star,
-  Sparkles,
-  Menu,
-  X,
-  Brain,
-  Target,
-  Rocket,
-  Globe,
-  Clock,
-  Shield,
-  MessageSquare,
-  Video,
-  FileText,
-  Phone,
-  Mail,
-  MapPin,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Youtube,
-  Heart,
-  ChevronRight,
-  ExternalLink,
-  PlayCircle,
-  BarChart3,
-  Download,
-  Calendar,
-  Headphones,
-  GraduationCap,
-  Lightbulb,
-  Bookmark,
-  Share2,
-  ThumbsUp,
-  Eye,
-  Globe2,
-  TabletSmartphone,
-  Cloud,
-  Lock,
-  Bell,
-  Settings,
-  UserPlus,
-  VideoIcon,
-  Mic,
-  PenTool,
-  FileCode,
-  Calculator,
-  Atom,
-  Music,
-  Palette,
-  Dumbbell,
-  Coffee,
-  Moon,
-  Sun,
-  Book,
-  History,
-  Code,
+  Brain, Sparkles, ArrowRight, BookOpen, Users, BarChart3,
+  GraduationCap, Menu, X, CheckCircle2, Star, ChevronRight,
+  Zap, Play, Award, TrendingUp, Video, Clock, Rocket,
+  Heart, ArrowUpRight, PenTool, Activity, Globe
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-// HeartIcon alias for use in feature cards
-const HeartIcon = Heart
+/**
+ * LANDING PAGE COMPONENT
+ * 
+ * Features a modern, high-impact design for SmartTutorET.
+ * Includes:
+ * - Glassmorphism Navbar (Synced with Dashboard)
+ * - Hero Section with AI Mockup
+ * - Feature Highlights
+ * - Course Catalog (Grade 9-12)
+ * - Student Testimonials
+ */
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
-  const [activeTab, setActiveTab] = useState("all")
+  const [scrolled, setScrolled] = useState(false)
+  const [testimonialIndex, setTestimonialIndex] = useState(0)
 
-  // Color gradients for cards (applied as default, not just on hover)
-  const cardGradients = [
-    "from-[#3D7FA2] to-[#206687]",
-    "from-[#1B5A6C] to-[#294B61]",
-    "from-[#206687] to-[#103255]",
-    "from-[#294B61] to-[#2E4360]",
-    "from-[#3D7FA2] to-[#1B5A6C]",
-    "from-[#206687] to-[#3D7FA2]",
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", onScroll)
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  const navLinks = [
+    { label: "Features", href: "#features" },
+    { label: "Courses", href: "#courses" },
+    { label: "Testimonials", href: "#testimonials" },
+    { label: "For Schools", href: "#schools" },
   ]
 
+  const features = [
+    { icon: Brain, title: "Adaptive AI Tutor", desc: "Personalized learning paths that evolve in real-time based on your strengths, weaknesses, and progress.", tag: "AI", color: "sky" },
+    { icon: Video, title: "Live Sessions", desc: "Interactive live classes with expert Ethiopian teachers and instant Q&A support.", tag: "Live", color: "indigo" },
+    { icon: BarChart3, title: "Smart Analytics", desc: "Deep performance insights with predictive analysis, weakness mapping, and exam readiness scores.", tag: "Data", color: "teal" },
+    { icon: Users, title: "Study Squads", desc: "AI-matched collaborative groups with shared whiteboards, peer review, and group assignments.", tag: "Social", color: "sky" },
+    { icon: Award, title: "Exam Preparation", desc: "Timed national exam mocks, past papers, and AI-scored feedback tailored to your grade level.", tag: "Exams", color: "indigo" },
+    { icon: Rocket, title: "Gamified Learning", desc: "Earn XP, unlock badges, climb global leaderboards, and build unstoppable daily study streaks.", tag: "Fun", color: "teal" },
+  ]
+
+  const steps = [
+    { step: "01", title: "Create Your Account", desc: "Sign up in 60 seconds. Select your grade and the subjects you want to master.", icon: GraduationCap },
+    { step: "02", title: "Get Your AI Plan", desc: "Our AI assesses your level and builds a precise personalized study roadmap just for you.", icon: Brain },
+    { step: "03", title: "Learn & Achieve", desc: "Attend live classes, crush AI quizzes, join study squads, and track your growth every day.", icon: TrendingUp },
+  ]
+
+  const courses = [
+    { grade: "Grade 12", subject: "Mathematics", teacher: "Ato Daniel Abebe", students: "2.4K", rating: "4.9", accent: "sky", emoji: "🧮" },
+    { grade: "Grade 11", subject: "Physics", teacher: "Dr. Lemlem Hailu", students: "1.8K", rating: "4.8", accent: "indigo", emoji: "⚛️" },
+    { grade: "Grade 10", subject: "Chemistry", teacher: "Ms. Sara Johnson", students: "3.1K", rating: "4.9", accent: "teal", emoji: "🔬" },
+    { grade: "Grade 9", subject: "Biology", teacher: "Dr. Alem Bekele", students: "2.2K", rating: "4.7", accent: "sky", emoji: "🧬" },
+    { grade: "Grade 12", subject: "English", teacher: "Ms. Hiwot Desta", students: "1.5K", rating: "4.8", accent: "indigo", emoji: "📖" },
+    { grade: "Grade 11", subject: "History", teacher: "Ato Yonas Alemu", students: "980", rating: "4.7", accent: "teal", emoji: "🏛️" },
+  ]
+
+  const testimonials = [
+    { name: "Biniyam Solomon", grade: "Grade 12", score: "Entrance Score: 98%", text: "SmartTutorET completely transformed my study routine. The AI tutor knew exactly where I struggled. I went from 64% to 91% in Physics.", avatar: "BS", stars: 5 },
+    { name: "Helena Tesfaye", grade: "Grade 11", score: "Mathematics: A+", text: "The live sessions are incredible. I can ask questions in real-time and the AI creates personalized quizzes right after each lesson. Revolutionary.", avatar: "HT", stars: 5 },
+    { name: "Dagmawi Girma", grade: "Grade 10", score: "Biology: 89%", text: "The study squads connected me with top students. Collaborating on assignments while competing on the leaderboard is incredibly motivating.", avatar: "DG", stars: 5 },
+  ]
+
+  const accentClasses: Record<string, { badge: string; icon: string; border: string; strip: string }> = {
+    sky: { badge: "bg-sky-50 text-sky-600 border-sky-100", icon: "bg-sky-50 text-sky-600 border-sky-100", border: "border-sky-100 hover:border-sky-200", strip: "bg-sky-600" },
+    indigo: { badge: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: "bg-indigo-50 text-indigo-600 border-indigo-100", border: "border-indigo-100 hover:border-indigo-200", strip: "bg-indigo-600" },
+    teal: { badge: "bg-teal-50 text-teal-600 border-teal-100", icon: "bg-teal-50 text-teal-600 border-teal-100", border: "border-teal-100 hover:border-teal-200", strip: "bg-teal-600" },
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#1B5A6C] to-[#223347] overflow-x-hidden">
-      {/* Enhanced Header */}
-      <header className="sticky top-0 z-50 w-full backdrop-blur-2xl bg-gradient-to-b from-white/10 to-white/5 border-b border-white/10">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1B5A6C]/20 via-[#294B61]/10 to-[#2E4360]/20" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
 
-        <div className="relative">
-          {/* Top Bar */}
-          <div className="container mx-auto px-6 md:px-12 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-white/60">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span>🎓 12,543 Students Learning Now</span>
-                </div>
-                <span className="hidden md:inline">•</span>
-                <span className="hidden md:inline">⭐ 98% Success Rate</span>
+      {/* ─── STICKY NAVBAR ─── */}
+      <header className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        // When scrolled, become more opaque white. 
+        // When at top, use the dashboard's transparent glassmorphism style.
+        scrolled
+          ? "bg-white/90 backdrop-blur-2xl border-b border-slate-100 shadow-sm"
+          : "bg-white/5 backdrop-blur-xl border-b border-white/5"
+      )}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25 group-hover:scale-110 transition-transform">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-
-              <div className="flex items-center gap-4 text-xs">
-                <button className="flex items-center gap-1 text-white/60 hover:text-white transition-colors">
-                  <Globe2 className="w-3 h-3" />
-                  🇪🇹 Amharic
-                </button>
-                <div className="hidden md:flex items-center gap-4">
-                  <a href="#" className="flex items-center gap-1 text-white/60 hover:text-white transition-colors">
-                    <Headphones className="w-3 h-3" />
-                    Grade 9-12 Support
-                  </a>
-                </div>
-              </div>
+              <div className="absolute -inset-1 bg-sky-600 rounded-2xl blur opacity-0 group-hover:opacity-30 transition-opacity" />
             </div>
+            <div>
+              <span className="text-lg font-black text-slate-900 tracking-tight">SmartTutor<span className="text-sky-600">ET</span></span>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest -mt-0.5">Grades 9–12 Platform</p>
+            </div>
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* CTAs */}
+          <div className="hidden lg:flex items-center gap-3">
+            <Link href="/login">
+              <Button variant="ghost" className="h-10 px-6 rounded-xl text-slate-500 hover:text-sky-600 hover:bg-sky-50 font-semibold text-sm">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button className="h-10 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-sm shadow-lg shadow-sky-600/20 transition-all hover:scale-105">
+                Start Free <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
           </div>
 
-          {/* Main Navigation */}
-          <div className="container mx-auto px-6 md:px-12">
-            <div className="flex items-center justify-between h-20">
-              {/* Logo */}
-              <div className="flex items-center gap-3 group cursor-pointer">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3D7FA2] to-[#206687] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                    <GraduationCap className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-[#3D7FA2] to-[#206687] rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                    SmartTutor<span className="text-[#3D7FA2]">ET</span>
-                  </div>
-                  <div className="text-xs text-white/60 -mt-1">Grades 9-12 Learning Platform</div>
-                </div>
-              </div>
-
-              {/* Desktop Navigation - Updated to match sections */}
-              <nav className="hidden lg:flex items-center gap-1">
-                {[
-                  { label: "Home", icon: "🏠", badge: null },
-                  { label: "Features", icon: "✨", badge: "AI" },
-                  { label: "Courses", icon: "📚", badge: "9-12" },
-                  { label: "Subjects", icon: "🧪", badge: "8+" },
-                  { label: "For Schools", icon: "🏫", badge: null },
-                  { label: "About", icon: "👥", badge: null },
-                ].map((item) => (
-                  <a
-                    key={item.label}
-                    href={`#${item.label.toLowerCase().replace(" ", "-")}`}
-                    className="relative group"
-                  >
-                    <div className="flex items-center gap-2 px-6 py-3 rounded-2xl transition-all duration-300 hover:bg-white/10 hover:scale-105">
-                      <span>{item.icon}</span>
-                      <span className="text-sm font-medium text-white/90 group-hover:text-white">
-                        {item.label}
-                      </span>
-                      {item.badge && (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-[#3D7FA2] to-[#206687] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </a>
-                ))}
-              </nav>
-
-              {/* CTA Buttons */}
-              <div className="hidden lg:flex items-center gap-3">
-                <Link href="/login">
-                  <Button
-                    variant="ghost"
-                    className="rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white px-6 backdrop-blur-sm"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button
-                    className="rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] hover:from-[#206687] hover:to-[#103255] text-white shadow-lg hover:shadow-xl px-6 transition-all duration-300 group"
-                  >
-                    Start Learning
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Mobile Menu Button */}
-              <button
-                className="lg:hidden p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? (
-                  <X className="w-6 h-6 text-white" />
-                ) : (
-                  <Menu className="w-6 h-6 text-white" />
-                )}
-              </button>
-            </div>
-          </div>
+          {/* Mobile Hamburger */}
+          <button className="lg:hidden p-2.5 rounded-xl bg-slate-100 border border-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
+          </button>
         </div>
 
-        {/* Enhanced Mobile Navigation */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden">
-            <div className="absolute top-full left-0 right-0 bg-gradient-to-b from-[#2E4360]/95 to-[#223347]/95 backdrop-blur-2xl border-t border-white/10 rounded-b-3xl shadow-2xl mx-4 overflow-hidden">
-              <div className="p-6">
-                <div className="space-y-1">
-                  {[
-                    { label: "Home", icon: "🏠", desc: "Welcome page", badge: null },
-                    { label: "Features", icon: "✨", desc: "AI-powered tools", badge: "AI" },
-                    { label: "Courses", icon: "📚", desc: "Grade 9-12 courses", badge: "1-12" },
-                    { label: "Subjects", icon: "🧪", desc: "8+ subjects", badge: "8+" },
-                    { label: "For Schools", icon: "🏫", desc: "School packages", badge: null },
-                    { label: "About", icon: "👥", desc: "Our story", badge: null },
-                  ].map((item) => (
-                    <a
-                      key={item.label}
-                      href={`#${item.label.toLowerCase().replace(" ", "-")}`}
-                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/10 transition-all duration-300 group"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3D7FA2]/20 to-[#206687]/20 flex items-center justify-center">
-                        <span className="text-lg">{item.icon}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium text-white">{item.label}</div>
-                          {item.badge && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-white/60">{item.desc}</div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-white/40 group-hover:text-white/60" />
-                    </a>
-                  ))}
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/20">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 h-12"
-                      >
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                      <Button
-                        className="w-full rounded-xl bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white h-12"
-                      >
-                        Start Free
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+          <div className="lg:hidden bg-white border-t border-slate-100 px-6 py-8 space-y-2 shadow-xl">
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href} onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-sky-50 text-slate-600 hover:text-sky-600 transition-all font-semibold">
+                <ChevronRight className="w-4 h-4" /> {link.label}
+              </a>
+            ))}
+            <div className="pt-6 grid grid-cols-2 gap-3">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full rounded-xl border-slate-200 text-slate-600 font-semibold">Sign In</Button>
+              </Link>
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black">Start Free</Button>
+              </Link>
             </div>
           </div>
         )}
       </header>
 
-      {/* Enhanced Hero Section */}
-      <section className="relative px-6 md:px-12 py-20 md:py-32 overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 -left-20 w-96 h-96 bg-[#3D7FA2]/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 -right-20 w-96 h-96 bg-[#206687]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
+      {/* ─── HERO ─── */}
+      <section className="relative pt-32 pb-24 overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] bg-sky-100 rounded-full blur-[100px] opacity-60 pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-indigo-100 rounded-full blur-[80px] opacity-50 pointer-events-none" />
 
-          {/* Floating particles */}
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 rounded-full bg-white/20"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 2}s`,
-              }}
-            />
-          ))}
-        </div>
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
 
-        <div className="relative container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              {/* Interactive Badge */}
-              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 w-fit group hover:bg-white/15 transition-all duration-300 cursor-pointer hover:scale-105">
-                <div className="relative">
-                  <Sparkles className="w-5 h-5 text-white animate-spin-slow" />
-                </div>
-                <span className="text-sm font-medium text-white">🎓 Ethiopia's #1 Grade 1-12 Platform</span>
-                <ChevronRight className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+            {/* Left */}
+            <div className="space-y-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 border border-sky-100 text-sky-600 text-[11px] font-black uppercase tracking-widest">
+                <div className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                🇪🇹 Ethiopia's #1 AI Learning Platform for Grades 9–12
               </div>
 
-              {/* Headline with Typing Effect */}
-              <div className="space-y-6">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-white">
-                  Learn <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] animate-gradient">Smarter</span>,
+              <div className="space-y-5">
+                <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight text-slate-900">
+                  Learn
+                  <span className="text-sky-600">.</span>
                   <br />
-                  From <span className="text-white">Grade 9</span> to <span className="text-white">12</span>
+                  <span className="text-sky-600">Excel</span>
+                  <span className="text-slate-900">.</span>
+                  <br />
+                  Achieve
+                  <span className="text-sky-600">.</span>
                 </h1>
-                <p className="text-xl text-white/80 leading-relaxed max-w-2xl">
-                  Ethiopia's premier AI-powered learning platform for all grades. Personalized tutoring, comprehensive curriculum, and exam preparation for every student.
+                <p className="text-xl text-slate-500 leading-relaxed max-w-xl font-medium">
+                  AI-powered tutoring, live expert classes, and smart analytics — built specifically for Ethiopian students in Grades 9–12.
                 </p>
               </div>
 
-              {/* Interactive CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-8">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/signup">
-                  <Button
-                    size="lg"
-                    className="rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] hover:from-[#206687] hover:to-[#103255] text-white border-0 shadow-lg hover:shadow-xl px-8 transition-all duration-300 group relative overflow-hidden"
-                  >
-                    <span className="relative z-10 flex items-center">
-                      🚀 Start Free Trial
-                      <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#206687] to-[#103255] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Button size="lg" className="h-16 px-10 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black text-base shadow-2xl shadow-sky-600/25 transition-all hover:scale-105 group">
+                    Start Free Today
+                    <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Link href="#courses">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full border-white/30 text-white hover:bg-white/10 bg-transparent px-8 group"
-                  >
-                    <div className="flex items-center">
-                      <BookOpen className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                      Browse Courses
-                    </div>
-                  </Button>
-                </Link>
+                <Button size="lg" variant="outline" className="h-16 px-10 rounded-2xl border-slate-200 bg-white text-slate-600 font-bold text-base hover:bg-slate-50 hover:border-sky-200 hover:text-sky-600 transition-all group">
+                  <Play className="mr-3 w-5 h-5 text-sky-500" />
+                  Watch How It Works
+                </Button>
               </div>
 
-              {/* Real-time Stats */}
-              <div className="grid grid-cols-3 gap-4 pt-12">
+              {/* Stats row */}
+              <div className="flex items-center gap-8 pt-2">
                 {[
-                  { value: "12,543", label: "Students", icon: "👨‍🎓", color: "#3D7FA2" },
-                  { value: "98%", label: "Success Rate", icon: "📈", color: "#206687" },
-                  { value: "9-12", label: "All Grades", icon: "🎯", color: "#1B5A6C" },
-                ].map((stat, idx) => (
-                  <div key={idx} className="text-center p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group relative overflow-hidden">
-                    {/* Glowing effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 blur-lg transition-opacity duration-300" />
-                    <div className="relative z-10 text-2xl font-bold text-white group-hover:scale-110 transition-transform" style={{ color: stat.color }}>
-                      {stat.value}
-                    </div>
-                    <div className="relative z-10 text-sm text-white/60 mt-1 flex items-center justify-center gap-1">
-                      <span>{stat.icon}</span>
-                      {stat.label}
-                    </div>
+                  { val: "12K+", label: "Active Students" },
+                  { val: "98%", label: "Pass Rate" },
+                  { val: "200+", label: "Expert Teachers" },
+                ].map((s, i) => (
+                  <div key={i}>
+                    <div className="text-3xl font-black text-sky-600">{s.val}</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{s.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Interactive Hero Dashboard */}
-            <div className="relative">
-              <div className="relative rounded-[40px] bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-lg p-2 shadow-2xl overflow-hidden group">
-                {/* Glowing Border Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2]/20 via-[#206687]/10 to-[#1B5A6C]/20 rounded-[40px] blur-xl group-hover:blur-2xl transition-all duration-500" />
-                <div className="absolute inset-0 border-2 border-transparent rounded-[40px] bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] bg-clip-border p-[2px]">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] rounded-[40px] blur-lg opacity-50 group-hover:opacity-70 transition-opacity" />
-                </div>
+            {/* Right — Dashboard Mockup */}
+            <div className="relative hidden lg:block">
+              <div className="absolute -inset-6 bg-sky-100/40 rounded-[72px] blur-2xl" />
+              <div className="relative bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/60 p-8 space-y-6">
 
-                {/* Dashboard Content */}
-                <div className="relative bg-gradient-to-br from-[#1B5A6C]/30 via-[#223347]/20 to-[#2E4360]/10 rounded-[38px] p-6 md:p-8">
-                  {/* Dashboard Header */}
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3D7FA2] to-[#206687] flex items-center justify-center">
-                        <Brain className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-white font-semibold">Student Dashboard</div>
-                        <div className="text-xs text-white/60">Grade 8 • All Subjects</div>
-                      </div>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/30">
+                      <Brain className="w-5 h-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-xs text-white/60">Active</span>
+                    <div>
+                      <div className="text-sm font-black text-slate-900">Student Dashboard</div>
+                      <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Grade 12 • Physics Track</div>
                     </div>
                   </div>
+                  <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Active</span>
+                </div>
 
-                  {/* Interactive Course Cards */}
-                  <div className="space-y-4 mb-6">
-                    {[
-                      { title: "Grade 12 Mathematics", progress: 85, color: "#3D7FA2", icon: "🧮" },
-                      { title: "Grade 12 Science", progress: 62, color: "#206687", icon: "⚛️" },
-                      { title: "Grade 12 English", progress: 78, color: "#1B5A6C", icon: "🔤" },
-                    ].map((course, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group relative overflow-hidden"
-                      >
-                        {/* Glowing effect on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 blur-lg transition-opacity duration-300" />
-
-                        <div className="relative z-10 flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">{course.icon}</span>
-                            <div className="text-white font-medium">{course.title}</div>
-                          </div>
-                          <div className="text-sm text-white/60 group-hover:text-white transition-colors">
-                            {course.progress}%
-                          </div>
-                        </div>
-                        <div className="relative z-10 h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500 group-hover:scale-y-125"
-                            style={{
-                              width: `${course.progress}%`,
-                              background: `linear-gradient(90deg, ${course.color}, ${course.color}80)`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                {/* AI Insight */}
+                <div className="p-5 rounded-[28px] bg-sky-50 border border-sky-100 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-sky-600/20">
+                    <Sparkles className="w-5 h-5 text-white" />
                   </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-sky-600 mb-0.5">AI Insight</p>
+                    <p className="text-slate-700 font-semibold text-sm leading-snug">87% ready for National Exam. Focus on Electromagnetism next.</p>
+                  </div>
+                </div>
 
-                  {/* Live Session Notification */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#3D7FA2]/20 to-[#206687]/20 border border-white/10 relative overflow-hidden group">
-                    {/* Glowing background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 blur-lg transition-opacity duration-300" />
-
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                          <Video className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="text-white font-semibold">Live Session: Mathematics</div>
-                          <div className="text-xs text-white/60">Starting in 5 minutes</div>
-                        </div>
+                {/* Course Progress */}
+                <div className="space-y-5">
+                  {[
+                    { subject: "Physics", progress: 87, color: "bg-sky-500", emoji: "⚛️" },
+                    { subject: "Mathematics", progress: 72, color: "bg-indigo-500", emoji: "🧮" },
+                    { subject: "Chemistry", progress: 61, color: "bg-teal-500", emoji: "🔬" },
+                  ].map((c, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <span>{c.emoji}</span>{c.subject}
+                        </span>
+                        <span className="text-sm font-black text-slate-900">{c.progress}%</span>
                       </div>
-                      <Button size="sm" className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0">
-                        Join Now
-                      </Button>
+                      <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all", c.color)} style={{ width: `${c.progress}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Live Alert */}
+                <div className="p-5 rounded-[28px] bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div>
+                      <p className="text-sm font-black text-slate-900">Live: Physics — Electromagnetism</p>
+                      <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Starts in 5 min • 43 students</p>
                     </div>
                   </div>
+                  <Button size="sm" className="h-9 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                    Join
+                  </Button>
                 </div>
-              </div>
 
-              {/* Floating Achievement Badges */}
-              <div className="absolute -top-4 -right-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-sm border border-yellow-500/30 flex items-center justify-center animate-bounce shadow-lg shadow-yellow-500/20">
-                  <Award className="w-8 h-8 text-yellow-400" />
+                {/* Floating badges */}
+                <div className="absolute -top-5 -right-5 w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shadow-xl">
+                  <Award className="w-7 h-7 text-amber-500" />
                 </div>
-              </div>
-              <div className="absolute -bottom-4 -left-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm border border-green-500/30 flex items-center justify-center animate-bounce shadow-lg shadow-green-500/20" style={{ animationDelay: "0.5s" }}>
-                  <TrendingUp className="w-6 h-6 text-green-400" />
+                <div className="absolute -bottom-5 -left-5 w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center shadow-xl">
+                  <TrendingUp className="w-6 h-6 text-sky-600" />
                 </div>
               </div>
             </div>
@@ -470,737 +293,316 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 🎯 AI-Powered Features Section */}
-      <section id="features" className="relative px-6 md:px-12 py-24">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1B5A6C]/10 to-transparent" />
-
-        <div className="relative container mx-auto">
-          <div className="text-center space-y-6 max-w-4xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-gradient-to-r from-[#3D7FA2]/20 to-[#206687]/20 border border-[#3D7FA2]/30">
-              <Zap className="w-4 h-4 text-[#3D7FA2]" />
-              <span className="text-sm font-medium text-white">Powered by Advanced AI</span>
+      {/* ─── CITY STRIP ─── */}
+      <section className="py-8 bg-white border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 text-slate-400">
+            <div className="flex items-center gap-3">
+              <Globe className="w-5 h-5 text-sky-500" />
+              <span className="text-xs font-black uppercase tracking-widest text-slate-600">Serving All Regions of Ethiopia</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
-              Transform <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C]">Learning</span> Experience
+            <div className="h-4 w-px bg-slate-200 hidden md:block" />
+            <div className="flex flex-wrap items-center justify-center gap-6 text-[11px] font-bold uppercase tracking-widest">
+              <span className="text-slate-400">Offline Centers:</span>
+              {["Addis Ababa", "Hawassa", "Dire Dawa", "Bahir Dar", "Mekelle", "Jimma"].map((city, i) => (
+                <div key={i} className="flex items-center gap-1.5 hover:text-sky-600 transition-colors cursor-default">
+                  <div className="w-1 h-1 rounded-full bg-sky-400" />
+                  <span>{city}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FEATURES ─── */}
+      <section id="features" className="py-32 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="text-center space-y-5 mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 border border-sky-100 text-sky-600 text-[11px] font-black uppercase tracking-widest">
+              <Zap className="w-4 h-4" /> Powered by Advanced AI
+            </div>
+            <h2 className="text-5xl lg:text-6xl font-black leading-tight text-slate-900">
+              Everything you need to<br />
+              <span className="text-sky-600">master your grades</span>
             </h2>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              SmartTutorET combines cutting-edge AI technology with proven educational methodologies for Grades 1-12.
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
+              SmartTutorET brings AI tutoring, live teaching, and collaborative tools into one seamless platform.
             </p>
           </div>
 
-          {/* Feature Categories */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {["all", "ai", "collaboration", "analytics", "resources", "wellness"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 rounded-full font-medium transition-all duration-300 ${activeTab === tab
-                  ? 'bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white shadow-lg'
-                  : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-                  }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Feature Grid with Enhanced Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                category: "ai",
-                icon: Brain,
-                title: "Adaptive AI Tutor",
-                description: "Personalized learning paths that adjust to your pace, strengths, and weaknesses in real-time.",
-                features: ["24/7 Availability", "Instant Feedback", "Personalized Quizzes", "Learning Pattern Analysis"],
-                badge: "AI",
-                gradientIndex: 0
-              },
-              {
-                category: "collaboration",
-                icon: Users,
-                title: "Smart Study Groups",
-                description: "AI-matched study partners and collaborative learning environments with real-time tools.",
-                features: ["Video Sessions", "Shared Whiteboard", "Group Assignments", "Peer Review"],
-                badge: "Social",
-                gradientIndex: 1
-              },
-              {
-                category: "analytics",
-                icon: BarChart3,
-                title: "Learning Analytics",
-                description: "Comprehensive insights into your progress with predictive analytics and recommendations.",
-                features: ["Progress Tracking", "Performance Predictions", "Weakness Analysis", "Study Recommendations"],
-                badge: "Data",
-                gradientIndex: 2
-              },
-              {
-                category: "resources",
-                icon: BookOpen,
-                title: "Dynamic Resource Library",
-                description: "Thousands of curated resources including videos, interactive simulations, and practice exercises.",
-                features: ["Video Lessons", "Interactive Exercises", "PDF Notes", "Offline Access"],
-                badge: "Library",
-                gradientIndex: 3
-              },
-              {
-                category: "wellness",
-                icon: HeartIcon,
-                title: "Emotional Wellness",
-                description: "Built-in tools for stress management, motivation tracking, and mental health support.",
-                features: ["Mood Tracking", "Stress Management", "Motivation Tools", "Counseling Access"],
-                badge: "Wellness",
-                gradientIndex: 4
-              },
-              {
-                category: "ai",
-                icon: Rocket,
-                title: "Gamified Learning",
-                description: "Earn badges, climb leaderboards, and unlock achievements while learning.",
-                features: ["Achievement Badges", "Leaderboards", "Learning Streaks", "Reward System"],
-                badge: "Fun",
-                gradientIndex: 5
-              },
-            ].map((feature, idx) => (
-              <div
-                key={idx}
-                onMouseEnter={() => setHoveredFeature(idx)}
-                onMouseLeave={() => setHoveredFeature(null)}
-                className={`group p-8 rounded-[32px] backdrop-blur-sm transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden ${activeTab === "all" || activeTab === feature.category ? "block" : "hidden"
-                  }`}
-              >
-                {/* Glowing Border and Background - Applied as default */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${cardGradients[feature.gradientIndex]} opacity-20 rounded-[32px]`} />
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 rounded-[32px]" />
-                <div className="absolute inset-0 border-2 border-transparent rounded-[32px] bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] bg-clip-border p-[2px] opacity-30">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] rounded-[32px] blur-md opacity-30" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10">
-                  {/* Badge */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${cardGradients[feature.gradientIndex]} flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-lg`}>
-                      <feature.icon className="w-8 h-8 text-white" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((f, i) => {
+              const acc = accentClasses[f.color]
+              return (
+                <div key={i} className={cn(
+                  "group p-8 rounded-[32px] bg-white border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-slate-200/60 cursor-pointer",
+                  acc.border
+                )}>
+                  <div className="flex items-start justify-between mb-6">
+                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border group-hover:scale-110 transition-transform shadow-sm", acc.icon)}>
+                      <f.icon className="w-7 h-7" />
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80 backdrop-blur-sm">
-                      {feature.badge}
+                    <span className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border", acc.badge)}>
+                      {f.tag}
                     </span>
                   </div>
-
-                  <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
-                  <p className="text-white/70 leading-relaxed mb-6">{feature.description}</p>
-
-                  {/* Feature List */}
-                  <ul className="space-y-3 mb-6">
-                    {feature.features.map((item, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm text-white/80 group-hover:text-white transition-colors">
-                        <div className="w-2 h-2 rounded-full bg-[#3D7FA2]" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Interactive Button */}
-                  <div className="flex items-center justify-between pt-6 border-t border-white/20">
-                    <div className="text-sm text-[#3D7FA2] flex items-center gap-2 group-hover:gap-3 transition-all">
-                      <span>Explore Feature</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </div>
-                    <div className="flex items-center gap-2 text-white/40 text-sm">
-                      <Eye className="w-4 h-4" />
-                      <span>1.2K</span>
-                    </div>
+                  <h3 className="text-xl font-black text-slate-900 mb-3">{f.title}</h3>
+                  <p className="text-slate-500 leading-relaxed font-medium text-sm">{f.desc}</p>
+                  <div className="flex items-center gap-2 mt-8 pt-6 border-t border-slate-50 text-sky-600 text-sm font-black group-hover:gap-3 transition-all">
+                    <span>Learn more</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 📚 Interactive Course Catalog */}
-      <section id="courses" className="relative px-6 md:px-12 py-24 bg-gradient-to-b from-[#223347] to-[#1B5A6C]">
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-[#223347]" />
-
-        <div className="relative container mx-auto">
-          <div className="text-center space-y-6 max-w-4xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-gradient-to-r from-[#3D7FA2]/20 to-[#206687]/20 border border-[#3D7FA2]/30">
-              <GraduationCap className="w-4 h-4 text-[#3D7FA2]" />
-              <span className="text-sm font-medium text-white">Comprehensive Curriculum</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
-              Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3D7FA2] to-[#206687]">Grade 1-12</span> Courses
-            </h2>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Complete coverage of Ethiopian curriculum for all grades. From basic literacy to advanced subjects.
-            </p>
-          </div>
-
-          {/* Course Categories */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-12">
-            {[
-
-              { icon: "9️⃣", label: "Grade 9-10", count: 40, color: "#1B5A6C" },
-              { icon: "🔟", label: "Grade 11-12", count: 32, color: "#294B61" },
-              { icon: "🧮", label: "Mathematics", count: 72, color: "#2E4360" },
-              { icon: "🔬", label: "Science", count: 56, color: "#3D7FA2" },
-            ].map((category, idx) => (
-              <Link key={idx} href={`/courses/${category.label.toLowerCase().replace(/[^a-z]/g, '-')}`}>
-                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group text-center relative overflow-hidden">
-                  {/* Glowing effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 blur-lg transition-opacity duration-300" />
-
-                  <div className="relative z-10 text-3xl mb-3 group-hover:scale-110 transition-transform">{category.icon}</div>
-                  <div className="relative z-10 text-white font-medium">{category.label}</div>
-                  <div className="relative z-10 text-sm text-white/60 mt-1">{category.count} courses</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Enhanced Featured Courses with Glowing Borders */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Grade 5 Mathematics",
-                instructor: "Mr. Daniel Abebe",
-                rating: 4.8,
-                students: 1890,
-                duration: "36 weeks",
-                level: "Beginner",
-                color: "#3D7FA2",
-                gradient: "from-[#3D7FA2] via-[#206687] to-[#1B5A6C]",
-                icon: Calculator,
-                grade: "5"
-              },
-              {
-                title: "Grade 9 Physics",
-                instructor: "Dr. Lemlem Hailu",
-                rating: 4.9,
-                students: 1567,
-                duration: "40 weeks",
-                level: "Intermediate",
-                color: "#206687",
-                gradient: "from-[#206687] via-[#1B5A6C] to-[#294B61]",
-                icon: Atom,
-                grade: "9"
-              },
-              {
-                title: "Grade 11 English",
-                instructor: "Ms. Sara Johnson",
-                rating: 4.7,
-                students: 2345,
-                duration: "38 weeks",
-                level: "Advanced",
-                color: "#1B5A6C",
-                gradient: "from-[#1B5A6C] via-[#294B61] to-[#2E4360]",
-                icon: Book,
-                grade: "11"
-              },
-            ].map((course, idx) => {
-              const Icon = course.icon
-              return (
-                <Link key={idx} href={`/courses/${course.title.toLowerCase().replace(/ /g, '-')}`}>
-                  <div className="group rounded-3xl backdrop-blur-sm overflow-hidden hover:shadow-2xl transition-all duration-500 relative cursor-pointer">
-                    {/* Glowing Border and Background - Applied as default */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${course.gradient} opacity-20 rounded-3xl`} />
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 rounded-3xl" />
-                    <div className="absolute inset-0 border-2 border-transparent rounded-3xl bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] bg-clip-border p-[2px] opacity-40">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] rounded-3xl blur-lg opacity-40" />
-                    </div>
-
-                    {/* Course Header */}
-                    <div className="relative p-6">
-                      <div className="relative z-10 flex items-start justify-between mb-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                          <Icon className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
-                            Grade {course.grade}
-                          </span>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/90 backdrop-blur-sm">
-                            {course.level}
-                          </span>
-                        </div>
-                      </div>
-                      <h3 className="relative z-10 text-xl font-bold text-white mb-2">{course.title}</h3>
-                      <p className="relative z-10 text-white/60 text-sm">By {course.instructor}</p>
-                    </div>
-
-                    {/* Course Details */}
-                    <div className="relative p-6">
-                      {/* Stats */}
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-white">{course.rating}</div>
-                          <div className="text-xs text-white/60">Rating</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-white">{course.students.toLocaleString()}</div>
-                          <div className="text-xs text-white/60">Students</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-white">{course.duration}</div>
-                          <div className="text-xs text-white/60">Duration</div>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="space-y-2 mb-6">
-                        <div className="flex justify-between text-sm text-white/60">
-                          <span>Course Progress</span>
-                          <span>65%</span>
-                        </div>
-                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500 group-hover:scale-y-125"
-                            style={{
-                              width: "65%",
-                              background: `linear-gradient(90deg, ${course.color}, ${course.color}80)`
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* CTA Button */}
-                      <Button className="w-full rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white border border-white/20 group-hover:scale-105 transition-transform relative overflow-hidden">
-                        <span className="relative z-10 flex items-center justify-center">
-                          <PlayCircle className="w-5 h-5 mr-2" />
-                          View Course
-                        </span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-20 transition-opacity" />
-                      </Button>
-                    </div>
-                  </div>
-                </Link>
               )
             })}
           </div>
+        </div>
+      </section>
 
-          {/* View All Courses */}
-          <div className="text-center mt-12">
-            <Link href="/courses">
-              <Button
-                variant="outline"
-                className="rounded-full border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg group relative overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center">
-                  Browse All Courses (Grade -12)
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
-              </Button>
-            </Link>
+      {/* ─── HOW IT WORKS ─── */}
+      <section className="py-32 bg-white border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-black text-slate-900 mb-4">Get started in <span className="text-sky-600">3 steps</span></h2>
+            <p className="text-xl text-slate-400 font-medium">From signup to your first AI lesson in under 2 minutes.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-10 relative">
+            <div className="absolute top-14 left-[20%] right-[20%] h-px bg-sky-100 hidden md:block" />
+
+            {steps.map((step, i) => (
+              <div key={i} className="text-center space-y-6 relative">
+                <div className="relative inline-flex flex-col items-center justify-center w-28 h-28 rounded-[32px] bg-sky-50 border border-sky-100 mx-auto shadow-lg shadow-sky-100/60">
+                  <step.icon className="w-8 h-8 text-sky-600 mb-1" />
+                  <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">{step.step}</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 mb-3">{step.title}</h3>
+                  <p className="text-slate-500 leading-relaxed font-medium">{step.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 🤖 AI Demo Section */}
-      <section id="live-demo" className="relative px-6 md:px-12 py-24">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#294B61]/10 to-transparent" />
-
-        <div className="relative container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-gradient-to-r from-[#3D7FA2]/20 to-[#206687]/20 border border-[#3D7FA2]/30">
-                <Zap className="w-4 h-4 text-[#3D7FA2]" />
-                <span className="text-sm font-medium text-white">AI-Powered Learning</span>
+      {/* ─── COURSES ─── */}
+      <section id="courses" className="py-32 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-16">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[11px] font-black uppercase tracking-widest">
+                <BookOpen className="w-4 h-4" /> Full Curriculum Coverage
               </div>
-
-              <h2 className="text-4xl md:text-5xl font-bold text-white">
-                Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3D7FA2] to-[#206687]">Smart Learning</span>
-              </h2>
-
-              <p className="text-xl text-white/80">
-                Our AI tutor understands context, explains concepts in multiple ways, and provides personalized feedback for every grade level.
-              </p>
-
-              {/* Demo Features */}
-              <div className="space-y-6">
-                {[
-                  { icon: "💬", title: "Natural Conversations", desc: "Chat with AI like a human tutor" },
-                  { icon: "📊", title: "Step-by-Step Solutions", desc: "Detailed explanations for complex problems" },
-                  { icon: "🎯", title: "Personalized Feedback", desc: "Tailored suggestions based on your learning style" },
-                ].map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer group relative overflow-hidden">
-                    {/* Glowing effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 blur-lg transition-opacity" />
-
-                    <div className="relative z-10 text-2xl group-hover:scale-110 transition-transform">{feature.icon}</div>
-                    <div className="relative z-10 flex-1">
-                      <div className="text-white font-semibold">{feature.title}</div>
-                      <div className="text-sm text-white/60">{feature.desc}</div>
-                    </div>
-                    <ChevronRight className="relative z-10 w-5 h-5 text-white/40 group-hover:text-white/60" />
-                  </div>
-                ))}
-              </div>
-
-              <Button className="rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white px-8 py-6 text-lg group relative overflow-hidden">
-                <span className="relative z-10 flex items-center">
-                  <PlayCircle className="w-6 h-6 mr-3" />
-                  Watch Full Demo
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#206687] to-[#103255] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Button>
+              <h2 className="text-5xl font-black text-slate-900">Popular Courses</h2>
             </div>
+            <Link href="#courses">
+              <Button variant="outline" className="h-12 px-8 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200 font-bold transition-all">
+                Browse All Courses <ChevronRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
 
-            {/* AI Chat Demo */}
-            <div className="relative">
-              <div className="relative rounded-[32px] bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-lg p-2 shadow-2xl overflow-hidden group">
-                {/* Glowing Border */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2]/20 via-[#206687]/10 to-[#1B5A6C]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
-                <div className="absolute inset-0 border-2 border-transparent rounded-[32px] bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] bg-clip-border p-[2px] opacity-40">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] rounded-[32px] blur-md opacity-40" />
-                </div>
-
-                <div className="relative bg-gradient-to-br from-[#1B5A6C]/30 via-[#223347]/20 to-[#2E4360]/10 rounded-[28px] p-6">
-                  {/* Chat Header */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3D7FA2] to-[#206687] flex items-center justify-center">
-                        <Brain className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-[#1B5A6C]" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((c, i) => {
+              const acc = accentClasses[c.accent]
+              return (
+                <div key={i} className={cn(
+                  "group rounded-[28px] overflow-hidden border bg-white hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-300 hover:scale-[1.02] cursor-pointer",
+                  acc.border
+                )}>
+                  {/* Removed upper border strip for a cleaner look */}
+                  <div className="p-7">
+                    <div className="flex items-start justify-between mb-5">
+                      <div className="text-4xl">{c.emoji}</div>
+                      <span className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border", acc.badge)}>{c.grade}</span>
                     </div>
-                    <div>
-                      <div className="text-white font-semibold">AI Tutor</div>
-                      <div className="text-xs text-white/60">Online • Ready to help</div>
+                    <h3 className="text-lg font-black text-slate-900 mb-1">{c.grade} {c.subject}</h3>
+                    <p className="text-slate-400 text-sm font-medium mb-6">By {c.teacher}</p>
+
+                    <div className="flex items-center justify-between text-sm pt-4 border-t border-slate-50">
+                      <div className="flex items-center gap-2 text-slate-400 font-semibold">
+                        <Users className="w-4 h-4" /> {c.students} students
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-500 font-black">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> {c.rating}
+                      </div>
                     </div>
                   </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
 
-                  {/* Chat Messages */}
-                  <div className="space-y-4 mb-6">
-                    {/* User Message */}
-                    <div className="flex justify-end">
-                      <div className="max-w-[80%] p-4 rounded-2xl rounded-br-none bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white">
-                        Can you explain fractions for Grade 4?
+      {/* ─── TESTIMONIALS ─── */}
+      <section id="testimonials" className="py-32 bg-white border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          {/* Carousel Header */}
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">Loved by students across <span className="text-sky-600">Ethiopia</span></h2>
+            <p className="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">Hear directly from the students who are transforming their academic results with SmartTutorET.</p>
+          </div>
+
+          <div className="relative max-w-[1400px] mx-auto group">
+            {/* Carousel Container */}
+            <div className="overflow-hidden py-10">
+              <div
+                className="flex transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                style={{
+                  transform: `translateX(-${testimonialIndex * (100 / (typeof window !== 'undefined' && window.innerWidth < 1024 ? 1 : 3))}%)`
+                }}
+              >
+                {testimonials.map((t, i) => (
+                  <div key={i} className="w-full lg:w-1/3 flex-shrink-0 px-4">
+                    <div className="h-full p-8 md:p-10 rounded-[32px] bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group/card">
+                      <div className="flex gap-1 mb-6">
+                        {[...Array(t.stars)].map((_, s) => (
+                          <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        ))}
                       </div>
-                    </div>
-
-                    {/* AI Response */}
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                        <Brain className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="p-4 rounded-2xl rounded-tl-none bg-white/5 text-white">
-                          Think of fractions like <span className="text-[#3D7FA2] font-semibold">pizza slices</span>! If you have a pizza cut into 8 equal slices, and you eat 3 slices, you've eaten <span className="text-[#3D7FA2] font-semibold">3/8</span> of the pizza!
-
-                          <div className="mt-4 p-3 rounded-xl bg-white/10">
-                            <div className="text-sm text-white/60 mb-2">Visual Example:</div>
-                            <div className="font-mono text-sm">
-                              🍕 = 8 slices<br />
-                              🍕🍕🍕 = 3 slices eaten<br />
-                              Fraction = 3/8
-                            </div>
-                          </div>
+                      <p className="text-slate-600 leading-relaxed font-medium mb-10 text-lg">"{t.text}"</p>
+                      <div className="flex items-center gap-4 pt-8 border-t border-slate-100">
+                        <div className="w-14 h-14 rounded-2xl bg-sky-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
+                          {t.avatar}
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900">{t.name}</p>
+                          <p className="text-[10px] text-sky-600 font-bold uppercase tracking-widest">{t.grade} • {t.score}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Input Area */}
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      placeholder="Ask AI Tutor anything..."
-                      className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#3D7FA2]"
-                    />
-                    <Button className="rounded-xl bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white">
-                      Send
-                    </Button>
-                  </div>
-                </div>
+                ))}
               </div>
+            </div>
 
-              {/* Floating Stats */}
-              <div className="absolute -top-4 -right-4">
-                <div className="px-4 py-2 rounded-full bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white text-sm font-medium shadow-lg">
-                  🤖 AI Powered
-                </div>
+            {/* Navigation Buttons - Simple Style */}
+            <div className="absolute top-1/2 -translate-y-1/2 -left-4 -right-4 flex justify-between pointer-events-none transition-opacity duration-300">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTestimonialIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+                className="w-12 h-12 rounded-full bg-white shadow-sm border border-slate-200 text-slate-600 hover:text-sky-600 hover:border-sky-600 pointer-events-auto transition-all"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTestimonialIndex((prev) => (prev === (typeof window !== 'undefined' && window.innerWidth < 1024 ? testimonials.length - 1 : testimonials.length - 3) ? 0 : prev + 1))}
+                className="w-12 h-12 rounded-full bg-white shadow-sm border border-slate-200 text-slate-600 hover:text-sky-600 hover:border-sky-600 pointer-events-auto transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Pagination Dots */}
+            <div className="flex justify-center gap-3 mt-12">
+              {testimonials.map((_, i) => {
+                // Adjust dots for desktop (only 2 slides if 3 cards/slide)
+                const maxIndex = typeof window !== 'undefined' && window.innerWidth < 1024 ? testimonials.length : testimonials.length - 2;
+                if (i >= maxIndex && typeof window !== 'undefined' && window.innerWidth >= 1024) return null;
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setTestimonialIndex(i)}
+                    className={cn(
+                      "h-2.5 rounded-full transition-all duration-500",
+                      testimonialIndex === i ? "w-10 bg-sky-600 shadow-lg shadow-sky-600/40" : "w-2.5 bg-slate-200 hover:bg-sky-200"
+                    )}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA SECTION ─── */}
+      <section className="py-24 bg-slate-50 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
+          <div className="space-y-8 max-w-4xl mx-auto">
+            <h2 className="text-5xl md:text-7xl font-black text-slate-900 leading-tight">
+              Start Your <span className="text-sky-600">Success Story</span>
+            </h2>
+            <p className="text-xl text-slate-500 font-medium leading-relaxed">
+              Join 12,000+ top Ethiopian students mastering their grades with AI-powered personalized learning.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+              <Link href="/signup">
+                <Button size="lg" className="h-16 px-10 rounded-2xl bg-sky-600 text-white hover:bg-sky-700 font-black text-base shadow-lg shadow-sky-600/20">
+                  Start Free Today <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline" className="h-16 px-10 rounded-2xl border-slate-200 bg-white text-slate-600 font-bold text-base hover:bg-slate-50 hover:text-sky-600 hover:border-sky-600 transition-all">
+                  Sign In to Account
+                </Button>
+              </Link>
+            </div>
+
+            <div className="pt-12 flex flex-wrap justify-center gap-8 text-slate-400 text-sm font-bold border-t border-slate-200">
+              <div className="flex items-center gap-2 italic">
+                <CheckCircle2 className="w-5 h-5 text-sky-500" /> Free Forever Plan
+              </div>
+              <div className="flex items-center gap-2 italic">
+                <CheckCircle2 className="w-5 h-5 text-sky-500" /> Expert Ethiopian Tutors
+              </div>
+              <div className="flex items-center gap-2 italic">
+                <CheckCircle2 className="w-5 h-5 text-sky-500" /> 98% Success Rate
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced Footer */}
-      <footer className="relative bg-gradient-to-b from-[#0A1929] via-[#1B5A6C] to-[#223347] mt-32">
-        {/* Wave Divider */}
-        <div className="absolute -top-32 left-0 right-0 h-32 overflow-hidden">
-          <svg
-            className="absolute w-full h-full"
-            viewBox="0 0 1200 120"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-              fill="url(#footer-gradient)"
-              opacity="0.8"
-            />
-            <defs>
-              <linearGradient
-                id="footer-gradient"
-                x1="600"
-                y1="0"
-                x2="600"
-                y2="120"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop stopColor="#2E4360" />
-                <stop offset="1" stopColor="#0A1929" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-
-        {/* Main Footer Content */}
-        <div className="relative container mx-auto px-6 md:px-12 pt-32 pb-12">
-          <div className="grid lg:grid-cols-2 gap-12 mb-16">
-            {/* Left Column - Brand & Description */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#3D7FA2] to-[#206687] flex items-center justify-center shadow-xl">
-                    <GraduationCap className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -inset-2 bg-gradient-to-r from-[#3D7FA2] to-[#206687] rounded-2xl blur opacity-30" />
+      {/* ─── FOOTER ─── */}
+      <footer className="bg-slate-900 py-16">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="space-y-5">
+              <Link href="/" className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/30">
+                  <GraduationCap className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                    SmartTutor<span className="text-[#3D7FA2]">ET</span>
-                  </h2>
-                  <p className="text-white/60 text-sm">Ethiopia's Premier Grade 1-12 Platform</p>
-                </div>
-              </div>
-
-              <p className="text-white/70 max-w-md leading-relaxed">
-                Empowering Ethiopian students from Grade 1 to 12 with AI-powered personalized learning,
-                comprehensive curriculum coverage, and exam preparation for academic excellence.
+                <span className="text-lg font-black text-white">SmartTutor<span className="text-sky-400">ET</span></span>
+              </Link>
+              <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                Ethiopia's premier AI-powered learning platform for Grade 9–12 students.
               </p>
-
-              {/* Newsletter Subscription */}
-              <div className="space-y-4">
-                <h3 className="text-white font-semibold">Get Study Tips</h3>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="email"
-                    placeholder="Your email address"
-                    className="flex-1 px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#3D7FA2]"
-                  />
-                  <Button className="rounded-xl bg-gradient-to-r from-[#3D7FA2] to-[#206687] hover:from-[#206687] hover:to-[#103255] text-white px-8">
-                    Subscribe
-                  </Button>
-                </div>
-                <p className="text-white/50 text-xs">
-                  Weekly study tips and exam strategies
-                </p>
-              </div>
             </div>
 
-            {/* Right Column - Links Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div className="space-y-6">
-                <h3 className="text-white font-semibold text-lg">Grades</h3>
+            {[
+              { title: "Platform", links: ["Features", "Courses", "Teachers", "Schools"] },
+              { title: "Grades", links: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"] },
+              { title: "Company", links: ["About Us", "Blog", "Careers", "Contact"] },
+            ].map((col, i) => (
+              <div key={i}>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5">{col.title}</h4>
                 <ul className="space-y-3">
-                  {["Grade 1-4", "Grade 5-8", "Grade 9-10", "Grade 11-12", "All Grades"].map((link) => (
+                  {col.links.map(link => (
                     <li key={link}>
-                      <a
-                        href="#"
-                        className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
-                      >
-                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {link}
-                      </a>
+                      <a href="#" className="text-slate-400 hover:text-white text-sm font-medium transition-colors">{link}</a>
                     </li>
                   ))}
                 </ul>
               </div>
-
-              <div className="space-y-6">
-                <h3 className="text-white font-semibold text-lg">Subjects</h3>
-                <ul className="space-y-3">
-                  {["Mathematics", "Science", "English", "Amharic", "Social Studies", "ICT"].map((link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
-                      >
-                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-white font-semibold text-lg">Support</h3>
-                <ul className="space-y-3">
-                  {["Help Center", "Contact Us", "FAQ", "For Schools", "Parents"].map((link) => (
-                    <li key={link}>
-                      <a
-                        href="#"
-                        className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
-                      >
-                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Bottom Bar */}
-          <div className="border-t border-white/10 pt-12">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              {/* Contact Info */}
-              <div className="flex flex-wrap gap-6 text-sm text-white/60">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+251 11 123 4567</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>support@smarttutoret.et</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>Addis Ababa, Ethiopia</span>
-                </div>
-              </div>
-
-              {/* Social Links */}
-              <div className="flex items-center gap-4">
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-all duration-300 group relative overflow-hidden"
-                  aria-label="Facebook"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
-                  <Facebook className="w-5 h-5 text-white/60 group-hover:text-white relative z-10" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-all duration-300 group relative overflow-hidden"
-                  aria-label="Twitter"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
-                  <Twitter className="w-5 h-5 text-white/60 group-hover:text-white relative z-10" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-all duration-300 group relative overflow-hidden"
-                  aria-label="Instagram"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
-                  <Instagram className="w-5 h-5 text-white/60 group-hover:text-white relative z-10" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-all duration-300 group relative overflow-hidden"
-                  aria-label="YouTube"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#3D7FA2] via-[#206687] to-[#1B5A6C] opacity-0 group-hover:opacity-10 transition-opacity" />
-                  <Youtube className="w-5 h-5 text-white/60 group-hover:text-white relative z-10" />
-                </a>
-              </div>
-            </div>
-
-            {/* Copyright & Links */}
-            <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/40">
-              <div className="flex items-center gap-2">
-                <span>© 2026 SmartTutorET. All rights reserved.</span>
-                <span className="hidden md:inline">•</span>
-                <span className="hidden md:inline">Made with <Heart className="w-4 h-4 inline text-red-400" /> for Ethiopian students</span>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <a href="#" className="hover:text-white transition-colors">
-                  Privacy Policy
-                </a>
-                <a href="#" className="hover:text-white transition-colors">
-                  Terms of Service
-                </a>
-                <a href="#" className="hover:text-white transition-colors">
-                  Cookie Policy
-                </a>
-              </div>
-            </div>
-
-            {/* Mobile Copyright */}
-            <div className="mt-4 md:hidden text-center text-sm text-white/40">
-              <p>Made with <Heart className="w-4 h-4 inline text-red-400" /> for Ethiopian students</p>
+          <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-slate-500 text-sm font-medium">© 2026 SmartTutorET. All rights reserved.</p>
+            <div className="flex items-center gap-2 text-slate-500 text-sm">
+              Made with <Heart className="w-4 h-4 text-rose-500 fill-rose-500 mx-1" /> in Ethiopia
             </div>
           </div>
-        </div>
-
-        {/* Floating CTA */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <Link href="/signup">
-            <button className="group relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#3D7FA2] to-[#206687] rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity" />
-              <div className="relative flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-[#3D7FA2] to-[#206687] text-white shadow-2xl hover:shadow-3xl transition-all duration-300 group">
-                <GraduationCap className="w-5 h-5" />
-                <span className="font-medium">Start Free</span>
-              </div>
-            </button>
-          </Link>
         </div>
       </footer>
-
-      {/* Animation Styles */}
-      <style jsx global>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-20px);
-          }
-        }
-
-        @keyframes spin-slow {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes gradient-x {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient-x 3s ease infinite;
-        }
-
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 3s ease infinite;
-        }
-      `}</style>
     </div>
   )
 }
