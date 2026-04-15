@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, ArrowRight, Lock, Mail, ArrowLeft, Chrome, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, ArrowRight, Lock, Mail, ArrowLeft, Chrome, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react"
 import { AuthBackground, AuthCard } from "@/components/auth-components"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -68,22 +69,18 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthBackground imageSrc="/auth/login-bg.png">
+    <AuthBackground imageSrc="/auth/premium-library-bg.png">
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
         {/* Back Button */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group mb-4"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-smooth">
-            <ArrowLeft className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-medium">Back to Home</span>
-        </Link>
+
 
         <AuthCard>
-          {/* Header */}
-          <div className="text-center mb-8">
+          <div className="flex flex-col items-center mb-8">
+            <Link href="/" className="mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden group-hover:scale-105 transition-all duration-500">
+                <Image src="/logo.png" alt="SmartTutorET Logo" width={64} height={64} priority />
+              </div>
+            </Link>
             <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
             <p className="text-white/60">Sign in to continue your learning journey</p>
           </div>
@@ -133,7 +130,7 @@ export default function LoginPage() {
                   {...register("email")}
                   placeholder="name@example.com"
                   className={cn(
-                    "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
+                    "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
                     errors.email && "border-red-500/50 focus:ring-red-500/50"
                   )}
                 />
