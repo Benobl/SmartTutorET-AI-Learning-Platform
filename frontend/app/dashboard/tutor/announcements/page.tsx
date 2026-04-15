@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { teacherAnnouncements, teacherCourses } from "@/lib/teacher-data"
+import { teacherAssignments, teacherMessages } from "@/lib/teacher-data"
 import { cn } from "@/lib/utils"
 import { Bell, Plus, Users, Eye, Pin, X, Check } from "lucide-react"
 import { Input } from "@/components/ui/input"
