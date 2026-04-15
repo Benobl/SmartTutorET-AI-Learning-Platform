@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { teacherAssignments, teacherCourses } from "@/lib/teacher-data"
+import { teacherMessages, teacherAssignments } from "@/lib/teacher-data"
 import { cn } from "@/lib/utils"
 import { Plus, FileText, Users, CheckCircle2, Clock, X, Calendar, AlignLeft, Paperclip } from "lucide-react"
 import { Input } from "@/components/ui/input"
