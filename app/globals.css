@@ -47,20 +47,34 @@
   --chart-5: #8b5cf6;
 
   /* Design Tokens */
-  --radius: 0.75rem; /* Preserved existing value from user, overrides Shadcn default 0.625rem */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05); /* Preserved existing value */
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05); /* Preserved existing value */
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05); /* Preserved existing value */
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.05); /* Preserved existing value */
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08); /* Preserved existing value */
-  --sidebar: oklch(0.985 0 0); /* Preserved existing value */
-  --sidebar-foreground: oklch(0.145 0 0); /* Preserved existing value */
-  --sidebar-primary: oklch(0.205 0 0); /* Preserved existing value */
-  --sidebar-primary-foreground: oklch(0.985 0 0); /* Preserved existing value */
-  --sidebar-accent: oklch(0.97 0 0); /* Preserved existing value */
-  --sidebar-accent-foreground: oklch(0.205 0 0); /* Preserved existing value */
-  --sidebar-border: oklch(0.922 0 0); /* Preserved existing value */
-  --sidebar-ring: oklch(0.708 0 0); /* Preserved existing value */
+  --radius: 0.75rem;
+  /* Preserved existing value from user, overrides Shadcn default 0.625rem */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Preserved existing value */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  /* Preserved existing value */
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  /* Preserved existing value */
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.05);
+  /* Preserved existing value */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Preserved existing value */
+  --sidebar: oklch(0.985 0 0);
+  /* Preserved existing value */
+  --sidebar-foreground: oklch(0.145 0 0);
+  /* Preserved existing value */
+  --sidebar-primary: oklch(0.205 0 0);
+  /* Preserved existing value */
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  /* Preserved existing value */
+  --sidebar-accent: oklch(0.97 0 0);
+  /* Preserved existing value */
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  /* Preserved existing value */
+  --sidebar-border: oklch(0.922 0 0);
+  /* Preserved existing value */
+  --sidebar-ring: oklch(0.708 0 0);
+  /* Preserved existing value */
 }
 
 .dark {
@@ -154,6 +168,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -163,45 +178,59 @@
   .card-stats {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-stats)];
   }
+
   .card-progress {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-progress)];
   }
+
   .card-achievement {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-achievement)];
   }
+
   .card-action {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-action)];
   }
+
   .card-resource {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-resource)];
   }
+
   .card-chart {
     @apply p-6 rounded-xl border border-border shadow-md bg-[color:var(--card-chart)];
   }
+
   .badge-primary {
     @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold;
   }
+
   .badge-secondary {
     @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-semibold;
   }
+
   .badge-accent {
     @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-semibold;
   }
+
   .badge-success {
     @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-semibold;
   }
+
   .gradient-text {
     @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
   }
+
   .glass {
     @apply backdrop-blur-md bg-background/40 border border-border/50;
   }
+
   .glow-primary {
     box-shadow: 0 0 20px rgba(66, 80, 165, 0.3);
   }
+
   .glow-secondary {
     box-shadow: 0 0 20px rgba(75, 166, 158, 0.3);
   }
+
   .glow-accent {
     box-shadow: 0 0 20px rgba(212, 162, 78, 0.3);
   }
@@ -211,25 +240,222 @@
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
+
   .shadow-card-lg {
     box-shadow: var(--shadow-lg);
   }
+
   .shadow-card-xl {
     box-shadow: var(--shadow-xl);
   }
+
   .backdrop-sm {
     @apply backdrop-blur-sm;
   }
+
   .backdrop-md {
     @apply backdrop-blur-md;
   }
+
   .text-subtle {
     @apply text-muted-foreground;
   }
+
   .text-accent-strong {
     @apply font-semibold text-accent;
   }
+
   .transition-smooth {
     @apply transition-all duration-300 ease-out;
   }
+}
+
+/* Custom Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 4s infinite;
+}
+
+.animate-reveal {
+  animation: reveal 1.2s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+/* Scroll-reveal: elements start invisible, JS adds .in-view */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(48px);
+  transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.scroll-reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.9s cubic-bezier(0.23, 1, 0.32, 1), transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.scroll-reveal-left.in-view {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.9s cubic-bezier(0.23, 1, 0.32, 1), transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.scroll-reveal-right.in-view {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-reveal-scale {
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.scroll-reveal-scale.in-view {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Short alias scroll-reveal classes (used in page.tsx as .sr / .sr-l / .sr-r / .sr-s) */
+.sr {
+  opacity: 0;
+  transform: translateY(48px);
+  transition: opacity .8s cubic-bezier(.23, 1, .32, 1), transform .8s cubic-bezier(.23, 1, .32, 1);
+}
+
+.sr.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sr-l {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity .9s cubic-bezier(.23, 1, .32, 1), transform .9s cubic-bezier(.23, 1, .32, 1);
+}
+
+.sr-l.in-view {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sr-r {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity .9s cubic-bezier(.23, 1, .32, 1), transform .9s cubic-bezier(.23, 1, .32, 1);
+}
+
+.sr-r.in-view {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sr-s {
+  opacity: 0;
+  transform: scale(.88);
+  transition: opacity .8s cubic-bezier(.23, 1, .32, 1), transform .8s cubic-bezier(.23, 1, .32, 1);
+}
+
+.sr-s.in-view {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Marquee */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-33.333%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
 }

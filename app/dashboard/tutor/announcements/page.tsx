@@ -63,7 +63,7 @@ export default function TeacherAnnouncementsPage() {
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Send To</label>
                                     <select value={form.audience} onChange={e => setForm(p => ({ ...p, audience: e.target.value }))} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm font-medium">
                                         <option value="all">All My Students</option>
-                                        {teacherCourses.map(c => <option key={c.id} value={c.code}>{c.name}</option>)}
+                                        {teacherCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
