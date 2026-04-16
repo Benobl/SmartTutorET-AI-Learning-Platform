@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Bell, User, LogOut, Settings, CreditCard, ChevronDown, Menu } from "lucide-react"
+import { Search, Bell, User, LogOut, Settings, CreditCard, ChevronDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
     DropdownMenu,
@@ -11,18 +11,15 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { useSidebar } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
-import Link from "next/link"
 
 interface DashboardNavbarProps {
     className?: string
 }
 
 export function DashboardNavbar({ className }: DashboardNavbarProps) {
-    const { toggleSidebar, isMobile } = useSidebar()
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
 
@@ -36,24 +33,7 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
             className
         )}>
             <div className="flex items-center gap-4 flex-1">
-                {/* Mobile Menu Trigger & Logo */}
-                {isMobile && (
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={toggleSidebar}
-                            className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
-                        >
-                            <Menu className="w-6 h-6" />
-                        </Button>
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-lg border border-slate-100 shrink-0 overflow-hidden">
-                                <Image src="/logo.png" alt="Logo" width={32} height={32} />
-                            </div>
-                        </Link>
-                    </div>
-                )}
+                <SidebarTrigger className="text-slate-500 hover:text-slate-900 hover:bg-slate-100" />
 
                 {/* Global Search Bar */}
                 <div className={cn(

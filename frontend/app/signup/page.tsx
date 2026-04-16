@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -237,16 +236,6 @@ export default function SignupPage() {
     <AuthBackground imageSrc="/auth/signup-bg.png">
       <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500">
         <AuthCard>
-          <div className="flex flex-col items-center mb-8">
-            <Link href="/" className="mb-4">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden hover:scale-105 transition-all duration-500">
-                <Image src="/logo.png" alt="SmartTutorET Logo" width={64} height={64} priority />
-              </div>
-            </Link>
-            <h1 className="text-3xl font-bold text-white mb-2">Create Your Account</h1>
-            <p className="text-white/60">Join the future of AI-powered learning in Ethiopia</p>
-          </div>
-
           {/* Internal Back Button */}
           <div className="flex justify-start mb-2">
             <button

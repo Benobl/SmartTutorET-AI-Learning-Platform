@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 interface NavItem {
@@ -173,28 +172,32 @@ const teacherNavItems: NavItem[] = [
 
 
 /**
- * Refined Collapse toggle button - now integrated into the header.
+ * Refined Collapse toggle button.
  */
-function CollapseToggle({ className }: { className?: string }) {
-    const { state, toggleSidebar, isMobile } = useSidebar()
+function CollapseToggle() {
+    const { state, toggleSidebar } = useSidebar()
     const isCollapsed = state === "collapsed"
-
-    if (isMobile) return null
 
     return (
         <button
             onClick={toggleSidebar}
             className={cn(
-                "flex items-center justify-center rounded-lg transition-all duration-300 group/toggle",
-                "border border-slate-200 bg-white shadow-sm hover:bg-sky-50 hover:border-sky-200 hover:shadow-md h-8 w-8 px-0",
-                className
+                "flex items-center justify-center rounded-xl transition-all duration-300 group/toggle",
+                "border border-slate-200 bg-white/50 backdrop-blur-md shadow-sm",
+                "hover:bg-sky-50 hover:border-sky-200 hover:shadow-md",
+                isCollapsed
+                    ? "w-10 h-10 mx-auto"
+                    : "w-full h-10 px-3 gap-3"
             )}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
             {isCollapsed ? (
-                <ChevronsRight className="w-4 h-4 text-slate-400 group-hover/toggle:text-sky-500 transition-all" />
+                <ChevronsRight className="w-5 h-5 text-slate-400 group-hover/toggle:text-sky-500 group-hover/toggle:translate-x-0.5 transition-all" />
             ) : (
-                <ChevronsLeft className="w-4 h-4 text-slate-400 group-hover/toggle:text-sky-500 transition-all" />
+                <>
+                    <ChevronsLeft className="w-4 h-4 text-slate-400 group-hover/toggle:text-sky-500 group-hover/toggle:-translate-x-0.5 transition-all" />
+                    <span className="text-xs font-semibold text-slate-500 group-hover/toggle:text-slate-900 flex-1 text-left transition-colors">Collapse</span>
+                </>
             )}
         </button>
     )
@@ -202,22 +205,16 @@ function CollapseToggle({ className }: { className?: string }) {
 
 export function DashboardSidebar() {
     const pathname = usePathname()
-    const { state, setOpenMobile, isMobile } = useSidebar()
+    const { state } = useSidebar()
     const isCollapsed = state === "collapsed"
     const [expandedItem, setExpandedItem] = useState<string | null>(null)
 
     const isTeacher = pathname.startsWith("/dashboard/teacher") || pathname.startsWith("/dashboard/tutor")
     const navigationItems = isTeacher ? teacherNavItems : studentNavItems
-    const navLabel = isTeacher ? "Instructor Console" : "Student Hub"
+    const navLabel = isTeacher ? "Teacher Menu" : "Main Menu"
 
     const toggleExpanded = (title: string) => {
         setExpandedItem(prev => prev === title ? null : title)
-    }
-
-    const handleItemClick = () => {
-        if (isMobile) {
-            setOpenMobile(false)
-        }
     }
 
     return (
@@ -232,28 +229,21 @@ export function DashboardSidebar() {
                 <div className="absolute bottom-0 -right-1/4 w-full h-[300px] bg-indigo-200/20 blur-[100px] rounded-full" />
             </div>
 
-            <SidebarHeader className="px-4 pt-6 pb-4 relative z-10">
-                <div className="flex items-center justify-between w-full">
-                    <Link href="/" className="flex items-center gap-2.5 group overflow-hidden">
-                        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-lg border border-slate-100 group-hover:scale-105 transition-all duration-500 shrink-0 overflow-hidden">
-                            <Image src="/logo.png" alt="Logo" width={36} height={36} className="object-cover" />
-                        </div>
-                        {!isCollapsed && (
-                            <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                                <span className="font-black text-base leading-tight tracking-tight text-slate-900">
-                                    SmartTutor<span className="text-sky-500">ET</span>
-                                </span>
-                                <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black">Portal Area</span>
-                            </div>
-                        )}
-                    </Link>
-                    {!isCollapsed && <CollapseToggle />}
-                </div>
-                {isCollapsed && (
-                    <div className="flex justify-center mt-2">
-                        <CollapseToggle />
+            <SidebarHeader className="px-4 pt-6 pb-4 space-y-6 relative z-10">
+                <Link href="/" className="flex items-center gap-3 group px-1">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 group-hover:shadow-sky-500/30 group-hover:scale-105 transition-all duration-500 shrink-0">
+                        <Sparkles className="w-6 h-6" />
                     </div>
-                )}
+                    {!isCollapsed && (
+                        <div className="flex flex-col">
+                            <span className="font-bold text-lg leading-tight tracking-tight text-slate-900">
+                                SmartTutor<span className="text-sky-500">ET</span>
+                            </span>
+                            <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold">LMS Platform</span>
+                        </div>
+                    )}
+                </Link>
+                <CollapseToggle />
             </SidebarHeader>
 
             <SidebarContent className="px-3 relative z-10 overflow-hidden">
@@ -281,7 +271,7 @@ export function DashboardSidebar() {
                                                     ? "bg-sky-50 text-sky-600 shadow-sm border border-sky-100"
                                                     : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent"
                                             )}
-                                            onClick={item.items ? () => toggleExpanded(item.title) : handleItemClick}
+                                            onClick={item.items ? () => toggleExpanded(item.title) : undefined}
                                         >
                                             {item.items ? (
                                                 <div className="flex items-center gap-3 w-full cursor-pointer">
