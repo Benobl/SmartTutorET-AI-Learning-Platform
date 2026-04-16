@@ -1,0 +1,184 @@
+{
+    "_comment": "Consolidated Mock Database for SmartTutorET. This file serves as the single source of truth for the frontend and a blueprint for the backend models.",
+    "users": {
+        "students": [
+            {
+                "id": "std_1",
+                "firstName": "Nebil",
+                "lastName": "Mohammed",
+                "name": "Nebil Mohammed",
+                "email": "nebil@example.com",
+                "password": "password123",
+                "role": "student",
+                "grade": "11",
+                "isVerified": true,
+                "profileImage": "/avatars/student-1.png"
+            },
+            {
+                "id": "std_2",
+                "firstName": "Abebe",
+                "lastName": "Kebede",
+                "name": "Abebe Kebede",
+                "email": "abebe@example.com",
+                "password": "password123",
+                "role": "student",
+                "grade": "10",
+                "isVerified": true
+            }
+        ],
+        "tutors": [
+            {
+                "id": "tut_1",
+                "firstName": "Zenebe",
+                "lastName": "Mulu",
+                "name": "Dr. Zenebe Mulu",
+                "email": "zenebe@example.com",
+                "password": "password123",
+                "role": "tutor",
+                "subject": "Mathematics",
+                "degree": "PhD in Mathematics",
+                "experience": 10,
+                "availability": [
+                    "Monday",
+                    "Wednesday",
+                    "Friday"
+                ],
+                "isVerified": true,
+                "status": "approved",
+                "portfolio": "https://zenebe-math.edu",
+                "cvSummary": "Experienced mathematics professor with over 10 years of classroom and research experience.",
+                "documents": [
+                    "degree_cert.pdf",
+                    "teaching_license.pdf"
+                ]
+            },
+            {
+                "id": "tut_pending",
+                "firstName": "Tsegaye",
+                "lastName": "Gebre",
+                "name": "Tsegaye Gebre",
+                "email": "tsegaye@example.com",
+                "password": "password123",
+                "role": "tutor",
+                "subject": "Physics",
+                "degree": "MSc in Physics",
+                "experience": 3,
+                "availability": [
+                    "Tuesday",
+                    "Thursday"
+                ],
+                "isVerified": true,
+                "status": "pending",
+                "portfolio": "https://tsegaye-physics.dev",
+                "cvSummary": "Passionate Physics educator focused on making complex concepts simple for Grade 12 students.",
+                "documents": [
+                    "msc_degree.pdf"
+                ]
+            }
+        ],
+        "managers": [
+            {
+                "id": "man_1",
+                "firstName": "School",
+                "lastName": "Registrar",
+                "name": "Main Registrar",
+                "email": "manager@smarttutor.com",
+                "password": "managerpassword",
+                "role": "manager",
+                "isVerified": true
+            }
+        ],
+        "admins": [
+            {
+                "id": "adm_1",
+                "firstName": "Admin",
+                "lastName": "User",
+                "name": "System Admin",
+                "email": "admin@smarttutor.com",
+                "password": "adminpassword",
+                "role": "admin",
+                "isVerified": true
+            }
+        ]
+    },
+    "jobs": [
+        {
+            "id": "job_1",
+            "title": "Senior Mathematics Tutor",
+            "description": "Looking for an experienced tutor for Grade 12 Advanced Calculus.",
+            "subject": "Mathematics",
+            "grade": "12",
+            "salaryRange": "5000 - 8000 ETB/month",
+            "status": "active",
+            "postedAt": "2024-04-10",
+            "applicantsCount": 5
+        },
+        {
+            "id": "job_2",
+            "title": "Physics Enthusiast for Grade 10",
+            "description": "Join our team to teach Physics to bright Grade 10 students.",
+            "subject": "Physics",
+            "grade": "10",
+            "salaryRange": "4000 - 6000 ETB/month",
+            "status": "active",
+            "postedAt": "2024-04-15",
+            "applicantsCount": 2
+        }
+    ],
+    "courses": [
+        {
+            "id": "course_1",
+            "name": "Advanced Algebra",
+            "code": "MATH-12-01",
+            "subject": "Mathematics",
+            "grade": "12",
+            "semester": "Semester 1",
+            "description": "Comprehensive study of algebraic structures.",
+            "tutorId": "tut_1",
+            "studentCount": 45
+        },
+        {
+            "id": "course_2",
+            "name": "Classical Mechanics",
+            "code": "PHYS-11-03",
+            "subject": "Physics",
+            "grade": "11",
+            "semester": "Semester 1",
+            "description": "Fundamentals of motion and force.",
+            "studentCount": 30
+        }
+    ],
+    "schedules": [
+        {
+            "id": "sch_1",
+            "courseId": "course_1",
+            "day": "Monday",
+            "startTime": "08:30",
+            "endTime": "10:00",
+            "room": "Room 101"
+        },
+        {
+            "id": "sch_2",
+            "courseId": "course_1",
+            "day": "Wednesday",
+            "startTime": "08:30",
+            "endTime": "10:00",
+            "room": "Room 101"
+        }
+    ],
+    "notifications": [
+        {
+            "id": "notif_1",
+            "userId": "man_1",
+            "title": "New Tutor Application",
+            "message": "Tsegaye Gebre has applied for Physics Tutor position.",
+            "status": "unread",
+            "timestamp": "2024-04-16T10:00:00Z"
+        }
+    ],
+    "systemStats": {
+        "health": "99.9%",
+        "apiLatency": "120ms",
+        "dbLoad": "24%"
+    }
+}
