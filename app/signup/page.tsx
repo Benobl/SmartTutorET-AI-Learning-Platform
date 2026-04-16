@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ import { AuthBackground, AuthCard, PasswordStrength } from "@/components/auth-co
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { registerUser } from "@/lib/auth-utils"
 import { cn } from "@/lib/utils"
 
 // Regex for letters only
@@ -34,9 +36,7 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 
-  // Student fields
   grade: z.string().optional(),
-  schoolName: z.string().optional(),
 
   // Tutor fields
   degree: z.string().optional(),
@@ -46,20 +46,12 @@ const signupSchema = z.object({
   degreeFile: z.any().optional(),
 }).refine((data) => {
   if (data.role === "student") {
-    return !!data.grade && !!data.schoolName
+    return !!data.grade
   }
   return true
 }, {
   message: "Class is required",
   path: ["grade"]
-}).refine((data) => {
-  if (data.role === "student") {
-    return !!data.schoolName
-  }
-  return true
-}, {
-  message: "School name is required",
-  path: ["schoolName"]
 }).refine((data) => {
   if (data.role === "tutor") {
     return !!data.degree && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
@@ -169,7 +161,7 @@ export default function SignupPage() {
       fieldsToValidate = ["firstName", "lastName", "email"]
     } else if (step === 2) {
       if (role === "student") {
-        fieldsToValidate = ["grade", "schoolName"]
+        fieldsToValidate = ["grade"]
       } else {
         fieldsToValidate = ["degree", "experience", "subject"]
       }
@@ -198,7 +190,9 @@ export default function SignupPage() {
       console.log("Submitting:", data)
       await new Promise(resolve => setTimeout(resolve, 1500))
 
-      setSuccess("Account created successfully! Welcome to SmartTutorET.")
+      const user = registerUser(data)
+
+      setSuccess(`Account created successfully! Welcome, ${user.firstName}.`)
 
       setTimeout(() => {
         router.push(role === "student" ? "/dashboard/student" : "/dashboard/tutor")
@@ -234,8 +228,18 @@ export default function SignupPage() {
 
   return (
     <AuthBackground imageSrc="/auth/signup-bg.png">
-      <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500">
-        <AuthCard>
+      <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500 py-2 md:py-4">
+        <AuthCard className="p-4 md:p-6">
+          <div className="flex flex-col items-center mb-3 md:mb-4">
+            <Link href="/" className="mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden hover:scale-105 transition-all duration-500">
+                <Image src="/logo.png" alt="SmartTutorET Logo" width={48} height={48} priority />
+              </div>
+            </Link>
+            <h1 className="text-2xl font-bold text-white mb-1">Create Your Account</h1>
+            <p className="text-white/60 text-xs text-center">Join the future of AI-powered learning in Ethiopia</p>
+          </div>
+
           {/* Internal Back Button */}
           <div className="flex justify-start mb-2">
             <button
@@ -249,13 +253,13 @@ export default function SignupPage() {
             </button>
           </div>
           {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-            <p className="text-white/60">Step {step} of {totalSteps}: {stepItems[step - 1].title}</p>
+          <div className="text-center mb-3">
+            <h1 className="text-xl font-bold text-white mb-1">Create Account</h1>
+            <p className="text-white/60 text-xs">Step {step} of {totalSteps}: {stepItems[step - 1].title}</p>
           </div>
 
           {/* Progress Indicator */}
-          <div className="flex items-center justify-between mb-8 px-4">
+          <div className="flex items-center justify-between mb-4 px-4">
             {stepItems.map((item, idx) => (
               <div key={item.number} className="flex items-center flex-1 last:flex-none">
                 <div className={cn(
@@ -280,7 +284,7 @@ export default function SignupPage() {
 
           {/* Modern Role Selection Tabs (Only on Step 1) */}
           {step === 1 && (
-            <div className="grid grid-cols-2 p-1.5 bg-white/5 rounded-2xl border border-white/10 mb-8 relative">
+            <div className="grid grid-cols-2 p-1 bg-white/5 rounded-2xl border border-white/10 mb-4 relative">
               <button
                 onClick={() => handleRoleChange("student")}
                 className={cn(
@@ -330,7 +334,7 @@ export default function SignupPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Step 1: Identity */}
             {step === 1 && (
               <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -393,7 +397,7 @@ export default function SignupPage() {
 
             {/* Step 2: Profile (Student) or Expertise (Tutor) */}
             {step === 2 && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {role === "student" ? (
                   <>
                     <div className="space-y-2">
@@ -419,23 +423,6 @@ export default function SignupPage() {
                       />
                       {errors.grade && (
                         <p className="text-red-400 text-xs mt-1 ml-1">{errors.grade.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="ml-1 text-white/80">School Name</Label>
-                      <div className="group relative">
-                        <School className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-400" />
-                        <Input
-                          {...register("schoolName")}
-                          placeholder="Enter school name"
-                          className={cn(
-                            "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
-                            errors.schoolName && "border-red-500/50"
-                          )}
-                        />
-                      </div>
-                      {errors.schoolName && (
-                        <p className="text-red-400 text-xs mt-1 ml-1">{errors.schoolName.message}</p>
                       )}
                     </div>
                   </>
@@ -511,7 +498,7 @@ export default function SignupPage() {
 
             {/* Step 3: Schedule (Tutor) or Security (Student) */}
             {step === 3 && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {role === "tutor" ? (
                   <>
                     <div className="space-y-2">
@@ -595,7 +582,7 @@ export default function SignupPage() {
 
             {/* Step 4: Security (Tutor) */}
             {step === 4 && role === "tutor" && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <SecuritySection
                   register={register}
                   showPassword={showPassword}
@@ -653,7 +640,7 @@ export default function SignupPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center text-sm text-white/60">
+          <div className="mt-4 text-center text-xs text-white/60">
             Already have an account?{" "}
             <Link
               href="/login"

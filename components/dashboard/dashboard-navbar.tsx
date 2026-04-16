@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Bell, User, LogOut, Settings, CreditCard, ChevronDown } from "lucide-react"
+import { Search, Bell, User, LogOut, Settings, CreditCard, ChevronDown, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
     DropdownMenu,
@@ -11,21 +11,32 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useSidebar } from "@/components/ui/sidebar"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+import Link from "next/link"
 
 interface DashboardNavbarProps {
     className?: string
 }
 
 export function DashboardNavbar({ className }: DashboardNavbarProps) {
+    const { toggleSidebar, isMobile } = useSidebar()
     const [isSearchFocused, setIsSearchFocused] = useState(false)
+    const [user, setUser] = useState<any>(null)
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
         setIsMounted(true)
+        // Get user from auth-utils
+        const { getCurrentUser } = require("@/lib/auth-utils")
+        setUser(getCurrentUser())
     }, [])
+
+    const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "A"
+    const fullName = user ? `${user.firstName} ${user.lastName}` : "Authenticated User"
+    const email = user ? user.email : "user@example.com"
 
     return (
         <header className={cn(
@@ -33,7 +44,24 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
             className
         )}>
             <div className="flex items-center gap-4 flex-1">
-                <SidebarTrigger className="text-slate-500 hover:text-slate-900 hover:bg-slate-100" />
+                {/* Mobile Menu Trigger & Logo */}
+                {isMobile && (
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleSidebar}
+                            className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </Button>
+                        <Link href="/" className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-lg border border-slate-100 shrink-0 overflow-hidden">
+                                <Image src="/logo.png" alt="Logo" width={32} height={32} />
+                            </div>
+                        </Link>
+                    </div>
+                )}
 
                 {/* Global Search Bar */}
                 <div className={cn(
@@ -65,17 +93,17 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-10 pl-1 pr-2 py-1 gap-2 rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors group">
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                                    SJ
+                                    {initials}
                                 </div>
-                                <span className="text-sm font-bold hidden md:inline-block">Sarah Jones</span>
+                                <span className="text-sm font-bold hidden md:inline-block">{fullName}</span>
                                 <ChevronDown className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200 text-slate-900 rounded-xl p-2 shadow-2xl backdrop-blur-xl bg-white/90">
                             <DropdownMenuLabel className="font-normal p-2">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-bold leading-none">Sarah Jones</p>
-                                    <p className="text-xs leading-none text-slate-500">sarah.j@example.com</p>
+                                    <p className="text-sm font-bold leading-none">{fullName}</p>
+                                    <p className="text-xs leading-none text-slate-500">{email}</p>
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-slate-100" />

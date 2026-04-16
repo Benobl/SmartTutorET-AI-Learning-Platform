@@ -78,49 +78,37 @@
 }
 
 .dark {
-  /* Dark mode - same as light for now, can adjust if needed */
   --primary: #4a90e2;
   --primary-foreground: #ffffff;
   --secondary: #5ba3f5;
   --secondary-foreground: #ffffff;
-  --accent: #e8eef7;
-  --accent-foreground: #1a1f36;
-  --card-stats: #ffffff;
-  --card-progress: #ffffff;
-  --card-achievement: #ffffff;
-  --card-action: #ffffff;
-  --card-resource: #ffffff;
-  --card-chart: #ffffff;
-  --background: #f8f9fa;
-  --foreground: #1a1f36;
-  --card: #ffffff;
-  --card-foreground: #1a1f36;
-  --popover: #ffffff;
-  --popover-foreground: #1a1f36;
-  --muted: #a0a8b8;
-  --muted-foreground: #687488;
-  --border: #e3e8f3;
-  --input: #f0f2f5;
+  --accent: #27272a;
+  --accent-foreground: #ffffff;
+  --background: #09090b;
+  --foreground: #ffffff;
+  --card: #18181b;
+  --card-foreground: #ffffff;
+  --popover: #18181b;
+  --popover-foreground: #ffffff;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --input: #27272a;
   --ring: #4a90e2;
   --chart-1: #4a90e2;
   --chart-2: #5ba3f5;
   --chart-3: #10b981;
   --chart-4: #f59e0b;
   --chart-5: #8b5cf6;
-  --destructive: #ef4444;
+  --destructive: #7f1d1d;
   --destructive-foreground: #ffffff;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12), 0 4px 6px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.1);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1f36;
+  --sidebar: #09090b;
+  --sidebar-foreground: #ffffff;
   --sidebar-primary: #4a90e2;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8eef7;
-  --sidebar-accent-foreground: #1a1f36;
-  --sidebar-border: #e3e8f3;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #27272a;
   --sidebar-ring: #4a90e2;
 }
 
@@ -356,51 +344,6 @@
 }
 
 /* Scroll-reveal: elements start invisible, JS adds .in-view */
-.scroll-reveal {
-  opacity: 0;
-  transform: translateY(48px);
-  transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.scroll-reveal.in-view {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.scroll-reveal-left {
-  opacity: 0;
-  transform: translateX(-60px);
-  transition: opacity 0.9s cubic-bezier(0.23, 1, 0.32, 1), transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.scroll-reveal-left.in-view {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.scroll-reveal-right {
-  opacity: 0;
-  transform: translateX(60px);
-  transition: opacity 0.9s cubic-bezier(0.23, 1, 0.32, 1), transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.scroll-reveal-right.in-view {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.scroll-reveal-scale {
-  opacity: 0;
-  transform: scale(0.88);
-  transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.scroll-reveal-scale.in-view {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Short alias scroll-reveal classes (used in page.tsx as .sr / .sr-l / .sr-r / .sr-s) */
 .sr {
   opacity: 0;
   transform: translateY(48px);
@@ -445,17 +388,66 @@
   transform: scale(1);
 }
 
-/* Marquee */
+/* Marquee & AI Animations */
 @keyframes marquee {
   from {
     transform: translateX(0);
   }
 
   to {
-    transform: translateX(-33.333%);
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes spin-3d {
+  0% {
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+
+  100% {
+    transform: rotateY(360deg) rotateX(10deg);
   }
 }
 
 .animate-marquee {
-  animation: marquee 20s linear infinite;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.animate-float-delayed {
+  animation: float 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.animate-spin-slow-3d {
+  animation: spin-3d 6s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
 }

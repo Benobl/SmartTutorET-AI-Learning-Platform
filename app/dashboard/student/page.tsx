@@ -17,6 +17,8 @@ import { AITutorModal } from "@/components/dashboards/student/ai-tutor-modal"
 import { CollaborationModals } from "@/components/dashboards/student/collaboration-modals"
 import { ActivityHistoryModal } from "@/components/dashboards/student/activity-history-modal"
 
+import { getCurrentUser } from "@/lib/auth-utils"
+
 /**
  * Student Dashboard Overview — premium UI with quick stats, 
  * interactive learning paths, and personalized actions.
@@ -26,6 +28,9 @@ export default function StudentOverview() {
   const [isStudyHubOpen, setIsStudyHubOpen] = useState(false)
   const [collabType, setCollabType] = useState<"create" | "invite">("create")
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
+
+  const user = getCurrentUser()
+  const studentName = user ? user.firstName : "Student"
 
   const topCourses = courses.slice(0, 2)
   const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
@@ -42,7 +47,7 @@ export default function StudentOverview() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Updates</span>
           </div>
           <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600">Sarah!</span> 👋
+            Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600">{studentName}!</span> 👋
           </h1>
           <p className="text-slate-500 font-medium flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
