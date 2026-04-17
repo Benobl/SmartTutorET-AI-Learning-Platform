@@ -28,8 +28,8 @@ export default function TeacherAssignmentsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 mb-1">Assignments</h1>
-                    <p className="text-slate-500 text-sm font-medium">Create, manage, and track all student assignments.</p>
+                    <h1 className="text-3xl font-black text-foreground mb-1">Assignments</h1>
+                    <p className="text-muted-foreground text-sm font-medium">Create, manage, and track all student assignments.</p>
                 </div>
                 <button
                     onClick={() => setCreating(true)}
@@ -42,17 +42,17 @@ export default function TeacherAssignmentsPage() {
 
             {/* Create Assignment Modal */}
             {creating && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-card rounded-[32px] border border-border shadow-2xl p-8 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-300">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-black text-slate-900">New Assignment</h2>
-                            <button onClick={() => setCreating(false)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors">
+                            <h2 className="text-2xl font-black text-foreground">New Assignment</h2>
+                            <button onClick={() => setCreating(false)} className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Assignment Title *</label>
+                                <label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Assignment Title *</label>
                                 <Input
                                     placeholder="e.g. Calculus Homework #5"
                                     value={form.title}
@@ -62,7 +62,7 @@ export default function TeacherAssignmentsPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Course *</label>
+                                    <label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Course *</label>
                                     <select
                                         value={form.course}
                                         onChange={e => setForm(p => ({ ...p, course: e.target.value }))}
@@ -75,7 +75,7 @@ export default function TeacherAssignmentsPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Max Score</label>
+                                    <label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Max Score</label>
                                     <Input
                                         type="number"
                                         placeholder="100"
@@ -86,7 +86,7 @@ export default function TeacherAssignmentsPage() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Due Date</label>
+                                <label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Due Date</label>
                                 <Input
                                     type="date"
                                     value={form.dueDate}
@@ -95,7 +95,7 @@ export default function TeacherAssignmentsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Description</label>
+                                <label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Description</label>
                                 <textarea
                                     placeholder="Describe the assignment objectives and requirements..."
                                     value={form.description}
@@ -105,12 +105,12 @@ export default function TeacherAssignmentsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <Paperclip className="w-4 h-4 text-slate-400" />
+                                <Paperclip className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-sm text-slate-500 font-medium">Attach files (PDF, DOCX, XLSX)</span>
                                 <button className="ml-auto text-xs font-bold text-sky-600 hover:text-sky-500 transition-colors">Browse</button>
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setCreating(false)} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                                <button onClick={() => setCreating(false)} className="flex-1 py-3 border border-border rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted transition-colors">
                                     Cancel
                                 </button>
                                 <button onClick={handleCreate} className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-bold transition-colors shadow-md shadow-rose-600/20">
@@ -123,9 +123,9 @@ export default function TeacherAssignmentsPage() {
             )}
 
             {submitted && (
-                <div className="flex items-center gap-3 p-4 bg-sky-50 rounded-2xl border border-sky-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <CheckCircle2 className="w-5 h-5 text-sky-600 shrink-0" />
-                    <p className="text-sm font-bold text-sky-700">Assignment created and published to students successfully!</p>
+                <div className="flex items-center gap-3 p-4 bg-sky-500/10 rounded-2xl border border-sky-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0" />
+                    <p className="text-sm font-bold text-sky-600">Assignment created and published to students successfully!</p>
                 </div>
             )}
 
@@ -137,9 +137,9 @@ export default function TeacherAssignmentsPage() {
                     { label: "Total Submissions", value: tutorAssignments.reduce((s, a) => s + (a.submitted || 0), 0), color: "sky" },
                     { label: "Pending Grading", value: tutorAssignments.reduce((s, a) => s + ((a.submitted || 0) - (a.graded || 0)), 0), color: "rose" },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 text-center">
-                        <p className="text-3xl font-black text-slate-900">{stat.value}</p>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">{stat.label}</p>
+                    <div key={stat.label} className="bg-card rounded-2xl border border-border shadow-sm p-5 text-center">
+                        <p className="text-3xl font-black text-foreground">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">{stat.label}</p>
                     </div>
                 ))}
             </div>
@@ -150,7 +150,7 @@ export default function TeacherAssignmentsPage() {
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all capitalize", filter === f ? "bg-rose-600 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}
+                        className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all capitalize", filter === f ? "bg-rose-600 text-white shadow-md" : "bg-card text-muted-foreground border border-border hover:bg-muted")}
                     >
                         {f}
                     </button>
@@ -163,7 +163,7 @@ export default function TeacherAssignmentsPage() {
                     const submissionRate = Math.round((assignment.submitted / assignment.totalStudents) * 100)
                     const gradingRate = assignment.submitted > 0 ? Math.round((assignment.graded / assignment.submitted) * 100) : 0
                     return (
-                        <div key={assignment.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+                        <div key={assignment.id} className="bg-card rounded-3xl border border-border shadow-sm hover:shadow-md transition-all overflow-hidden group">
                             <div className="p-6">
                                 <div className="flex items-start justify-between gap-4 mb-4">
                                     <div className="flex-1 min-w-0">
@@ -173,8 +173,8 @@ export default function TeacherAssignmentsPage() {
                                                 {assignment.due !== "Completed" ? "active" : "closed"}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
-                                            <span className="font-bold bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 text-xs">{assignment.courseCode}</span>
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                                            <span className="font-bold bg-muted px-2 py-0.5 rounded-lg border border-border text-xs">{assignment.courseCode}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="w-3.5 h-3.5" />
                                                 <span className="font-medium">Due: {assignment.due}</span>
@@ -188,27 +188,27 @@ export default function TeacherAssignmentsPage() {
                                     {assignment.maxScore > 0 && (
                                         <div className="text-right shrink-0">
                                             <p className="text-2xl font-black text-rose-600">{Math.round((assignment.graded / assignment.submitted) * 100) || 0}%</p>
-                                            <p className="text-xs text-slate-400 font-bold">graded</p>
+                                            <p className="text-xs text-muted-foreground font-bold">graded</p>
                                         </div>
                                     )}
                                 </div>
 
-                                <p className="text-sm text-slate-500 mb-5 font-medium leading-relaxed">{assignment.description}</p>
+                                <p className="text-sm text-muted-foreground mb-5 font-medium leading-relaxed">{assignment.description}</p>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
                                         <div className="flex justify-between text-xs font-bold mb-2">
-                                            <span className="text-slate-400">Submissions</span>
-                                            <span className="text-sky-600">{assignment.submitted}/{assignment.totalStudents}</span>
+                                            <span className="text-muted-foreground">Submissions</span>
+                                            <span className="text-sky-500">{assignment.submitted}/{assignment.totalStudents}</span>
                                         </div>
-                                        <Progress value={Math.round((assignment.submitted / assignment.totalStudents) * 100)} className="h-2 bg-slate-100" />
+                                        <Progress value={Math.round((assignment.submitted / assignment.totalStudents) * 100)} className="h-2 bg-muted" />
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs font-bold mb-2">
-                                            <span className="text-slate-400">Graded</span>
-                                            <span className="text-sky-600">{assignment.graded}/{assignment.submitted}</span>
+                                            <span className="text-muted-foreground">Graded</span>
+                                            <span className="text-sky-500">{assignment.graded}/{assignment.submitted}</span>
                                         </div>
-                                        <Progress value={gradingRate} className="h-2 bg-slate-100" />
+                                        <Progress value={gradingRate} className="h-2 bg-muted" />
                                     </div>
                                 </div>
                             </div>

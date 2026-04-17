@@ -26,15 +26,15 @@ export default function TeacherMessagesPage() {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-[calc(100vh-180px)] flex flex-col">
             <div className="mb-6">
-                <h1 className="text-3xl font-black text-slate-900 mb-1">Messages</h1>
-                <p className="text-slate-500 text-sm font-medium">Communicate directly with your students.</p>
+                <h1 className="text-3xl font-black text-foreground mb-1">Messages</h1>
+                <p className="text-muted-foreground text-sm font-medium">Communicate directly with your students.</p>
             </div>
 
             <div className="flex flex-1 gap-6 min-h-0">
                 {/* Thread List */}
-                <div className="w-80 shrink-0 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-4 border-b border-slate-100">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Conversations</p>
+                <div className="w-80 shrink-0 bg-card rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-border">
+                        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Conversations</p>
                     </div>
                     <div className="overflow-y-auto flex-1">
                         {tutorMessages.map(m => (
@@ -65,15 +65,15 @@ export default function TeacherMessagesPage() {
                 </div>
 
                 {/* Chat Window */}
-                <div className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-w-0">
+                <div className="flex-1 bg-card rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col min-w-0">
                     {/* Chat Header */}
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-sky-100 flex items-center justify-center">
-                            <span className="text-sm font-black text-sky-600">{thread.initials}</span>
+                    <div className="px-6 py-4 border-b border-border flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 flex items-center justify-center">
+                            <span className="text-sm font-black text-sky-500">{thread.initials}</span>
                         </div>
                         <div>
-                            <p className="font-black text-slate-900">{thread.studentName}</p>
-                            <p className="text-xs text-slate-400 font-medium">{thread.course}</p>
+                            <p className="font-black text-foreground">{thread.studentName}</p>
+                            <p className="text-xs text-muted-foreground font-medium">{thread.course}</p>
                         </div>
                     </div>
 

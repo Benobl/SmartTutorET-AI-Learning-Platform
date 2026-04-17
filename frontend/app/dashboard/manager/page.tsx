@@ -81,10 +81,10 @@ export default function ManagerDashboard() {
         setPendingTutors(pending)
         setNotifications(getNotifications())
         setStats([
-            { label: "Pending Vetting", value: pending.length.toString(), icon: ShieldCheck, color: "text-blue-500", bgColor: "bg-blue-50/50" },
-            { label: "Active Courses", value: courses.length.toString(), icon: BookOpen, color: "text-sky-500", bgColor: "bg-sky-50/50" },
-            { label: "Total Students", value: students.length.toString(), icon: TrendingUp, color: "text-indigo-500", bgColor: "bg-indigo-50/50" },
-            { label: "Open Vacancies", value: jobs.length.toString(), icon: Briefcase, color: "text-violet-500", bgColor: "bg-violet-50/50" },
+            { label: "Pending Vetting", value: pending.length.toString(), icon: ShieldCheck, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+            { label: "Active Courses", value: courses.length.toString(), icon: BookOpen, color: "text-sky-500", bgColor: "bg-sky-500/10" },
+            { label: "Total Students", value: students.length.toString(), icon: TrendingUp, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },
+            { label: "Open Vacancies", value: jobs.length.toString(), icon: Briefcase, color: "text-violet-500", bgColor: "bg-violet-500/10" },
         ])
         setSystem(sysStats)
     }
@@ -142,29 +142,29 @@ export default function ManagerDashboard() {
             {/* Header */}
             <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
                 <div className="space-y-1">
-                    <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+                    <h1 className="text-4xl font-black text-foreground tracking-tight">
                         Registrar <span className="text-blue-500">Terminal</span>
                     </h1>
-                    <p className="text-slate-400 font-medium">Monitoring SmartTutorET institutional performance.</p>
+                    <p className="text-muted-foreground font-medium">Monitoring SmartTutorET institutional performance.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
                                 variant="outline"
-                                className="w-12 h-12 p-0 rounded-2xl bg-white/80 backdrop-blur-md border-slate-200 text-slate-400 hover:text-blue-500 relative transition-all shadow-sm"
+                                className="w-12 h-12 p-0 rounded-2xl bg-card/80 backdrop-blur-md border-border text-muted-foreground hover:text-blue-500 relative transition-all shadow-sm"
                             >
                                 <Bell className="w-5 h-5" />
                                 {notifications.filter(n => !n.isRead).length > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white">
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-background">
                                         {notifications.filter(n => !n.isRead).length}
                                     </span>
                                 )}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80 p-0 rounded-[28px] border-slate-100 shadow-3xl bg-white overflow-hidden" align="end">
-                            <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Institutional Alerts</h4>
+                        <PopoverContent className="w-80 p-0 rounded-[28px] border-border shadow-3xl bg-card overflow-hidden" align="end">
+                            <div className="p-5 border-b border-border bg-muted/50">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Institutional Alerts</h4>
                             </div>
                             <div className="max-h-[350px] overflow-y-auto">
                                 {notifications.length > 0 ? (
@@ -172,12 +172,12 @@ export default function ManagerDashboard() {
                                         <div
                                             key={n.id}
                                             onClick={() => handleMarkAsRead(n.id)}
-                                            className={`p-4 border-b border-slate-50 cursor-pointer transition-colors hover:bg-slate-50 relative ${!n.isRead ? 'bg-blue-50/20' : ''}`}
+                                            className={`p-4 border-b border-border cursor-pointer transition-colors hover:bg-muted relative ${!n.isRead ? 'bg-blue-500/10' : ''}`}
                                         >
                                             {!n.isRead && <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full" />}
                                             <div className="flex flex-col gap-1 pl-2">
-                                                <p className="text-xs font-black text-slate-800">{n.title}</p>
-                                                <p className="text-[10px] text-slate-400 leading-tight font-medium">{n.message}</p>
+                                                <p className="text-xs font-black text-foreground">{n.title}</p>
+                                                <p className="text-[10px] text-muted-foreground leading-tight font-medium">{n.message}</p>
                                                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1">{n.time}</p>
                                             </div>
                                         </div>
@@ -194,7 +194,7 @@ export default function ManagerDashboard() {
                     <Button
                         onClick={handleExport}
                         variant="outline"
-                        className="bg-white/80 backdrop-blur-md border-slate-200 text-slate-600 rounded-2xl hover:bg-white transition-all font-bold h-12 px-6 shadow-sm group"
+                        className="bg-card/80 backdrop-blur-md border-border text-muted-foreground rounded-2xl hover:bg-muted transition-all font-bold h-12 px-6 shadow-sm group"
                     >
                         <Download className="w-4 h-4 mr-2 group-hover:translate-y-0.5 transition-transform" />
                         Export Reports
@@ -210,7 +210,7 @@ export default function ManagerDashboard() {
             {/* Stats Grid - Modern Lighter Look */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, idx) => (
-                    <Card key={idx} className="bg-white/70 backdrop-blur-xl border-white rounded-[32px] hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 border shadow-sm group overflow-hidden">
+                    <Card key={idx} className="bg-card/70 backdrop-blur-xl border-border rounded-[32px] hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 border shadow-sm group overflow-hidden">
                         <CardContent className="p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <div className={`p-4 rounded-2xl ${stat.bgColor} ${stat.color} group-hover:scale-110 transition-transform duration-500`}>
@@ -218,14 +218,14 @@ export default function ManagerDashboard() {
                                 </div>
                                 <div className="flex -space-x-2">
                                     {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
+                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-muted" />
                                     ))}
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</p>
                                 <div className="flex items-baseline gap-2">
-                                    <p className="text-4xl font-black text-slate-800">{stat.value}</p>
+                                    <p className="text-4xl font-black text-foreground">{stat.value}</p>
                                     <span className="text-xs font-bold text-emerald-500">+4%</span>
                                 </div>
                             </div>
@@ -239,7 +239,7 @@ export default function ManagerDashboard() {
                 {/* Vetting Queue */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between px-4">
-                        <h2 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-3">
+                        <h2 className="text-[12px] font-black text-muted-foreground uppercase tracking-[0.25em] flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                             Academic Vetting Queue
                         </h2>
@@ -251,17 +251,17 @@ export default function ManagerDashboard() {
                     <div className="space-y-4">
                         {pendingTutors.length > 0 ? (
                             pendingTutors.slice(0, 4).map((tutor, idx) => (
-                                <div key={idx} className="p-6 rounded-[32px] bg-white border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:translate-x-2 transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/50">
+                                <div key={idx} className="p-6 rounded-[32px] bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-6 group hover:translate-x-2 transition-all duration-500 hover:shadow-xl hover:shadow-slate-900/10">
                                     <div className="flex items-center gap-5">
-                                        <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 flex items-center justify-center text-2xl font-black text-blue-600 uppercase shadow-inner">
+                                        <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-blue-500/10 to-sky-500/10 border border-blue-500/20 flex items-center justify-center text-2xl font-black text-blue-500 uppercase shadow-inner">
                                             {tutor.firstName[0]}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-3">
-                                                <p className="font-black text-slate-700 text-lg">{tutor.name}</p>
+                                                <p className="font-black text-foreground text-lg">{tutor.name}</p>
                                                 <Badge className="bg-blue-500/10 text-blue-500 border-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5">Verification Pending</Badge>
                                             </div>
-                                            <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wide mt-1">{tutor.subject} • {tutor.degree}</p>
+                                            <p className="text-[13px] text-muted-foreground font-bold uppercase tracking-wide mt-1">{tutor.subject} • {tutor.degree}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -269,7 +269,7 @@ export default function ManagerDashboard() {
                                             onClick={() => handleOpenVetting(tutor)}
                                             variant="outline"
                                             disabled={isProcessing}
-                                            className="border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl text-[11px] font-black uppercase tracking-widest px-6 h-12 transition-all shadow-sm"
+                                            className="border-border text-muted-foreground hover:bg-muted rounded-2xl text-[11px] font-black uppercase tracking-widest px-6 h-12 transition-all shadow-sm"
                                         >
                                             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Review Credentials"}
                                         </Button>
@@ -277,12 +277,12 @@ export default function ManagerDashboard() {
                                 </div>
                             ))
                         ) : (
-                            <div className="p-16 rounded-[40px] bg-slate-50/50 border border-dashed border-slate-200 text-center">
-                                <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <div className="p-16 rounded-[40px] bg-muted/50 border border-dashed border-border text-center">
+                                <div className="w-16 h-16 bg-card rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
                                     <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 mb-1">Queue Synchronized</h3>
-                                <p className="text-slate-400 font-medium">All pending educator applications have been processed.</p>
+                                <h3 className="text-xl font-black text-foreground mb-1">Queue Synchronized</h3>
+                                <p className="text-muted-foreground font-medium">All pending educator applications have been processed.</p>
                             </div>
                         )}
                     </div>
@@ -290,17 +290,17 @@ export default function ManagerDashboard() {
 
                 {/* System Health */}
                 <div className="space-y-6">
-                    <h2 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.25em] px-4">System Logistics</h2>
-                    <Card className="bg-white border-slate-100 rounded-[40px] p-10 shadow-2xl shadow-slate-200/50 border overflow-hidden relative group">
+                    <h2 className="text-[12px] font-black text-muted-foreground uppercase tracking-[0.25em] px-4">System Logistics</h2>
+                    <Card className="bg-card border-border rounded-[40px] p-10 shadow-2xl shadow-slate-900/10 border overflow-hidden relative group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700" />
 
                         <div className="space-y-8 relative z-10">
                             <div className="flex items-center gap-5">
-                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100 animate-pulse">
+                                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-500/20 animate-pulse">
                                     <Activity className="w-7 h-7" />
                                 </div>
                                 <div>
-                                    <p className="font-black text-slate-700">Service Integrity</p>
+                                    <p className="font-black text-foreground">Service Integrity</p>
                                     <p className="text-[10px] text-emerald-500 uppercase font-black tracking-widest">{system?.health || '99.9%'} Verified Stable</p>
                                 </div>
                             </div>
@@ -308,26 +308,26 @@ export default function ManagerDashboard() {
                             <div className="space-y-6 pt-2">
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Network Latency</span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Network Latency</span>
                                         <span className="text-sm font-black text-blue-500">120ms</span>
                                     </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                                         <div className="h-full bg-blue-500 w-[70%] rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DB Throughput</span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">DB Throughput</span>
                                         <span className="text-sm font-black text-indigo-500">Stable</span>
                                     </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                                         <div className="h-full bg-indigo-500 w-[45%] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                                     </div>
                                 </div>
                             </div>
 
-                            <Button className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-2xl font-black py-7 text-[11px] uppercase tracking-widest border border-slate-100 shadow-sm transition-all active:scale-95">
+                            <Button className="w-full bg-muted/50 hover:bg-muted text-muted-foreground rounded-2xl font-black py-7 text-[11px] uppercase tracking-widest border border-border shadow-sm transition-all active:scale-95">
                                 Launch Diagnostics
                             </Button>
                         </div>
@@ -337,10 +337,10 @@ export default function ManagerDashboard() {
 
             {/* Vetting / Application Modal */}
             <Dialog open={vettingModalOpen} onOpenChange={setVettingModalOpen}>
-                <DialogContent className="sm:max-w-[700px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl">
+                <DialogContent className="sm:max-w-[700px] bg-card rounded-[40px] p-0 overflow-hidden border border-border shadow-3xl">
                     {selectedTutor && (
                         <div className="animate-in fade-in zoom-in-95 duration-500">
-                            <div className="p-10 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row items-center gap-8 relative">
+                            <div className="p-10 bg-muted/30 border-b border-border flex flex-col md:flex-row items-center gap-8 relative">
                                 <div className="absolute top-6 right-8">
                                     <Badge className="bg-blue-500 text-white border-0 font-black px-4 py-1.5 text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20">
                                         Vetting Mode
@@ -350,11 +350,11 @@ export default function ManagerDashboard() {
                                     {selectedTutor.firstName[0]}
                                 </div>
                                 <div className="text-center md:text-left">
-                                    <h2 className="text-3xl font-black text-slate-800 leading-none mb-2">{selectedTutor.name}</h2>
+                                    <h2 className="text-3xl font-black text-foreground leading-none mb-2">{selectedTutor.name}</h2>
                                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                                         <span className="text-blue-500 font-black text-xs tracking-widest uppercase">{selectedTutor.subject} Specialist</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                        <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{selectedTutor.experience} Years Exp</span>
+                                        <span className="w-1 h-1 rounded-full bg-border" />
+                                        <span className="text-muted-foreground font-bold text-xs uppercase tracking-widest">{selectedTutor.experience} Years Exp</span>
                                     </div>
                                 </div>
                             </div>
@@ -362,8 +362,8 @@ export default function ManagerDashboard() {
                             <div className="p-10 space-y-10">
                                 {/* Simulated Document Viewers */}
                                 <div className="space-y-4">
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 mb-4 px-1 flex items-center gap-2">
-                                        <FileSearch className="w-4 h-4 text-slate-300" /> Attachment Verification
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-muted-foreground mb-4 px-1 flex items-center gap-2">
+                                        <FileSearch className="w-4 h-4 text-muted-foreground/50" /> Attachment Verification
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <button
@@ -371,14 +371,14 @@ export default function ManagerDashboard() {
                                                 setDocType(docType === 'degree' ? null : 'degree')
                                                 window.open(`https://docs.google.com/viewer?url=https://example.com/${selectedTutor.degree || 'degree'}.pdf`, '_blank')
                                             }}
-                                            className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'degree' ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                                            className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'degree' ? 'border-blue-500 bg-blue-500/10' : 'border-border bg-card hover:border-blue-500/30'}`}
                                         >
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'degree' ? 'bg-blue-500 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500'}`}>
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'degree' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground group-hover:bg-blue-500/10 group-hover:text-blue-500'}`}>
                                                 <GraduationCap className="w-5 h-5" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Credentials</p>
-                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'degree' ? 'text-blue-600' : 'text-slate-600'}`}>{selectedTutor.degree || 'academic_proof.pdf'}</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Credentials</p>
+                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'degree' ? 'text-blue-500' : 'text-foreground/80'}`}>{selectedTutor.degree || 'academic_proof.pdf'}</p>
                                             </div>
                                             <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${docType === 'degree' ? 'opacity-100 text-blue-500' : 'opacity-20'}`} />
                                         </button>
@@ -388,14 +388,14 @@ export default function ManagerDashboard() {
                                                 setDocType(docType === 'cv' ? null : 'cv')
                                                 window.open(`https://docs.google.com/viewer?url=https://example.com/cv_${selectedTutor.firstName}.pdf`, '_blank')
                                             }}
-                                            className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'cv' ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                                            className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'cv' ? 'border-indigo-500 bg-indigo-500/10' : 'border-border bg-card hover:border-indigo-500/30'}`}
                                         >
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'cv' ? 'bg-indigo-500 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'cv' ? 'bg-indigo-500 text-white' : 'bg-muted text-muted-foreground group-hover:bg-indigo-500/10 group-hover:text-indigo-500'}`}>
                                                 <FileText className="w-5 h-5" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Professional CV</p>
-                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'cv' ? 'text-indigo-600' : 'text-slate-600'}`}>Experience_Log.pdf</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Professional CV</p>
+                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'cv' ? 'text-indigo-500' : 'text-foreground/80'}`}>Experience_Log.pdf</p>
                                             </div>
                                             <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${docType === 'cv' ? 'opacity-100 text-indigo-500' : 'opacity-20'}`} />
                                         </button>
@@ -411,8 +411,8 @@ export default function ManagerDashboard() {
                                                 <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                                             </div>
                                             <div className="space-y-1">
-                                                <h4 className="text-blue-900 font-black text-xs uppercase tracking-[0.2em]">Redirecting to Secure Viewer</h4>
-                                                <p className="text-blue-400/80 text-[10px] font-bold uppercase tracking-widest">A NEW TAB HAS BEEN TRIGGERED FOR {docType.toUpperCase()} INSPECTION</p>
+                                                <h4 className="text-blue-500 font-black text-xs uppercase tracking-[0.2em]">Redirecting to Secure Viewer</h4>
+                                                <p className="text-blue-400/80 text-[10px] font-bold uppercase tracking-widest">A NEW TAB HAS BEEN TRIGGERED FOR {docType?.toUpperCase()} INSPECTION</p>
                                             </div>
                                             <div className="flex gap-2">
                                                 {[1, 2, 3].map(i => (
@@ -424,11 +424,11 @@ export default function ManagerDashboard() {
                                 )}
 
                                 <div className="space-y-4">
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 px-1">Biography / Career Summary</h3>
-                                    <p className="text-slate-600 text-[14px] leading-relaxed bg-slate-50/50 p-6 rounded-[28px] border border-slate-100 italic relative">
-                                        <span className="absolute top-3 left-4 text-3xl text-slate-100 font-serif leading-none">“</span>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-muted-foreground px-1">Biography / Career Summary</h3>
+                                    <p className="text-foreground/80 text-[14px] leading-relaxed bg-muted/30 p-6 rounded-[28px] border border-border italic relative">
+                                        <span className="absolute top-3 left-4 text-3xl text-muted/20 font-serif leading-none">“</span>
                                         {selectedTutor.cvSummary || 'The educator has not provided a professional biography.'}
-                                        <span className="absolute bottom-3 right-4 text-3xl text-slate-100 font-serif leading-none">”</span>
+                                        <span className="absolute bottom-3 right-4 text-3xl text-muted/20 font-serif leading-none">”</span>
                                     </p>
                                 </div>
 
@@ -436,7 +436,7 @@ export default function ManagerDashboard() {
                                     <Button
                                         onClick={() => handleAction(selectedTutor.id, 'reject')}
                                         disabled={isProcessing}
-                                        className="w-full sm:flex-1 bg-white border-2 border-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-100 rounded-2xl h-16 font-black uppercase tracking-[0.2em] text-[11px] transition-all shadow-sm group"
+                                        className="w-full sm:flex-1 bg-card border-2 border-border text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/20 rounded-2xl h-16 font-black uppercase tracking-[0.2em] text-[11px] transition-all shadow-sm group"
                                     >
                                         <XCircle className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
                                         Reject Application
@@ -454,7 +454,7 @@ export default function ManagerDashboard() {
                         </div>
                     )}
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+        </div >
     )
 }

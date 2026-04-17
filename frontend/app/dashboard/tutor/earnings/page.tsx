@@ -24,38 +24,38 @@ export default function TeacherEarnings() {
                 <div className="space-y-6">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Financial Hub</span>
+                            <span className="px-3 py-1 rounded-full bg-sky-500/10 text-sky-500 text-[10px] font-black uppercase tracking-widest border border-sky-500/20">Financial Hub</span>
                             <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                        <h1 className="text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none mb-3 uppercase">
                             Revenue & <span className='text-sky-600'>Payouts</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                        <p className="text-muted-foreground text-sm font-medium max-w-md">
                             Track your teaching earnings, manage payout schedules, and analyze your most profitable courses.
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform">
+                        <Button className="h-14 px-8 rounded-2xl bg-foreground text-background font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl hover:scale-105 transition-transform">
                             <ArrowUpRight className="w-4 h-4 text-sky-400" /> Request Payout
                         </Button>
-                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all">
+                        <Button variant="outline" className="h-14 px-8 rounded-2xl border-border bg-card text-muted-foreground font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-500/10 transition-all">
                             <Download className="w-4 h-4 mr-2" /> Export Statement
                         </Button>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex flex-col justify-between min-w-[240px] min-h-[160px]">
+                    <div className="p-8 rounded-[40px] bg-card border border-border shadow-xl shadow-black/20 flex flex-col justify-between min-w-[240px] min-h-[160px]">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100">
+                            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center border border-sky-500/20">
                                 <Wallet className="w-6 h-6" />
                             </div>
-                            <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full">+12.4%</span>
+                            <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">+12.4%</span>
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Available Balance</p>
-                            <h2 className="text-3xl font-black text-slate-900">$1,240.00</h2>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Available Balance</p>
+                            <h2 className="text-3xl font-black text-foreground">$1,240.00</h2>
                         </div>
                     </div>
                 </div>
@@ -74,13 +74,13 @@ export default function TeacherEarnings() {
                             { label: "Pending", value: "$320", icon: Clock, color: "slate" },
                             { label: "Paid Out", value: "$3,200", icon: CreditCard, color: "indigo" },
                         ].map((stat, i) => (
-                            <div key={i} className="p-6 rounded-[32px] bg-white border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-sky-100 transition-all">
-                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border transition-all", `bg-${stat.color}-50 text-${stat.color}-500 border-${stat.color}-100 group-hover:bg-${stat.color}-500 group-hover:text-white`)}>
+                            <div key={i} className="p-6 rounded-[32px] bg-card border border-border shadow-sm flex items-center gap-5 group hover:border-sky-500/30 transition-all">
+                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border transition-all", `bg-muted text-muted-foreground border-border group-hover:bg-sky-500 group-hover:text-white`)}>
                                     <stat.icon className="w-6 h-6" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-                                    <h4 className="text-lg font-black text-slate-900">{stat.value}</h4>
+                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+                                    <h4 className="text-lg font-black text-foreground">{stat.value}</h4>
                                 </div>
                             </div>
                         ))}
@@ -124,24 +124,24 @@ export default function TeacherEarnings() {
                                 Full History <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                             </button>
                         </div>
-                        <div className="rounded-[40px] bg-white border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/5">
+                        <div className="rounded-[40px] bg-card border border-border overflow-hidden shadow-xl shadow-black/5">
                             {MOCK_TRANSACTIONS.map((tx, idx) => (
-                                <div key={tx.id} className={cn("p-6 flex items-center justify-between hover:bg-slate-50 transition-all", idx !== MOCK_TRANSACTIONS.length - 1 && "border-b border-slate-50")}>
+                                <div key={tx.id} className={cn("p-6 flex items-center justify-between hover:bg-muted/50 transition-all", idx !== MOCK_TRANSACTIONS.length - 1 && "border-b border-border")}>
                                     <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                                            <Calendar className="w-5 h-5 text-slate-400" />
+                                        <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center border border-border">
+                                            <Calendar className="w-5 h-5 text-muted-foreground" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-slate-900 leading-none mb-1">{tx.student}</p>
-                                            <p className="text-[10px] font-bold text-slate-400">{tx.course} • {tx.date}</p>
+                                            <p className="text-sm font-black text-foreground leading-none mb-1">{tx.student}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground">{tx.course} • {tx.date}</p>
                                         </div>
                                     </div>
                                     <div className="text-right flex items-center gap-6">
                                         <div>
-                                            <p className="text-[13px] font-black text-slate-900">{tx.amount}</p>
+                                            <p className="text-[13px] font-black text-foreground">{tx.amount}</p>
                                             <p className={cn("text-[9px] font-black uppercase tracking-widest", tx.status === 'completed' ? "text-emerald-500" : "text-amber-500 text-pulse")}>{tx.status}</p>
                                         </div>
-                                        <button className="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 hover:text-sky-500 hover:bg-white hover:shadow-md transition-all flex items-center justify-center">
+                                        <button className="w-10 h-10 rounded-xl bg-muted text-muted-foreground hover:text-sky-500 hover:bg-card hover:shadow-md transition-all flex items-center justify-center">
                                             <ArrowRight className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -155,36 +155,36 @@ export default function TeacherEarnings() {
                 <div className="space-y-10">
 
                     {/* Payout Method Card */}
-                    <div className="p-10 rounded-[48px] bg-slate-900 text-white relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/20 blur-2xl rounded-full -mr-16 -mt-16" />
+                    <div className="p-10 rounded-[48px] bg-muted border border-border text-foreground relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 blur-2xl rounded-full -mr-16 -mt-16" />
                         <div className="relative z-10 space-y-8">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-black uppercase italic tracking-tight">Payout Method</h3>
-                                <div className="p-2 rounded-lg bg-white/5 border border-white/10"><SettingsIcon className="w-4 h-4 text-slate-400" /></div>
+                                <div className="p-2 rounded-lg bg-background/50 border border-border"><SettingsIcon className="w-4 h-4 text-muted-foreground" /></div>
                             </div>
-                            <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+                            <div className="p-6 rounded-3xl bg-background/50 border border-border space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white"><ArrowUpRight className="w-5 h-5" /></div>
                                         <div>
-                                            <p className="text-[11px] font-black text-white leading-none mb-1">CBE Birr Account</p>
-                                            <p className="text-[9px] font-medium text-slate-500 tracking-wider">**** 8291</p>
+                                            <p className="text-[11px] font-black text-foreground leading-none mb-1">CBE Birr Account</p>
+                                            <p className="text-[9px] font-medium text-muted-foreground tracking-wider">**** 8291</p>
                                         </div>
                                     </div>
                                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                                 </div>
                             </div>
-                            <Button className="w-full h-14 rounded-2xl bg-white text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">
+                            <Button className="w-full h-14 rounded-2xl bg-foreground text-background font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">
                                 Change Bank Details
                             </Button>
                         </div>
                     </div>
 
                     {/* Analytics Teaser */}
-                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-xl shadow-slate-200/5 space-y-8">
+                    <div className="p-10 rounded-[48px] bg-card border border-border shadow-xl shadow-black/5 space-y-8">
                         <div>
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Subject Performance</h3>
-                            <p className="text-[10px] font-bold text-slate-500">Revenue contribution per grade level</p>
+                            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Subject Performance</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground/70">Revenue contribution per grade level</p>
                         </div>
                         <div className="space-y-5">
                             {[
@@ -194,16 +194,16 @@ export default function TeacherEarnings() {
                             ].map((item, i) => (
                                 <div key={i} className="space-y-2">
                                     <div className="flex justify-between text-[10px] font-black uppercase">
-                                        <span className="text-slate-900">{item.label}</span>
-                                        <span className="text-slate-400">{item.percent}%</span>
+                                        <span className="text-foreground">{item.label}</span>
+                                        <span className="text-muted-foreground">{item.percent}%</span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                                         <div className={cn("h-full rounded-full", item.color)} style={{ width: `${item.percent}%` }} />
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <Button variant="outline" className="w-full h-12 rounded-xl border-slate-100 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 transition-all">
+                        <Button variant="outline" className="w-full h-12 rounded-xl border-border text-muted-foreground font-black text-[10px] uppercase tracking-widest hover:text-sky-600 transition-all">
                             Detailed Breakdown <ArrowRight className="w-3.5 h-3.5 ml-2" />
                         </Button>
                     </div>

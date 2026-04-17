@@ -20,13 +20,13 @@ export default function TeacherOverview() {
                 <div className="space-y-6">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100/50">Educator Portal</span>
+                            <span className="px-3 py-1 rounded-full bg-sky-500/10 text-sky-500 text-[10px] font-black uppercase tracking-widest border border-sky-500/20">Educator Portal</span>
                             <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                        <h1 className="text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none mb-3 uppercase">
                             Welcome Back, <span className='text-sky-600'>{mockTeacherData.firstName}</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                        <p className="text-muted-foreground text-sm font-medium max-w-md">
                             Your students are making progress. Today you have {tutorCourses.filter(c => c.nextClass?.includes('AM')).length} live classes scheduled.
                         </p>
                     </div>
@@ -38,7 +38,7 @@ export default function TeacherOverview() {
                             </Button>
                         </Link>
                         <Link href="/dashboard/tutor/schedule">
-                            <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all">
+                            <Button variant="outline" className="h-14 px-8 rounded-2xl border-border bg-card text-muted-foreground font-black text-[10px] uppercase tracking-widest hover:text-sky-500 hover:bg-sky-500/10 transition-all">
                                 <Calendar className="w-4 h-4 mr-2" /> View Full Calendar
                             </Button>
                         </Link>
@@ -46,22 +46,22 @@ export default function TeacherOverview() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[240px]">
-                        <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100">
+                    <div className="p-8 rounded-[40px] bg-card border border-border shadow-xl shadow-slate-900/10 flex items-center gap-6 min-w-[240px]">
+                        <div className="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center border border-sky-500/20">
                             <Users className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Active Students</p>
-                            <h2 className="text-2xl font-black text-slate-900">97</h2>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Active Students</p>
+                            <h2 className="text-2xl font-black text-foreground">97</h2>
                         </div>
                     </div>
-                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[240px]">
-                        <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100">
+                    <div className="p-8 rounded-[40px] bg-card border border-border shadow-xl shadow-slate-900/10 flex items-center gap-6 min-w-[240px]">
+                        <div className="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center border border-sky-500/20">
                             <TrendingUp className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Class Average</p>
-                            <h2 className="text-2xl font-black text-slate-900">{mockTeacherData.classAverage}%</h2>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Class Average</p>
+                            <h2 className="text-2xl font-black text-foreground">{mockTeacherData.classAverage}%</h2>
                         </div>
                     </div>
                 </div>
@@ -87,33 +87,33 @@ export default function TeacherOverview() {
                             {tutorCourses.map(course => (
                                 <Link href={`/dashboard/tutor/courses`} key={course.id}>
                                     <div
-                                        className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 cursor-pointer relative overflow-hidden h-full"
+                                        className="group p-8 rounded-[40px] bg-card border border-border hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 cursor-pointer relative overflow-hidden h-full"
                                     >
                                         <div className="absolute top-0 right-0 p-6">
-                                            <span className="px-3 py-1 rounded-xl bg-slate-50 text-slate-400 text-[8px] font-black uppercase tracking-widest border border-slate-100">Grade {course.grade}</span>
+                                            <span className="px-3 py-1 rounded-xl bg-muted text-muted-foreground text-[8px] font-black uppercase tracking-widest border border-border">Grade {course.grade}</span>
                                         </div>
                                         <div className="space-y-6 relative z-10">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-all shadow-sm">
+                                                <div className="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-all shadow-sm">
                                                     <BookOpen className="w-6 h-6" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-lg font-black text-slate-900 leading-tight group-hover:text-sky-600 transition-colors uppercase italic">{course.name}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{course.studentCount} Students Enrolled</p>
+                                                    <h4 className="text-lg font-black text-foreground leading-tight group-hover:text-sky-600 transition-colors uppercase italic">{course.name}</h4>
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{course.studentCount} Students Enrolled</p>
                                                 </div>
                                             </div>
-                                            <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                                            <div className="pt-4 border-t border-border flex items-center justify-between">
                                                 <div className="space-y-1">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Completion</p>
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none">Completion</p>
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex-1 w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="flex-1 w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                                                             <div className="h-full bg-sky-500 rounded-full" style={{ width: `${course.completionRate}%` }} />
                                                         </div>
-                                                        <span className="text-[10px] font-black text-slate-900">{course.completionRate}%</span>
+                                                        <span className="text-[10px] font-black text-foreground">{course.completionRate}%</span>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Quizzes</p>
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Active Quizzes</p>
                                                     <p className="text-[10px] font-black text-sky-600">{course.activeQuizzes} Quizzes</p>
                                                 </div>
                                             </div>
@@ -126,35 +126,35 @@ export default function TeacherOverview() {
                     </div>
 
                     {/* Analytics Preview Card */}
-                    <div className="p-10 rounded-[48px] bg-white text-slate-900 border border-slate-100 shadow-xl shadow-slate-200/20 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-50 blur-3xl rounded-full -mr-64 -mt-64 opacity-50" />
+                    <div className="p-10 rounded-[48px] bg-card text-foreground border border-border shadow-xl shadow-slate-900/10 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-500/5 blur-3xl rounded-full -mr-64 -mt-64 opacity-50" />
                         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
                             <div className="space-y-6">
                                 <div>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-sky-100">AI Insight Engine</div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-500 text-[10px] font-black uppercase tracking-widest mb-4 border border-sky-500/20">AI Insight Engine</div>
                                     <h3 className="text-3xl font-black uppercase italic leading-none tracking-tighter">Student Readiness <span className="text-sky-600 block mt-2">Analysis</span></h3>
                                 </div>
-                                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                                <p className="text-muted-foreground text-sm font-medium leading-relaxed">
                                     Our AI has analyzed the last Physics midterm scores. 12% of your Grade 12 students are struggling with derivation logic.
                                 </p>
-                                <Button className="h-12 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20 group">
+                                <Button className="h-12 px-6 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20 group transition-all">
                                     Generate Intervention Plan <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </Button>
                             </div>
                             <div className="flex justify-center lg:justify-end">
-                                <div className="w-64 h-64 rounded-[40px] bg-slate-50 border border-slate-100 p-8 flex flex-col justify-between shadow-inner">
+                                <div className="w-64 h-64 rounded-[40px] bg-muted border border-border p-8 flex flex-col justify-between shadow-inner">
                                     <div className="flex items-center justify-between">
                                         <BarChart3 className="w-8 h-8 text-sky-500" />
                                         <Activity className="w-5 h-5 text-sky-400" />
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="h-2 w-full bg-white rounded-full overflow-hidden border border-slate-200">
+                                        <div className="h-2 w-full bg-background rounded-full overflow-hidden border border-border/50">
                                             <div className="h-full bg-sky-500 w-[78%]" />
                                         </div>
-                                        <div className="h-2 w-full bg-white rounded-full overflow-hidden border border-slate-200">
+                                        <div className="h-2 w-full bg-background rounded-full overflow-hidden border border-border/50">
                                             <div className="h-full bg-sky-400 w-[45%]" />
                                         </div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Readiness: 72%</p>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Global Readiness: 72%</p>
                                     </div>
                                 </div>
                             </div>
@@ -167,16 +167,16 @@ export default function TeacherOverview() {
 
                     {/* Live Schedule */}
                     <div className="space-y-6">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Today's Schedule</h3>
+                        <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Today's Schedule</h3>
                         <div className="space-y-4">
                             {tutorActivity.map((item, idx) => (
-                                <div key={idx} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden">
+                                <div key={idx} className="group p-6 rounded-[32px] bg-card border border-border hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden hover:shadow-xl hover:shadow-slate-900/10">
                                     <div className="flex items-start gap-4">
                                         <div className={cn(
                                             "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm",
-                                            item.category === 'Message' ? "bg-rose-50 border-rose-100 text-rose-500" :
-                                                item.category === 'Quiz' ? "bg-sky-50 border-sky-100 text-sky-500" :
-                                                    "bg-sky-50 border-sky-100 text-sky-500"
+                                            item.category === 'Message' ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
+                                                item.category === 'Quiz' ? "bg-sky-500/10 border-sky-500/20 text-sky-500" :
+                                                    "bg-sky-500/10 border-sky-500/20 text-sky-500"
                                         )}>
                                             {item.category === 'Message' ? <Video className="w-5 h-5" /> :
                                                 item.category === 'Quiz' ? <Clock className="w-5 h-5" /> :
@@ -184,16 +184,16 @@ export default function TeacherOverview() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.time}</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{item.time}</span>
                                                 {item.category === 'Message' && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
                                             </div>
-                                            <h4 className="text-[13px] font-black text-slate-900 leading-tight mb-1 truncate">{item.title}</h4>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.sub}</p>
+                                            <h4 className="text-[13px] font-black text-foreground leading-tight mb-1 truncate">{item.title}</h4>
+                                            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate">{item.sub}</p>
                                         </div>
                                     </div>
                                     {item.category === 'Message' && (
-                                        <div className="mt-4 pt-4 border-t border-slate-50">
-                                            <Button className="w-full h-10 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
+                                        <div className="mt-4 pt-4 border-t border-border">
+                                            <Button className="w-full h-10 rounded-xl bg-foreground text-background font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
                                                 Reply to Message
                                             </Button>
                                         </div>
@@ -204,32 +204,32 @@ export default function TeacherOverview() {
                     </div>
 
                     {/* Pending Tasks / Squads */}
-                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 relative group overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 blur-2xl rounded-full -mr-16 -mt-16" />
+                    <div className="p-10 rounded-[48px] bg-card border border-border shadow-xl shadow-slate-900/10 relative group overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 blur-2xl rounded-full -mr-16 -mt-16" />
                         <div className="relative z-10 space-y-8">
                             <div>
-                                <h3 className="text-xl font-black uppercase italic tracking-tight mb-2 text-slate-900">Grading Queue</h3>
+                                <h3 className="text-xl font-black uppercase italic tracking-tight mb-2 text-foreground">Grading Queue</h3>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-5xl font-black text-sky-600">{mockTeacherData.pendingHomework}</span>
-                                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Pending</span>
+                                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Pending</span>
                                 </div>
                             </div>
                             <div className="space-y-4">
                                 {tutorCourses.slice(0, 2).map((squad, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer">
+                                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-muted/50 border border-border hover:bg-muted transition-all cursor-pointer">
                                         <div className="flex items-center gap-3">
                                             <div className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-lg shadow-sky-500/50" />
                                             <div>
-                                                <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{squad.name}</p>
-                                                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest">{squad.studentCount} Students</p>
+                                                <p className="text-[11px] font-black uppercase tracking-tight text-foreground">{squad.name}</p>
+                                                <p className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest">{squad.studentCount} Students</p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                 ))}
                             </div>
                             <Link href="/dashboard/tutor/grading" className="block">
-                                <Button className="w-full h-14 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 shadow-xl shadow-sky-500/20 transition-all">
+                                <Button className="w-full h-14 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-500 shadow-xl shadow-sky-500/20 transition-all">
                                     Open Grading Hub
                                 </Button>
                             </Link>

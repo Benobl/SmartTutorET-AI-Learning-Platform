@@ -266,7 +266,7 @@ export default function TeacherLive() {
                         </div>
                         <div className="h-6 w-px bg-white/10" />
                         <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-slate-400" />
+                            <Users className="w-4 h-4 text-muted-foreground/50" />
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">42 Participating</span>
                         </div>
                     </div>
@@ -296,9 +296,9 @@ export default function TeacherLive() {
                             {isVideoOff && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center p-20 text-center space-y-4">
                                     <div className="w-32 h-32 rounded-full bg-slate-900 flex items-center justify-center border-4 border-slate-700 shadow-2xl">
-                                        <VideoOff className="w-12 h-12 text-slate-500" />
+                                        <VideoOff className="w-12 h-12 text-muted-foreground" />
                                     </div>
-                                    <p className="text-slate-400 font-black uppercase tracking-widest text-sm">Camera is Off</p>
+                                    <p className="text-muted-foreground/50 font-black uppercase tracking-widest text-sm">Camera is Off</p>
                                 </div>
                             )}
 
@@ -307,7 +307,7 @@ export default function TeacherLive() {
                                 <div className="w-12 h-12 rounded-2xl bg-sky-500 flex items-center justify-center font-black text-white text-xs">AK</div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-white">Abebe Kebede (Teacher)</p>
-                                    <p className="text-[9px] font-medium text-slate-400 tracking-widest uppercase">Presenter View</p>
+                                    <p className="text-[9px] font-medium text-muted-foreground/50 tracking-widest uppercase">Presenter View</p>
                                 </div>
                             </div>
 
@@ -383,7 +383,7 @@ export default function TeacherLive() {
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={cn(
                                         "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                        activeTab === tab.id ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5" : "text-slate-500 hover:text-slate-300"
+                                        activeTab === tab.id ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5" : "text-muted-foreground hover:text-slate-300"
                                     )}
                                 >
                                     <tab.icon className="w-4 h-4 mb-1.5 mx-auto" />
@@ -419,7 +419,7 @@ export default function TeacherLive() {
                                                 <ArrowUpRight className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <Button variant="ghost" className="w-full mt-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white">
+                                        <Button variant="ghost" className="w-full mt-2 text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-white">
                                             Message All Participants
                                         </Button>
                                     </div>
@@ -434,13 +434,13 @@ export default function TeacherLive() {
                                                 </div>
                                                 <div>
                                                     <p className="text-[11px] font-black text-white">{student.name}</p>
-                                                    <p className="text-[8px] font-medium text-slate-500 uppercase tracking-widest">{student.status}</p>
+                                                    <p className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest">{student.status}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {student.handRaised && <Hand className="w-4 h-4 text-rose-500 animate-bounce" />}
                                                 <button className="p-1.5 rounded-lg hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100">
-                                                    <MoreVertical className="w-4 h-4 text-slate-500" />
+                                                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
                                                 </button>
                                             </div>
                                         </div>
@@ -461,13 +461,13 @@ export default function TeacherLive() {
                 <div className="space-y-6">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest border border-rose-100 shadow-sm">Global Broadcast</span>
+                            <span className="px-3 py-1 rounded-full bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-500/20 shadow-sm">Global Broadcast</span>
                             <Video className="w-4 h-4 text-rose-400 fill-rose-400" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                        <h1 className="text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none mb-3 uppercase">
                             Live <span className='text-rose-500'>Teaching</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                        <p className="text-muted-foreground text-sm font-medium max-w-md">
                             Broadcast high-quality educational content, host interactive seminars, and engage with your students in real-time nationwide.
                         </p>
                     </div>
@@ -482,21 +482,21 @@ export default function TeacherLive() {
                         <Button
                             onClick={() => setIsRecordingsOpen(true)}
                             variant="outline"
-                            className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-600 hover:bg-rose-50/50 transition-all"
+                            className="h-14 px-8 rounded-2xl border-border bg-card text-muted-foreground font-black text-[10px] uppercase tracking-widest hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                         >
-                            <Disc className="w-4 h-4 text-slate-400 group-hover:text-rose-500" /> Past Recordings
+                            <Disc className="w-4 h-4 text-muted-foreground group-hover:text-rose-500" /> Past Recordings
                         </Button>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[220px]">
-                        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100">
+                    <div className="p-8 rounded-[40px] bg-card border border-border shadow-xl shadow-black/20 flex items-center gap-6 min-w-[220px]">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
                             <Disc className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Live Now</p>
-                            <h2 className="text-2xl font-black text-slate-900">0 Classes</h2>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Live Now</p>
+                            <h2 className="text-2xl font-black text-foreground">0 Classes</h2>
                         </div>
                     </div>
                 </div>
@@ -505,29 +505,29 @@ export default function TeacherLive() {
             {/* Upcoming Sessions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
                 {sessions.map(session => (
-                    <div key={session.id} className="group p-10 rounded-[48px] bg-white border border-slate-100 hover:border-rose-100 hover:shadow-2xl hover:shadow-rose-500/5 transition-all duration-700 relative overflow-hidden flex flex-col">
+                    <div key={session.id} className="group p-10 rounded-[48px] bg-card border border-border hover:border-rose-500/30 hover:shadow-2xl hover:shadow-rose-500/5 transition-all duration-700 relative overflow-hidden flex flex-col">
                         <div className="absolute top-0 right-0 p-8">
                             <span className={cn(
                                 "px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest border",
-                                session.active ? "bg-rose-50 text-rose-500 border-rose-100 animate-pulse" : "bg-slate-50 text-slate-400 border-slate-100"
+                                session.active ? "bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse" : "bg-muted text-muted-foreground border-border"
                             )}>
                                 {session.active ? "Ready to Launch" : "Upcoming"}
                             </span>
                         </div>
 
                         <div className="space-y-6 relative z-10 text-center flex flex-col items-center flex-1">
-                            <div className="w-20 h-20 rounded-[32px] bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 group-hover:scale-110 transition-transform shadow-sm">
+                            <div className="w-20 h-20 rounded-[32px] bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20 group-hover:scale-110 transition-transform shadow-sm">
                                 <Video className="w-10 h-10" />
                             </div>
 
                             <div className="flex-1 flex flex-col items-center justify-center min-h-[100px]">
-                                <h3 className="text-xl font-black text-slate-900 leading-[1.3] uppercase italic mb-3 group-hover:text-rose-600 transition-colors line-clamp-2">{session.title}</h3>
+                                <h3 className="text-xl font-black text-foreground leading-[1.3] uppercase italic mb-3 group-hover:text-rose-500 transition-colors line-clamp-2">{session.title}</h3>
                                 <div className="flex flex-wrap items-center justify-center gap-3">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
                                         <Clock className="w-3.5 h-3.5" /> {session.time}
                                     </p>
-                                    <span className="w-1 h-1 rounded-full bg-slate-200 hidden sm:block" />
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="w-1 h-1 rounded-full bg-border hidden sm:block" />
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
                                         <Users2 className="w-3.5 h-3.5" /> {session.students} Enrolled
                                     </p>
                                 </div>
@@ -542,7 +542,7 @@ export default function TeacherLive() {
                                     "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl mt-auto",
                                     session.active
                                         ? "bg-rose-500 text-white shadow-rose-500/20 hover:scale-105"
-                                        : "bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-100"
+                                        : "bg-sky-500/10 text-sky-500 border border-sky-500/20 hover:bg-sky-100"
                                 )}
                             >
                                 {session.active ? "Start Live Session" : "Prepare Resources"}
@@ -557,34 +557,34 @@ export default function TeacherLive() {
                     <div className="w-16 h-16 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center group-hover:bg-rose-50 group-hover:text-rose-500 transition-all">
                         <Plus className="w-8 h-8" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-rose-600 transition-all">Schedule Broadcast</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 group-hover:text-rose-600 transition-all">Schedule Broadcast</p>
                 </button>
             </div>
 
             {/* Schedule Class Modal */}
             <Dialog open={isSchedulingOpen} onOpenChange={setIsSchedulingOpen}>
-                <DialogContent className="sm:max-w-[500px] rounded-[48px] border-slate-100 p-10">
+                <DialogContent className="sm:max-w-[500px] rounded-[48px] border-border bg-card p-10">
                     <DialogHeader>
-                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Schedule <span className="text-rose-500">Live</span> Class</DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium">
+                        <DialogTitle className="text-3xl font-black text-foreground uppercase italic">Schedule <span className="text-rose-500">Live</span> Class</DialogTitle>
+                        <DialogDescription className="text-muted-foreground font-medium">
                             Set up a new live broadcast for your students. We'll handle the notifications and entry links.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-8 space-y-6">
                         <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Session Title</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Session Title</label>
                             <Input
                                 placeholder="e.g. Advanced Quantum Field Theory"
                                 value={newSession.title}
                                 onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
-                                className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-rose-500/20"
+                                className="h-14 rounded-2xl bg-muted border-border font-bold focus:ring-rose-500/20"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grade Level</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Grade Level</label>
                                 <Select onValueChange={(v) => setNewSession({ ...newSession, grade: v })}>
-                                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-rose-500/20">
+                                    <SelectTrigger className="h-14 rounded-2xl bg-muted border-border font-bold focus:ring-rose-500/20">
                                         <SelectValue placeholder="Grade" />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl border-slate-100">
@@ -596,19 +596,19 @@ export default function TeacherLive() {
                                 </Select>
                             </div>
                             <div className="space-y-2.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date & Time</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Date & Time</label>
                                 <Input
                                     type="datetime-local"
                                     value={newSession.time}
                                     onChange={(e) => setNewSession({ ...newSession, time: e.target.value })}
-                                    className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-rose-500/20"
+                                    className="h-14 rounded-2xl bg-muted border-border font-bold focus:ring-rose-500/20"
                                 />
                             </div>
                         </div>
                         <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Subject/Course</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Select Subject/Course</label>
                             <Select onValueChange={(v) => setNewSession({ ...newSession, course: v })}>
-                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-rose-500/20">
+                                <SelectTrigger className="h-14 rounded-2xl bg-muted border-border font-bold focus:ring-rose-500/20">
                                     <SelectValue placeholder="Select course" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-slate-100">
@@ -639,8 +639,8 @@ export default function TeacherLive() {
                 <DialogContent className="sm:max-w-[800px] rounded-[48px] border-slate-100 p-0 overflow-hidden">
                     <div className="p-10 bg-slate-50 border-b border-slate-100">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Session <span className="text-sky-600">Archive</span></DialogTitle>
-                            <DialogDescription className="text-slate-500 font-medium">Manage and review your previously recorded live teaching sessions.</DialogDescription>
+                            <DialogTitle className="text-3xl font-black text-foreground uppercase italic">Session <span className="text-sky-600">Archive</span></DialogTitle>
+                            <DialogDescription className="text-muted-foreground font-medium">Manage and review your previously recorded live teaching sessions.</DialogDescription>
                         </DialogHeader>
                     </div>
 
@@ -665,8 +665,8 @@ export default function TeacherLive() {
                                         <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-black text-white">45:20</span>
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-xs text-slate-900 uppercase italic truncate">Lecture on Quantum Physics {i}</h4>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">April {10 - i}, 2024</p>
+                                        <h4 className="font-black text-xs text-foreground uppercase italic truncate">Lecture on Quantum Physics {i}</h4>
+                                        <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest mt-0.5">April {10 - i}, 2024</p>
                                     </div>
                                 </div>
                             ))}
@@ -689,7 +689,7 @@ export default function TeacherLive() {
                                 </div>
                                 <div className="space-y-1">
                                     <h5 className="text-white font-black uppercase italic tracking-wider">Quantum Physics Lecture {selectedRecording.id}</h5>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">1,240 Total views • 85% Engagement</p>
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">1,240 Total views • 85% Engagement</p>
                                 </div>
                             </div>
                         )}
@@ -701,8 +701,8 @@ export default function TeacherLive() {
             <Dialog open={isResourcesOpen} onOpenChange={setIsResourcesOpen}>
                 <DialogContent className="sm:max-w-[600px] rounded-[48px] border-slate-100 p-10">
                     <DialogHeader>
-                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Prepare <span className="text-sky-600">Resources</span></DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium">Upload textbooks, slides, or problem sets for this session.</DialogDescription>
+                        <DialogTitle className="text-3xl font-black text-foreground uppercase italic">Prepare <span className="text-sky-600">Resources</span></DialogTitle>
+                        <DialogDescription className="text-muted-foreground font-medium">Upload textbooks, slides, or problem sets for this session.</DialogDescription>
                     </DialogHeader>
                     <div className="py-8 space-y-8">
                         <input
@@ -719,13 +719,13 @@ export default function TeacherLive() {
                                 <Plus className="w-8 h-8" />
                             </div>
                             <div className="text-center">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600 transition-all">Click to Select File</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 group-hover:text-sky-600 transition-all">Click to Select File</p>
                                 <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">PDF, PPTX, or MP4 (Max 100MB)</p>
                             </div>
                         </div>
 
                         <div className="space-y-4">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-black">Attached Materials ({resources.length})</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 font-black">Attached Materials ({resources.length})</label>
                             <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
                                 {resources.map(res => (
                                     <div key={res.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4 group hover:bg-white hover:shadow-lg transition-all">
@@ -733,8 +733,8 @@ export default function TeacherLive() {
                                             <Disc className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-bold text-slate-900 truncate">{res.name}</p>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{res.size} • {res.type} Document</p>
+                                            <p className="text-xs font-bold text-foreground truncate">{res.name}</p>
+                                            <p className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-widest">{res.size} • {res.type} Document</p>
                                         </div>
                                         <Button
                                             onClick={() => removeResource(res.id)}

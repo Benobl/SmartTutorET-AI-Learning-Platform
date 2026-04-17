@@ -37,6 +37,8 @@ export const viewport: Viewport = {
   ],
 };
 
+import { ThemeProvider } from "@/components/theme-provider"
+
 export default function RootLayout({
   children,
 }: {
@@ -45,9 +47,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.className} antialiased`}>
-        {children}
-        <Analytics />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+

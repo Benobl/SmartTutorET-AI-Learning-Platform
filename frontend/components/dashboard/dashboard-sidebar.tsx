@@ -229,7 +229,7 @@ function CollapseToggle({ className }: { className?: string }) {
             onClick={toggleSidebar}
             className={cn(
                 "flex items-center justify-center rounded-lg transition-all duration-300 group/toggle",
-                "border border-slate-200 bg-white shadow-sm hover:bg-sky-50 hover:border-sky-200 hover:shadow-md h-8 w-8 px-0",
+                "border border-border bg-card shadow-sm hover:bg-accent hover:border-accent hover:shadow-md h-8 w-8 px-0",
                 className
             )}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -268,7 +268,7 @@ export function DashboardSidebar() {
         <Sidebar
             variant="inset"
             collapsible="icon"
-            className="bg-[#f8f9fa] border-r border-slate-200"
+            className="bg-background border-r border-border"
         >
             {/* ── Refined Backdrop ── */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
@@ -279,15 +279,15 @@ export function DashboardSidebar() {
             <SidebarHeader className="px-4 pt-6 pb-4 relative z-10">
                 <div className="flex items-center justify-between w-full">
                     <Link href="/" className="flex items-center gap-2.5 group overflow-hidden">
-                        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-lg border border-slate-100 group-hover:scale-105 transition-all duration-500 shrink-0 overflow-hidden">
+                        <div className="w-9 h-9 rounded-xl bg-card flex items-center justify-center shadow-lg border border-border group-hover:scale-105 transition-all duration-500 shrink-0 overflow-hidden">
                             <Image src="/logo.png" alt="Logo" width={36} height={36} className="object-cover" />
                         </div>
                         {!isCollapsed && (
                             <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                                <span className="font-black text-base leading-tight tracking-tight text-slate-900">
+                                <span className="font-black text-base leading-tight tracking-tight text-foreground">
                                     SmartTutor<span className="text-sky-500">ET</span>
                                 </span>
-                                <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black">Portal Area</span>
+                                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black">Portal Area</span>
                             </div>
                         )}
                     </Link>
@@ -302,7 +302,7 @@ export function DashboardSidebar() {
 
             <SidebarContent className="px-3 relative z-10 overflow-hidden">
                 <SidebarGroup className="p-0">
-                    <SidebarGroupLabel className="text-slate-400 uppercase tracking-[0.25em] text-[10px] font-bold px-4 mb-2 mt-2">
+                    <SidebarGroupLabel className="text-muted-foreground uppercase tracking-[0.25em] text-[10px] font-bold px-4 mb-2 mt-2">
                         {navLabel}
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
@@ -322,8 +322,8 @@ export function DashboardSidebar() {
                                             className={cn(
                                                 "h-11 px-4 rounded-xl transition-all duration-200 relative group/item overflow-hidden",
                                                 isActive
-                                                    ? "bg-sky-50 text-sky-600 shadow-sm border border-sky-100"
-                                                    : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent"
+                                                    ? "bg-sky-500/10 text-sky-500 shadow-sm border border-sky-500/20"
+                                                    : "text-muted-foreground hover:bg-accent hover:text-foreground border border-transparent"
                                             )}
                                             onClick={item.items ? () => toggleExpanded(item.title) : handleItemClick}
                                         >
@@ -331,7 +331,7 @@ export function DashboardSidebar() {
                                                 <div className="flex items-center gap-3 w-full cursor-pointer">
                                                     <div className={cn(
                                                         "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                                                        isActive ? "bg-white text-sky-500 shadow-sm" : "bg-slate-100 text-slate-400 group-hover/item:bg-white group-hover/item:text-slate-600 shadow-none border border-transparent group-hover/item:border-slate-200"
+                                                        isActive ? "bg-card text-sky-500 shadow-sm" : "bg-muted text-muted-foreground group-hover/item:bg-card group-hover/item:text-foreground shadow-none border border-transparent group-hover/item:border-border"
                                                     )}>
                                                         <item.icon className="w-4 h-4" />
                                                     </div>
@@ -350,7 +350,7 @@ export function DashboardSidebar() {
                                                 <Link href={item.url} className="flex items-center gap-3 w-full">
                                                     <div className={cn(
                                                         "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                                                        isActive ? "bg-white text-sky-500 shadow-sm" : "bg-slate-100 text-slate-400 group-hover/item:bg-white group-hover/item:text-slate-600 shadow-none border border-transparent group-hover/item:border-slate-200"
+                                                        isActive ? "bg-card text-sky-500 shadow-sm" : "bg-muted text-muted-foreground group-hover/item:bg-card group-hover/item:text-foreground shadow-none border border-transparent group-hover/item:border-border"
                                                     )}>
                                                         <item.icon className="w-4 h-4" />
                                                     </div>
@@ -366,7 +366,7 @@ export function DashboardSidebar() {
 
                                         {/* Sub-items */}
                                         {item.items && isExpanded && !isCollapsed && (
-                                            <div className="mt-1 flex flex-col gap-0.5 ml-8 border-l border-slate-200 pl-3">
+                                            <div className="mt-1 flex flex-col gap-0.5 ml-8 border-l border-border pl-3">
                                                 {item.items.map((subItem) => {
                                                     const isSubActive = pathname === subItem.url
                                                     return (
@@ -375,9 +375,9 @@ export function DashboardSidebar() {
                                                             href={subItem.url}
                                                             className={cn(
                                                                 "h-8 flex items-center px-3 rounded-lg text-xs font-medium transition-all duration-200",
-                                                                isSubActive
-                                                                    ? "text-sky-600 bg-sky-50"
-                                                                    : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                                                                isActive
+                                                                    ? "text-sky-500 bg-sky-500/10"
+                                                                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
                                                             )}
                                                         >
                                                             {subItem.title}

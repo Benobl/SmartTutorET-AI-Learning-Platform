@@ -75,13 +75,13 @@ export default function TeacherSquads() {
                 <div className="space-y-6">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100 shadow-sm">Collaboration Engine</span>
-                            <GraduationCap className="w-4 h-4 text-sky-400" />
+                            <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-[10px] font-black uppercase tracking-widest border border-border shadow-sm">Collaboration Engine</span>
+                            <GraduationCap className="w-4 h-4 text-sky-500" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
+                        <h1 className="text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none mb-3 uppercase">
                             Student <span className='text-sky-600'>Squads</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                        <p className="text-muted-foreground text-sm font-medium max-w-md">
                             Organize your students into high-performance collaborative groups to foster peer-to-peer learning and competitive academic growth.
                         </p>
                     </div>
@@ -96,7 +96,7 @@ export default function TeacherSquads() {
                         <Button
                             onClick={() => setIsLeaderboardOpen(true)}
                             variant="outline"
-                            className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all"
+                            className="h-14 px-8 rounded-2xl border-border bg-card text-muted-foreground font-black text-[10px] uppercase tracking-widest hover:text-sky-500 hover:bg-sky-500/10 transition-all"
                         >
                             <Trophy className="w-4 h-4 mr-2" /> View Squad Leaderboard
                         </Button>
@@ -105,12 +105,12 @@ export default function TeacherSquads() {
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                     <div className="relative group min-w-[300px]">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground group-focus-within:text-sky-500 transition-colors" />
                         <input
                             placeholder="Find a squad..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-16 pl-14 pr-6 rounded-[28px] bg-white border border-slate-200 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all placeholder:text-slate-400 shadow-sm"
+                            className="w-full h-16 pl-14 pr-6 rounded-[28px] bg-card border border-border text-foreground text-sm font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all placeholder:text-muted-foreground shadow-sm"
                         />
                     </div>
                 </div>
@@ -121,10 +121,10 @@ export default function TeacherSquads() {
                 {filteredSquads.map(squad => (
                     <div
                         key={squad.id}
-                        className="group p-10 rounded-[48px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-700 relative overflow-hidden flex flex-col"
+                        className="group p-10 rounded-[48px] bg-card border border-border hover:border-sky-500/50 hover:shadow-2xl hover:shadow-black/20 transition-all duration-700 relative overflow-hidden flex flex-col"
                     >
-                        <div className="absolute top-0 right-0 p-8 text-center bg-sky-50 px-4 py-2 rounded-bl-[24px] border-l border-b border-sky-100 shadow-sm">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-sky-600 flex items-center gap-1.5 leading-none">
+                        <div className="absolute top-0 right-0 p-8 text-center bg-muted px-4 py-2 rounded-bl-[24px] border-l border-b border-border shadow-sm">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-sky-500 flex items-center gap-1.5 leading-none">
                                 <FlaskConical className="w-2.5 h-2.5" /> Active Lab
                             </span>
                         </div>
@@ -141,19 +141,19 @@ export default function TeacherSquads() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100 group-hover:bg-white group-hover:shadow-lg transition-all">
+                                <div className="p-5 rounded-[24px] bg-muted border border-border group-hover:bg-card group-hover:shadow-lg transition-all">
                                     <div className="flex items-center gap-2 mb-1.5">
-                                        <Activity className="w-3.5 h-3.5 text-sky-400" />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Synergy</span>
+                                        <Activity className="w-3.5 h-3.5 text-sky-500" />
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Synergy</span>
                                     </div>
-                                    <p className="text-sm font-black text-slate-900">High</p>
+                                    <p className="text-sm font-black text-foreground">High</p>
                                 </div>
-                                <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100 group-hover:bg-white group-hover:shadow-lg transition-all">
+                                <div className="p-5 rounded-[24px] bg-muted border border-border group-hover:bg-card group-hover:shadow-lg transition-all">
                                     <div className="flex items-center gap-2 mb-1.5">
-                                        <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Msgs</span>
+                                        <MessageSquare className="w-3.5 h-3.5 text-sky-500" />
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Msgs</span>
                                     </div>
-                                    <p className="text-sm font-black text-slate-900">142 today</p>
+                                    <p className="text-sm font-black text-foreground">142 today</p>
                                 </div>
                             </div>
 
@@ -195,25 +195,25 @@ export default function TeacherSquads() {
 
                 <button
                     onClick={() => setIsCreateOpen(true)}
-                    className="h-full min-h-[400px] border-2 border-dashed border-slate-200 rounded-[48px] flex flex-col items-center justify-center gap-4 group hover:bg-white hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/10 transition-all"
+                    className="h-full min-h-[400px] border-2 border-dashed border-border rounded-[48px] flex flex-col items-center justify-center gap-4 group hover:bg-card hover:border-sky-500/50 hover:shadow-2xl hover:shadow-black/20 transition-all"
                 >
-                    <div className="w-20 h-20 rounded-[32px] bg-slate-50 text-slate-300 flex items-center justify-center group-hover:bg-sky-50 group-hover:text-sky-500 transition-all shadow-sm">
+                    <div className="w-20 h-20 rounded-[32px] bg-muted text-muted-foreground flex items-center justify-center group-hover:bg-sky-500/10 group-hover:text-sky-500 transition-all shadow-sm">
                         <Plus className="w-10 h-10" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-sky-600 transition-all">Form New Squad</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground group-hover:text-sky-500 transition-all">Form New Squad</p>
                 </button>
             </div>
 
             {/* AI Collaborative Suggestion */}
-            <div className="bg-white border border-slate-100 rounded-[64px] p-12 lg:p-20 relative overflow-hidden group shadow-2xl shadow-slate-200/50">
+            <div className="bg-card border border-border rounded-[64px] p-12 lg:p-20 relative overflow-hidden group shadow-2xl shadow-black/20">
                 <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-sky-500/5 blur-3xl rounded-full -mr-32 -mb-32" />
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <div className="space-y-8">
                         <div>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest mb-6 border border-sky-100">Squad Synergy AI</div>
-                            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 leading-none tracking-tight uppercase italic">Optimize <span className="text-sky-600">Team</span> Dynamics</h2>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-500/10 text-sky-500 text-[10px] font-black uppercase tracking-widest mb-6 border border-sky-500/20">Squad Synergy AI</div>
+                            <h2 className="text-4xl lg:text-5xl font-black text-foreground leading-none tracking-tight uppercase italic">Optimize <span className="text-sky-600">Team</span> Dynamics</h2>
                         </div>
-                        <p className="text-slate-500 text-lg font-medium leading-relaxed">
+                        <p className="text-muted-foreground text-lg font-medium leading-relaxed">
                             Our AI analyzes student strengths and weaknesses to suggest ideal project groups. Balanced squads perform 34% better in national exam simulations.
                         </p>
                         <Button
@@ -227,19 +227,19 @@ export default function TeacherSquads() {
                     </div>
                     <div className="hidden lg:flex justify-center">
                         <div className="relative animate-in zoom-in duration-1000">
-                            <div className="w-72 h-72 rounded-[64px] border border-slate-100 bg-slate-50/50 p-8 flex flex-col justify-around shadow-inner">
+                            <div className="w-72 h-72 rounded-[64px] border border-border bg-muted p-8 flex flex-col justify-around shadow-inner">
                                 <div className="flex justify-between items-center">
-                                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center border border-sky-100 shadow-sm"><ShieldCheck className="w-6 h-6" /></div>
-                                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100 shadow-sm"><AlertCircle className="w-6 h-6" /></div>
+                                    <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center border border-sky-500/20 shadow-sm"><ShieldCheck className="w-6 h-6" /></div>
+                                    <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20 shadow-sm"><AlertCircle className="w-6 h-6" /></div>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner"><div className="h-full bg-sky-500 w-3/4 rounded-full shadow-lg" /></div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner"><div className="h-full bg-indigo-400 w-1/2 rounded-full shadow-lg" /></div>
+                                    <div className="h-2 w-full bg-card rounded-full overflow-hidden shadow-inner border border-border"><div className="h-full bg-sky-500 w-3/4 rounded-full shadow-lg" /></div>
+                                    <div className="h-2 w-full bg-card rounded-full overflow-hidden shadow-inner border border-border"><div className="h-full bg-indigo-400 w-1/2 rounded-full shadow-lg" /></div>
                                 </div>
                             </div>
-                            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-[32px] bg-white border border-slate-100 shadow-2xl flex flex-col items-center justify-center scale-110">
-                                <span className="text-[10px] font-black uppercase text-slate-400">Match</span>
-                                <span className="text-2xl font-black text-slate-900">98%</span>
+                            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-[32px] bg-card border border-border shadow-2xl flex flex-col items-center justify-center scale-110">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground">Match</span>
+                                <span className="text-2xl font-black text-foreground">98%</span>
                             </div>
                         </div>
                     </div>
@@ -248,31 +248,31 @@ export default function TeacherSquads() {
 
             {/* Create Squad Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-[500px] rounded-[48px] border-slate-100 p-10">
+                <DialogContent className="sm:max-w-[500px] rounded-[48px] border-border bg-card p-10">
                     <DialogHeader>
-                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Form <span className="text-sky-600">New Squad</span></DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium">Create a high-performance collaborative group for your course.</DialogDescription>
+                        <DialogTitle className="text-3xl font-black text-foreground uppercase italic">Form <span className="text-sky-600">New Squad</span></DialogTitle>
+                        <DialogDescription className="text-muted-foreground font-medium">Create a high-performance collaborative group for your course.</DialogDescription>
                     </DialogHeader>
                     <div className="py-8 space-y-6">
                         <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squad Call-sign</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Squad Call-sign</label>
                             <Input
                                 placeholder="e.g. Quantum Pioneers"
                                 value={newSquad.name}
                                 onChange={(e) => setNewSquad({ ...newSquad, name: e.target.value })}
-                                className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-sky-500/20"
+                                className="h-14 rounded-2xl bg-muted border-border font-bold focus:ring-sky-500/20 text-foreground placeholder:text-muted-foreground"
                             />
                         </div>
                         <div className="space-y-4">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quick Stats</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quick Stats</label>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Students</p>
-                                    <p className="text-lg font-black text-slate-900">5-8 Initial</p>
+                                <div className="p-4 rounded-2xl bg-muted border border-border text-center">
+                                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Students</p>
+                                    <p className="text-lg font-black text-foreground">5-8 Initial</p>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Status</p>
-                                    <p className="text-lg font-black text-sky-600">Elite-Ready</p>
+                                <div className="p-4 rounded-2xl bg-muted border border-border text-center">
+                                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Status</p>
+                                    <p className="text-lg font-black text-sky-500">Elite-Ready</p>
                                 </div>
                             </div>
                         </div>
@@ -291,25 +291,25 @@ export default function TeacherSquads() {
 
             {/* Leaderboard Dialog */}
             <Dialog open={isLeaderboardOpen} onOpenChange={setIsLeaderboardOpen}>
-                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-slate-100 p-0 overflow-hidden">
-                    <div className="p-10 bg-slate-50 border-b border-slate-100">
+                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-border bg-card p-0 overflow-hidden">
+                    <div className="p-10 bg-muted border-b border-border">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Squad <span className="text-sky-600">Leaderboard</span></DialogTitle>
-                            <DialogDescription className="text-slate-500 font-medium">Tracking performance metrics and collaborative synergy across all groups.</DialogDescription>
+                            <DialogTitle className="text-3xl font-black text-foreground uppercase italic">Squad <span className="text-sky-600">Leaderboard</span></DialogTitle>
+                            <DialogDescription className="text-muted-foreground font-medium">Tracking performance metrics and collaborative synergy across all groups.</DialogDescription>
                         </DialogHeader>
                     </div>
                     <div className="p-10 space-y-4">
                         {squads.map((s, idx) => (
-                            <div key={s.id} className="flex items-center gap-6 p-5 rounded-[32px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-xl transition-all group">
-                                <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center font-black group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
+                            <div key={s.id} className="flex items-center gap-6 p-5 rounded-[32px] bg-card border border-border hover:border-sky-500/50 hover:shadow-xl transition-all group">
+                                <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center font-black group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
                                     {idx + 1}
                                 </div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-sm text-slate-900 uppercase italic">{s.name}</h4>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">94% Efficiency • 1.4k Engagement Points</p>
+                                    <h4 className="font-black text-sm text-foreground uppercase italic">{s.name}</h4>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">94% Efficiency • 1.4k Engagement Points</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Trophy className={cn("w-5 h-5", idx === 0 ? "text-yellow-500" : "text-slate-200")} />
+                                    <Trophy className={cn("w-5 h-5", idx === 0 ? "text-yellow-500" : "text-muted-foreground/30")} />
                                 </div>
                             </div>
                         ))}
@@ -319,7 +319,7 @@ export default function TeacherSquads() {
 
             {/* Labs Entry Dialog */}
             <Dialog open={isLabsOpen} onOpenChange={setIsLabsOpen}>
-                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
+                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-border p-0 overflow-hidden bg-card shadow-3xl">
                     <div className="bg-slate-900 p-12 text-center space-y-8 relative overflow-hidden">
                         {/* Background Pulse */}
                         <div className="absolute inset-0 bg-sky-500/5 animate-pulse" />

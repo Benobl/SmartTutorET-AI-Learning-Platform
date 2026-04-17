@@ -37,9 +37,9 @@ export default function DashboardLayout({
 }) {
     return (
         <SidebarProvider>
-            <div className="flex h-screen w-full bg-[#f8f9fa] text-slate-900 overflow-hidden">
+            <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
                 <DashboardSidebar />
-                <SidebarInset className="flex-1 flex flex-col bg-[#f8f9fa] overflow-y-auto custom-scrollbar relative">
+                <SidebarInset className="flex-1 flex flex-col bg-background overflow-y-auto custom-scrollbar relative">
                     <SessionTimeoutBanner />
                     <DashboardNavbar />
                     <div className="p-4 md:p-8">
@@ -52,3 +52,4 @@ export default function DashboardLayout({
         </SidebarProvider>
     )
 }
+
