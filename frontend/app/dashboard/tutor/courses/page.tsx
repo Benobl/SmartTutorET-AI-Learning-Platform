@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorCourses } from "@/lib/mock-data"
 import {
     Dialog, DialogContent, DialogHeader,
     DialogTitle, DialogTrigger, DialogFooter
@@ -25,7 +25,7 @@ export default function TeacherCourses() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
     const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
-    const [courses, setCourses] = useState(mockTeacherData.courses)
+    const [courses, setCourses] = useState(tutorCourses)
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
     const { toast } = useToast()

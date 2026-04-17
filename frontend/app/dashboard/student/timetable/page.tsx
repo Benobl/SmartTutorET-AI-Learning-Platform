@@ -1,6 +1,6 @@
 "use client"
 
-import { timetable as initialTimetable, type TimetableSlot } from "@/lib/student-data"
+import { timetable as initialTimetable, type TimetableSlot } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, ListChecks, Plus, X, Brain, Sparkles, Download, ArrowUpRight, Activity, Book, PenTool, SearchCode, History, CheckCircle, Video } from "lucide-react"
 import { useState, useMemo } from "react"

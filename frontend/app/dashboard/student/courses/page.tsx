@@ -7,7 +7,7 @@ import {
     LayoutGrid, List, Star, Users, CheckCircle,
     Sparkles, ChevronRight, GraduationCap, Video,
     MonitorPlay, Calendar, Zap, LayoutPanelLeft, Clock,
-    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp
+    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp, FileDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { courseApi } from "@/lib/api"
+import { exportToPDF } from "@/lib/manager-utils"
 
 // ── Static Constants ──────────────────────────────────────────
 const CATEGORIES = ["All", "Science", "Mathematics", "Humanities", "Language", "National Exam Prep"]
@@ -214,6 +215,12 @@ export default function StudentCourses() {
         } finally { setEnrollingId(null) }
     }
 
+    const handleExportCatalog = () => {
+        const columns = ['name', 'tutor', 'grade', 'price', 'category', 'delivery']
+        exportToPDF(catalogCourses, columns, 'SmartTutorET: Institutional Course Catalog', 'course_catalog_report')
+        toast({ title: "Processing Report", description: "Your curriculum catalog is being prepared as a PDF." })
+    }
+
     const activeSortLabel = SORT_OPTIONS.find(s => s.value === sortBy)?.label ?? "Sort By"
 
     return (
@@ -241,6 +248,17 @@ export default function StudentCourses() {
                                 : "Discover specialized courses from the best tutors in Ethiopia."}
                         </p>
                     </div>
+
+                    {activeTab === "catalog" && (
+                        <Button
+                            variant="outline"
+                            onClick={handleExportCatalog}
+                            className="bg-white/80 backdrop-blur-md border-slate-200 text-slate-600 rounded-2xl gap-3 font-black px-6 h-12 text-[10px] uppercase tracking-widest transition-all shadow-sm group"
+                        >
+                            <FileDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform text-indigo-500" />
+                            Download Full Catalog
+                        </Button>
+                    )}
 
                     {/* Tab Switcher */}
                     <div className="inline-flex p-1.5 bg-slate-100/80 backdrop-blur-md rounded-[28px] border border-slate-200/50 shadow-inner shrink-0">

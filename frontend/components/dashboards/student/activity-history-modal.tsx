@@ -16,7 +16,7 @@ import {
     BarChart3, History, Sparkles, FileText
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { recentActivity as fullHistory } from "@/lib/student-data"
+import { recentActivity as fullHistory } from "@/lib/mock-data"
 
 interface ActivityHistoryModalProps {
     isOpen: boolean

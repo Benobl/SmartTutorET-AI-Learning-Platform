@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { submissions, teacherAssignments } from "@/lib/teacher-data"
+import { tutorSubmissions as submissions, tutorAssignments as teacherAssignments } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { FileText, Clock, CheckCircle2, Search, Download, Eye } from "lucide-react"
 import { Input } from "@/components/ui/input"

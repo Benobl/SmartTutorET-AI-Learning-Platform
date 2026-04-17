@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { grades as allGradesData } from "@/lib/student-data"
+import { grades as allGradesData } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import {
     GraduationCap, TrendingUp, TrendingDown, Minus,

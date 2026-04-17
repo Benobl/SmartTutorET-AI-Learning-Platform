@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { teacherAnnouncements, teacherCourses } from "@/lib/teacher-data"
+import { tutorAnnouncements, tutorCourses as teacherCourses } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { Bell, Plus, Users, Eye, Pin, X, Check } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -103,7 +103,7 @@ export default function TeacherAnnouncementsPage() {
                     <h2 className="text-xl font-black text-slate-900">Sent Announcements</h2>
                 </div>
 
-                {teacherAnnouncements.map(ann => (
+                {tutorAnnouncements.map(ann => (
                     <div key={ann.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="flex items-start gap-4 relative z-10">

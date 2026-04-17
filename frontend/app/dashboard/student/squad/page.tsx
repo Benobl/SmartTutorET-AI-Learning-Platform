@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { squadPosts } from "@/lib/student-data"
+import { squadPosts } from "@/lib/mock-data"
 import {
     MessageSquare, Heart, MessageCircle, Share2,
     Search, Plus, Filter, TrendingUp, Sparkles,

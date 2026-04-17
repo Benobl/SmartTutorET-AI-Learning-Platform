@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ import { AuthBackground, AuthCard, PasswordStrength } from "@/components/auth-co
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { registerUser } from "@/lib/auth-utils"
 import { cn } from "@/lib/utils"
 
 // Regex for letters only
@@ -34,9 +36,7 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 
-  // Student fields
   grade: z.string().optional(),
-  schoolName: z.string().optional(),
 
   // Tutor fields
   degree: z.string().optional(),
@@ -46,20 +46,12 @@ const signupSchema = z.object({
   degreeFile: z.any().optional(),
 }).refine((data) => {
   if (data.role === "student") {
-    return !!data.grade && !!data.schoolName
+    return !!data.grade
   }
   return true
 }, {
   message: "Class is required",
   path: ["grade"]
-}).refine((data) => {
-  if (data.role === "student") {
-    return !!data.schoolName
-  }
-  return true
-}, {
-  message: "School name is required",
-  path: ["schoolName"]
 }).refine((data) => {
   if (data.role === "tutor") {
     return !!data.degree && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
@@ -169,7 +161,7 @@ export default function SignupPage() {
       fieldsToValidate = ["firstName", "lastName", "email"]
     } else if (step === 2) {
       if (role === "student") {
-        fieldsToValidate = ["grade", "schoolName"]
+        fieldsToValidate = ["grade"]
       } else {
         fieldsToValidate = ["degree", "experience", "subject"]
       }
@@ -198,11 +190,18 @@ export default function SignupPage() {
       console.log("Submitting:", data)
       await new Promise(resolve => setTimeout(resolve, 1500))
 
-      setSuccess("Account created successfully! Welcome to SmartTutorET.")
+      const user = registerUser(data)
 
-      setTimeout(() => {
-        router.push(role === "student" ? "/dashboard/student" : "/dashboard/tutor")
-      }, 1500)
+      if (user.role === "student") {
+        setSuccess(`Account created successfully! Welcome, ${user.firstName}.`)
+        setTimeout(() => {
+          router.push("/dashboard/student")
+        }, 1500)
+      } else {
+        setSuccess(`Application submitted! We have received your documents, ${user.firstName}. Our institutional board will review your credentials and notify you via email when your account is activated.`)
+        // Do not redirect tutors, let them see the message
+        setStep(totalSteps + 1) // Move to a "Success" step if we want, or just stay
+      }
     } catch (err) {
       setError("An error occurred during signup. Please try again.")
     } finally {
@@ -234,8 +233,18 @@ export default function SignupPage() {
 
   return (
     <AuthBackground imageSrc="/auth/signup-bg.png">
-      <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500">
-        <AuthCard>
+      <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500 py-2 md:py-4">
+        <AuthCard className="p-4 md:p-6">
+          <div className="flex flex-col items-center mb-3 md:mb-4">
+            <Link href="/" className="mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden hover:scale-105 transition-all duration-500">
+                <Image src="/logo.png" alt="SmartTutorET Logo" width={48} height={48} priority />
+              </div>
+            </Link>
+            <h1 className="text-2xl font-bold text-white mb-1">Create Your Account</h1>
+            <p className="text-white/60 text-xs text-center">Join the future of AI-powered learning in Ethiopia</p>
+          </div>
+
           {/* Internal Back Button */}
           <div className="flex justify-start mb-2">
             <button
@@ -249,38 +258,42 @@ export default function SignupPage() {
             </button>
           </div>
           {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-            <p className="text-white/60">Step {step} of {totalSteps}: {stepItems[step - 1].title}</p>
-          </div>
+          {step <= totalSteps && (
+            <div className="text-center mb-3">
+              <h1 className="text-xl font-bold text-white mb-1">Create Account</h1>
+              <p className="text-white/60 text-xs text-center">Step {step} of {totalSteps}: {stepItems[step - 1]?.title}</p>
+            </div>
+          )}
 
           {/* Progress Indicator */}
-          <div className="flex items-center justify-between mb-8 px-4">
-            {stepItems.map((item, idx) => (
-              <div key={item.number} className="flex items-center flex-1 last:flex-none">
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-smooth",
-                  step === item.number
-                    ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-110"
-                    : step > item.number
-                      ? "bg-emerald-500 text-white"
-                      : "bg-white/10 text-white/40"
-                )}>
-                  {step > item.number ? <CheckCircle2 className="w-5 h-5" /> : item.number}
-                </div>
-                {idx < stepItems.length - 1 && (
+          {step <= totalSteps && (
+            <div className="flex items-center justify-between mb-4 px-4">
+              {stepItems.map((item, idx) => (
+                <div key={item.number} className="flex items-center flex-1 last:flex-none">
                   <div className={cn(
-                    "h-[2px] flex-1 mx-2 transition-smooth",
-                    step > item.number ? "bg-emerald-500" : "bg-white/10"
-                  )} />
-                )}
-              </div>
-            ))}
-          </div>
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-smooth",
+                    step === item.number
+                      ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-110"
+                      : step > item.number
+                        ? "bg-emerald-500 text-white"
+                        : "bg-white/10 text-white/40"
+                  )}>
+                    {step > item.number ? <CheckCircle2 className="w-5 h-5" /> : item.number}
+                  </div>
+                  {idx < stepItems.length - 1 && (
+                    <div className={cn(
+                      "h-[2px] flex-1 mx-2 transition-smooth",
+                      step > item.number ? "bg-emerald-500" : "bg-white/10"
+                    )} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Modern Role Selection Tabs (Only on Step 1) */}
           {step === 1 && (
-            <div className="grid grid-cols-2 p-1.5 bg-white/5 rounded-2xl border border-white/10 mb-8 relative">
+            <div className="grid grid-cols-2 p-1 bg-white/5 rounded-2xl border border-white/10 mb-4 relative">
               <button
                 onClick={() => handleRoleChange("student")}
                 className={cn(
@@ -330,7 +343,7 @@ export default function SignupPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Step 1: Identity */}
             {step === 1 && (
               <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -393,7 +406,7 @@ export default function SignupPage() {
 
             {/* Step 2: Profile (Student) or Expertise (Tutor) */}
             {step === 2 && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {role === "student" ? (
                   <>
                     <div className="space-y-2">
@@ -419,23 +432,6 @@ export default function SignupPage() {
                       />
                       {errors.grade && (
                         <p className="text-red-400 text-xs mt-1 ml-1">{errors.grade.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="ml-1 text-white/80">School Name</Label>
-                      <div className="group relative">
-                        <School className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-400" />
-                        <Input
-                          {...register("schoolName")}
-                          placeholder="Enter school name"
-                          className={cn(
-                            "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
-                            errors.schoolName && "border-red-500/50"
-                          )}
-                        />
-                      </div>
-                      {errors.schoolName && (
-                        <p className="text-red-400 text-xs mt-1 ml-1">{errors.schoolName.message}</p>
                       )}
                     </div>
                   </>
@@ -511,7 +507,7 @@ export default function SignupPage() {
 
             {/* Step 3: Schedule (Tutor) or Security (Student) */}
             {step === 3 && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {role === "tutor" ? (
                   <>
                     <div className="space-y-2">
@@ -595,7 +591,7 @@ export default function SignupPage() {
 
             {/* Step 4: Security (Tutor) */}
             {step === 4 && role === "tutor" && (
-              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <SecuritySection
                   register={register}
                   showPassword={showPassword}
@@ -606,54 +602,77 @@ export default function SignupPage() {
               </div>
             )}
 
-            <div className="flex gap-4 pt-2">
-              {step < totalSteps ? (
+            {/* Success Stage for Tutors */}
+            {step > totalSteps && (
+              <div className="py-10 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-500">
+                <div className="w-20 h-20 rounded-[30px] bg-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10 border border-emerald-500/20">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-white">Application Received</h2>
+                  <p className="text-white/60 text-xs leading-relaxed max-w-xs mx-auto">
+                    Your credentials have been submitted to our institutional board. We will notify you via email once your account is activated.
+                  </p>
+                </div>
                 <Button
-                  type="button"
-                  onClick={nextStep}
-                  className={cn(
-                    "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
-                    role === "student"
-                      ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
-                      : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
-                  )}
+                  onClick={() => router.push("/login")}
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-10 py-6 font-bold transition-all border border-white/10"
                 >
-                  <span className="flex items-center gap-2">
-                    Continue to {stepItems[step].title}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </span>
+                  Return to Login
                 </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className={cn(
-                    "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
-                    role === "student"
-                      ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
-                      : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    {isLoading ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                        Creating Account...
-                      </>
-                    ) : (
-                      <>
-                        Create {role === "student" ? "Student" : "Tutor"} Account
-                        <CheckCircle2 className="h-4 w-4 transition-transform group-hover:scale-110" />
-                      </>
+              </div>
+            )}
+
+            {step <= totalSteps && (
+              <div className="flex gap-4 pt-2">
+                {step < totalSteps ? (
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    className={cn(
+                      "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
+                      role === "student"
+                        ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
+                        : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
                     )}
-                  </span>
-                </Button>
-              )}
-            </div>
+                  >
+                    <span className="flex items-center gap-2">
+                      Continue to {stepItems[step].title}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className={cn(
+                      "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
+                      role === "student"
+                        ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
+                        : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {isLoading ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          Creating Account...
+                        </>
+                      ) : (
+                        <>
+                          Create {role === "student" ? "Student" : "Tutor"} Account
+                          <CheckCircle2 className="h-4 w-4 transition-transform group-hover:scale-110" />
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                )}
+              </div>
+            )}
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center text-sm text-white/60">
+          <div className="mt-4 text-center text-xs text-white/60">
             Already have an account?{" "}
             <Link
               href="/login"

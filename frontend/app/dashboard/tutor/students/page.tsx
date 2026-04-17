@@ -28,15 +28,9 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorStudents as centralizedStudents } from "@/lib/mock-data"
 
-const MOCK_STUDENTS = [
-    { id: "s1", name: "Biniyam Solomon", grade: "12", course: "Quantum Mechanics", attendance: "98%", average: 92, status: "excellent", trend: "up" },
-    { id: "s2", name: "Helena Tesfaye", grade: "12", course: "Quantum Mechanics", attendance: "85%", average: 78, status: "good", trend: "up" },
-    { id: "s3", name: "Dagmawi Girma", grade: "11", course: "Kinematics", attendance: "92%", average: 64, status: "struggling", trend: "down" },
-    { id: "s4", name: "Selamawit Bekele", grade: "11", course: "Kinematics", attendance: "100%", average: 88, status: "excellent", trend: "up" },
-    { id: "s5", name: "Yonas Alemu", grade: "12", course: "Quantum Mechanics", attendance: "76%", average: 45, status: "at-risk", trend: "down" },
-]
+const MOCK_STUDENTS = centralizedStudents
 
 export default function TeacherStudents() {
     const [searchQuery, setSearchQuery] = useState("")

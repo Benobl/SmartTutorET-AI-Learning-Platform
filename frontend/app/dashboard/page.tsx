@@ -1,8 +1,21 @@
+"use client"
+
+import { getCurrentUser } from "@/lib/auth-utils"
+import { useState, useEffect } from "react"
+
 export default function DashboardPage() {
+    const [user, setUser] = useState<any>(null)
+
+    useEffect(() => {
+        setUser(getCurrentUser())
+    }, [])
+
+    const userName = user ? user.firstName : "User"
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div>
-                <h1 className="text-4xl font-bold text-white mb-2">Welcome back, John! 👋</h1>
+                <h1 className="text-4xl font-bold text-white mb-2">Welcome back, {userName}! 👋</h1>
                 <p className="text-white/40">Here&apos;s what&apos;s happening with your students today.</p>
             </div>
 
@@ -39,7 +52,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-white">New student enrollment</p>
-                                    <p className="text-xs text-white/40">Sarah Jones enrolled in Mathematics Grade 10</p>
+                                    <p className="text-xs text-white/40">A new student enrolled in Mathematics Grade 10</p>
                                 </div>
                                 <span className="text-xs text-white/20">2h ago</span>
                             </div>

@@ -11,7 +11,12 @@ import {
     Trash2,
     Calendar,
     Settings2,
-    BookOpen
+    BookOpen,
+    Download,
+    FileDown,
+    MoreVertical,
+    CheckCircle2,
+    Clock
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,21 +30,23 @@ import {
     DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { getCourses } from "@/lib/manager-utils"
+import { getCourses, addCourse, updateCourse, deleteCourse, exportToPDF } from "@/lib/manager-utils"
 import { toast } from "sonner"
 
 export default function CourseManagement() {
     const [searchQuery, setSearchQuery] = useState("")
     const [courses, setCourses] = useState<any[]>([])
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [editingCourse, setEditingCourse] = useState<any>(null)
 
-    // Form state for adding course (simplified)
-    const [newCourse, setNewCourse] = useState({
+    // Form state
+    const [formState, setFormState] = useState({
         name: "",
         code: "",
         subject: "",
         grade: "",
-        studentCount: "0"
+        semester: "Semester 1",
+        description: ""
     })
 
     const refreshCourses = () => {
@@ -50,11 +57,44 @@ export default function CourseManagement() {
         refreshCourses()
     }, [])
 
-    const handleCreateCourse = (e: React.FormEvent) => {
+    const handleAction = (e: React.FormEvent) => {
         e.preventDefault()
-        // In a real app we'd call an updateDB function, here we'll just simulate a successful addition
-        toast.info("Course creation is simulated for this demo.")
+        if (editingCourse) {
+            updateCourse(editingCourse.id, formState)
+            toast.success("Course modified successfully.")
+        } else {
+            addCourse(formState)
+            toast.success("New course archived to curriculum.")
+        }
         setIsCreateModalOpen(false)
+        setEditingCourse(null)
+        setFormState({ name: "", code: "", subject: "", grade: "", semester: "Semester 1", description: "" })
+        refreshCourses()
+    }
+
+    const openEdit = (course: any) => {
+        setEditingCourse(course)
+        setFormState({
+            name: course.name,
+            code: course.code,
+            subject: course.subject,
+            grade: course.grade,
+            semester: course.semester || "Semester 1",
+            description: course.description || ""
+        })
+        setIsCreateModalOpen(true)
+    }
+
+    const handleDelete = (id: string) => {
+        deleteCourse(id)
+        refreshCourses()
+        toast.error("Course removed from registry.")
+    }
+
+    const handleExportPDF = () => {
+        const columns = ['name', 'code', 'subject', 'grade', 'studentCount']
+        exportToPDF(filteredCourses, columns, 'Curriculum Registry Report', 'smarttutor_curriculum')
+        toast.success("Curriculum exported as PDF.")
     }
 
     const filteredCourses = courses.filter(c =>
@@ -63,29 +103,43 @@ export default function CourseManagement() {
     )
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-500">
+        <div className="space-y-10 animate-in fade-in duration-500 pb-20">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Curriculum Registry</h1>
-                    <p className="text-slate-500 font-medium text-sm">Central repository for school courses and departmental records.</p>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 px-1">
+                <div className="space-y-2">
+                    <h1 className="text-4xl font-black text-slate-800 tracking-tight">Curriculum <span className="text-blue-500">Registry</span></h1>
+                    <p className="text-slate-400 font-medium">Standardize and audit institutional learning paths.</p>
                 </div>
-                <Button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-2 font-bold px-8 h-12 text-sm shadow-lg shadow-blue-500/10 transition-all font-bold"
-                >
-                    <Plus className="w-5 h-5" />
-                    Archive New Course
-                </Button>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        onClick={handleExportPDF}
+                        className="border-slate-200 hover:bg-slate-50 text-slate-600 rounded-[20px] gap-2 font-black px-8 h-14 text-[11px] uppercase tracking-widest transition-all"
+                    >
+                        <FileDown className="w-5 h-5" />
+                        Export PDF
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setEditingCourse(null)
+                            setFormState({ name: "", code: "", subject: "", grade: "", semester: "Semester 1", description: "" })
+                            setIsCreateModalOpen(true)
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white rounded-[20px] gap-2 font-black px-8 h-14 text-[11px] uppercase tracking-widest shadow-2xl shadow-blue-500/30 transition-all active:scale-95"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Archive Course
+                    </Button>
+                </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
+            <div className="flex flex-col md:flex-row gap-4 relative z-10">
+                <div className="relative flex-1 max-w-[500px]">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
                         placeholder="Search curriculum registry..."
-                        className="bg-white border-slate-200 text-slate-900 pl-11 h-12 rounded-xl focus:ring-blue-500/50 shadow-sm border"
+                        className="bg-white border-slate-200 text-slate-900 pl-11 h-14 rounded-2xl focus:ring-blue-500/30 shadow-sm border transition-all"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -94,109 +148,166 @@ export default function CourseManagement() {
 
             {/* Course Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {filteredCourses.map((course) => (
-                    <Card key={course.id} className="bg-white border-slate-200 rounded-[32px] overflow-hidden hover:shadow-lg transition-all duration-500 border shadow-sm group">
-                        <CardContent className="p-8 space-y-8">
-                            <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">
-                                        {course.code}
+                {filteredCourses.length > 0 ? (
+                    filteredCourses.map((course) => (
+                        <Card key={course.id} className="bg-white border-slate-100 rounded-[40px] overflow-hidden hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 border shadow-sm group relative">
+                            {/* Decorative Corner Circle */}
+                            <div className="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all" />
+
+                            <CardContent className="p-8 space-y-8 relative z-10">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100/50 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">
+                                            {course.code}
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Active</span>
+                                        </div>
                                     </div>
-                                    <Badge className="bg-slate-50 text-slate-400 border-slate-200 border text-[9px]">ACTIVE</Badge>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">{course.name}</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                            <BookOpen className="w-3.5 h-3.5 text-blue-400" /> {course.subject} • Grade {course.grade}
+                                        </p>
+                                    </div>
                                 </div>
-                                <h3 className="text-2xl font-bold text-slate-900 mb-1 leading-tight">{course.name}</h3>
-                                <p className="text-[11px] font-black uppercase tracking-widest text-blue-500/60 font-bold">{course.subject} • Grade {course.grade}</p>
-                            </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-5 rounded-2xl bg-slate-50 border border-transparent flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Students</span>
-                                    <p className="text-xl font-bold text-slate-900">{course.studentCount}</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-50 flex flex-col gap-1 group-hover:bg-white group-hover:border-blue-100 transition-all">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Students</span>
+                                        <p className="text-xl font-black text-slate-800">{course.studentCount}</p>
+                                    </div>
+                                    <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-50 flex flex-col gap-1 group-hover:bg-white group-hover:border-blue-100 transition-all">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Status</span>
+                                        <div className="flex items-center gap-2 text-[11px] font-black uppercase text-blue-500">
+                                            <CheckCircle2 className="w-3.5 h-3.5" /> Staffed
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="p-5 rounded-2xl bg-slate-50 border border-transparent flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Status</span>
-                                    <p className={`text-xs font-bold ${course.tutorId ? 'text-blue-600' : 'text-amber-600'}`}>
-                                        {course.tutorId ? 'Staffed' : 'Unassigned'}
-                                    </p>
+
+                                <div className="flex items-center gap-3 pt-2">
+                                    <Button
+                                        onClick={() => openEdit(course)}
+                                        className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-14 border border-slate-100 text-[11px] uppercase tracking-widest transition-all"
+                                    >
+                                        Modify Path
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleDelete(course.id)}
+                                        className="bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-400 rounded-2xl h-14 w-14 border border-rose-100/50 transition-all"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </Button>
                                 </div>
-                            </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <div className="col-span-full text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-sm animate-in fade-in zoom-in-95 duration-500">
+                        <BookOpen className="w-16 h-16 text-slate-100 mx-auto mb-6" />
+                        <h3 className="text-2xl font-black text-slate-300">No Curriculum Found</h3>
+                        <p className="text-[10px] text-slate-200 font-black uppercase tracking-[0.25em] mt-3 px-10 max-w-md mx-auto">There are currently no course records matching your search query.</p>
+                    </div>
+                )}
+            </div>
 
-                            <div className="flex items-center gap-3">
-                                <Button className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-xl font-bold h-12 border border-slate-200 text-xs uppercase tracking-widest shadow-sm">
-                                    Modify
-                                </Button>
-                                <Button variant="ghost" className="bg-rose-50 hover:bg-rose-600/10 text-rose-400 hover:text-rose-600 rounded-xl h-12 w-12 border border-slate-100">
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-
-                {/* Create Course Modal */}
-                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                    <DialogContent className="sm:max-w-[500px] bg-white rounded-[32px] p-8 border-0 shadow-2xl">
-                        <DialogHeader className="mb-6">
-                            <DialogTitle className="text-2xl font-bold text-slate-900">Archive Course</DialogTitle>
-                            <p className="text-slate-500 text-sm">Add a new subject to the official institutional curriculum.</p>
+            {/* Archive / Modify Course Modal */}
+            <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
+                setIsCreateModalOpen(open)
+                if (!open) setEditingCourse(null)
+            }}>
+                <DialogContent className="sm:max-w-[600px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl">
+                    <div className="p-10 bg-slate-50/50 border-b border-slate-100">
+                        <DialogHeader>
+                            <DialogTitle className="text-3xl font-black text-slate-800 leading-none">
+                                {editingCourse ? "Modify Course Path" : "Archive New Path"}
+                            </DialogTitle>
+                            <p className="text-slate-400 font-medium text-sm mt-2">
+                                {editingCourse ? "Audit and update existing curriculum standards." : "Formalize a new subject into the institutional curriculum."}
+                            </p>
                         </DialogHeader>
+                    </div>
 
-                        <form onSubmit={handleCreateCourse} className="space-y-6">
-                            <div className="space-y-4">
+                    <form onSubmit={handleAction} className="p-10 space-y-8">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Designation</Label>
+                                <Input
+                                    placeholder="e.g. Advanced Calculus & Topology"
+                                    className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
+                                    value={formState.name}
+                                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Course Name</Label>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Registry Code</Label>
                                     <Input
-                                        placeholder="e.g. Advanced Thermodynamics"
-                                        className="rounded-xl border-slate-200 h-12"
-                                        value={newCourse.name}
-                                        onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
+                                        placeholder="e.g. MATH-402"
+                                        className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
+                                        value={formState.code}
+                                        onChange={(e) => setFormState({ ...formState, code: e.target.value })}
                                         required
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Code</Label>
-                                        <Input
-                                            placeholder="e.g. PHYS-401"
-                                            className="rounded-xl border-slate-200 h-12"
-                                            value={newCourse.code}
-                                            onChange={(e) => setNewCourse({ ...newCourse, code: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</Label>
-                                        <Input
-                                            placeholder="e.g. 12"
-                                            className="rounded-xl border-slate-200 h-12"
-                                            value={newCourse.grade}
-                                            onChange={(e) => setNewCourse({ ...newCourse, grade: e.target.value })}
-                                            required
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
+                                    <Input
+                                        placeholder="e.g. 12"
+                                        className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
+                                        value={formState.grade}
+                                        onChange={(e) => setFormState({ ...formState, grade: e.target.value })}
+                                        required
+                                    />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject Area</Label>
+                                    <Input
+                                        placeholder="e.g. Mathematics"
+                                        className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
+                                        value={formState.subject}
+                                        onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Term</Label>
+                                    <select
+                                        className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                        value={formState.semester}
+                                        onChange={(e) => setFormState({ ...formState, semester: e.target.value })}
+                                    >
+                                        <option>Semester 1</option>
+                                        <option>Semester 2</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
 
-                            <DialogFooter className="pt-4 flex !justify-between gap-4">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="flex-1 rounded-xl h-12 font-bold border border-slate-100"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 font-bold shadow-lg shadow-blue-500/20"
-                                >
-                                    Create Course
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full sm:flex-none sm:w-40 rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] text-slate-400 hover:bg-slate-50 transition-all"
+                                onClick={() => setIsCreateModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-500/30 transition-all active:scale-95"
+                            >
+                                {editingCourse ? "Update Standards" : "Finalize Archive"}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

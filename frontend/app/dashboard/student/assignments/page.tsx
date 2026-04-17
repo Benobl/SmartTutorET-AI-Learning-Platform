@@ -10,7 +10,7 @@ import {
     AlertTriangle, Check, Star, Award
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { assignments as initialAssignments } from "@/lib/student-data"
+import { assignments as initialAssignments } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 

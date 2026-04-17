@@ -20,13 +20,13 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorSquads as tutorSquadsData } from "@/lib/mock-data"
 import { useToast } from "@/hooks/use-toast"
 
 export default function TeacherSquads() {
     const { toast } = useToast()
     const [searchQuery, setSearchQuery] = useState("")
-    const [squads, setSquads] = useState(mockTeacherData.squads)
+    const [squads, setSquads] = useState(tutorSquadsData)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false)
     const [isLabsOpen, setIsLabsOpen] = useState(false)
@@ -42,6 +42,7 @@ export default function TeacherSquads() {
         const squad = {
             id: `sq${Date.now()}`,
             name: newSquad.name,
+            subject: newSquad.subject,
             studentCount: newSquad.students,
             active: true,
             activity: "Fresh"

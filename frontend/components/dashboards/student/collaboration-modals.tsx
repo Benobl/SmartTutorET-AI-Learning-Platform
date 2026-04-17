@@ -16,7 +16,7 @@ import {
     Video, Globe, ShieldCheck, Mail
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { friends } from "@/lib/student-data"
+import { friends } from "@/lib/mock-data"
 import { useToast } from "@/hooks/use-toast"
 
 interface CollaborationModalsProps {

@@ -8,7 +8,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorProfile as mockTeacherData } from "@/lib/mock-data"
 
 export default function TeacherSettings() {
     return (

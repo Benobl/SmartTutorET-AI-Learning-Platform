@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { submissions, teacherAssignments } from "@/lib/teacher-data"
+import { tutorSubmissions as submissions, tutorAssignments as teacherAssignments } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { CheckCircle2, Clock, Award, Save, ChevronDown, ChevronUp } from "lucide-react"
 import { Progress } from "@/components/ui/progress"

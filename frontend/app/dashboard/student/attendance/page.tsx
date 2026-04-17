@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { attendanceSummary, attendanceRecords } from "@/lib/student-data"
+import { attendanceSummary, attendanceRecords } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import {
     CalendarCheck,

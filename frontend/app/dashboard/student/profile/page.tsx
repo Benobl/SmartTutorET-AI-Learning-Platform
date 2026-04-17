@@ -13,8 +13,23 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { getCurrentUser } from "@/lib/auth-utils"
+import { useState, useEffect } from "react"
 
 export default function StudentProfile() {
+    const [user, setUser] = useState<any>(null)
+
+    useEffect(() => {
+        setUser(getCurrentUser())
+    }, [])
+
+    const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "U"
+    const fullName = user ? `${user.firstName} ${user.lastName}` : "Authenticated User"
+    const firstName = user ? user.firstName : ""
+    const lastName = user ? user.lastName : ""
+    const email = user ? user.email : "user@example.com"
+    const grade = user ? user.grade : "12"
+
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
             <div className="flex items-center justify-between">
@@ -35,15 +50,15 @@ export default function StudentProfile() {
                         <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-indigo-500/5 transition-opacity opacity-0 group-hover:opacity-100 duration-500" />
                         <div className="relative mb-6">
                             <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-sky-500/20 group-hover:scale-105 transition-transform duration-500">
-                                SJ
+                                {initials}
                             </div>
                             <button className="absolute -bottom-2 -right-2 p-3 bg-slate-900 border border-white/10 text-white rounded-2xl shadow-xl hover:bg-sky-500 transition-colors">
                                 <Camera className="w-4 h-4" />
                             </button>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-1">Sarah Jones</h3>
+                        <h3 className="text-xl font-bold text-white mb-1">{fullName}</h3>
                         <p className="text-xs text-white/40 font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full inline-block border border-white/5">
-                            Grade 12 Student
+                            Grade {grade} Student
                         </p>
                     </div>
 
@@ -82,20 +97,20 @@ export default function StudentProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">First Name</Label>
-                                    <Input defaultValue="Sarah" className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
+                                    <Input defaultValue={firstName} className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">Last Name</Label>
-                                    <Input defaultValue="Jones" className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
+                                    <Input defaultValue={lastName} className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">Email Address</Label>
-                                    <Input defaultValue="sarah.jones@example.com" className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
+                                    <Input defaultValue={email} className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30" />
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">Bio</Label>
                                     <Textarea
-                                        defaultValue="Grade 12 student passionate about Mathematics and Physics. Aspiring Aerospace Engineer."
+                                        defaultValue={`Grade ${grade} student passionate about learning and growth.`}
                                         className="bg-white/5 border-white/10 text-white min-h-[100px] rounded-xl focus:ring-sky-500/30 resize-none p-4"
                                     />
                                 </div>
@@ -110,7 +125,7 @@ export default function StudentProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">Current Grade</Label>
-                                    <Select defaultValue="12">
+                                    <Select defaultValue={grade}>
                                         <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-sky-500/30">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -120,13 +135,6 @@ export default function StudentProfile() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-white/60 ml-1 text-xs uppercase tracking-widest font-bold">School</Label>
-                                    <div className="relative">
-                                        <School className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                                        <Input defaultValue="Addis International School" className="bg-white/5 border-white/10 text-white pl-11 h-12 rounded-xl focus:ring-sky-500/30" />
-                                    </div>
                                 </div>
                             </div>
                         </div>

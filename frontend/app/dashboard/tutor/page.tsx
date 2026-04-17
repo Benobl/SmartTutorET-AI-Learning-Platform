@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorProfile as mockTeacherData, tutorCourses, tutorActivity } from "@/lib/mock-data"
 
 export default function TeacherOverview() {
     return (
@@ -24,10 +24,10 @@ export default function TeacherOverview() {
                             <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
                         <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
-                            Welcome Back, <span className='text-sky-600'>{mockTeacherData.personal.name.split(' ')[0]}</span>
+                            Welcome Back, <span className='text-sky-600'>{mockTeacherData.firstName}</span>
                         </h1>
                         <p className="text-slate-500 text-sm font-medium max-w-md">
-                            Your students are making progress. Today you have {mockTeacherData.schedule.filter(s => s.type === 'live').length} live classes scheduled.
+                            Your students are making progress. Today you have {tutorCourses.filter(c => c.nextClass?.includes('AM')).length} live classes scheduled.
                         </p>
                     </div>
 
@@ -84,7 +84,7 @@ export default function TeacherOverview() {
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {mockTeacherData.courses.map(course => (
+                            {tutorCourses.map(course => (
                                 <Link href={`/dashboard/tutor/courses`} key={course.id}>
                                     <div
                                         className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 cursor-pointer relative overflow-hidden h-full"
@@ -169,32 +169,32 @@ export default function TeacherOverview() {
                     <div className="space-y-6">
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Today's Schedule</h3>
                         <div className="space-y-4">
-                            {mockTeacherData.schedule.map((item, idx) => (
+                            {tutorActivity.map((item, idx) => (
                                 <div key={idx} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden">
                                     <div className="flex items-start gap-4">
                                         <div className={cn(
                                             "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm",
-                                            item.type === 'live' ? "bg-rose-50 border-rose-100 text-rose-500" :
-                                                item.type === 'office' ? "bg-sky-50 border-sky-100 text-sky-500" :
+                                            item.category === 'Message' ? "bg-rose-50 border-rose-100 text-rose-500" :
+                                                item.category === 'Quiz' ? "bg-sky-50 border-sky-100 text-sky-500" :
                                                     "bg-sky-50 border-sky-100 text-sky-500"
                                         )}>
-                                            {item.type === 'live' ? <Video className="w-5 h-5" /> :
-                                                item.type === 'office' ? <Clock className="w-5 h-5" /> :
+                                            {item.category === 'Message' ? <Video className="w-5 h-5" /> :
+                                                item.category === 'Quiz' ? <Clock className="w-5 h-5" /> :
                                                     <GraduationCap className="w-5 h-5" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.time}</span>
-                                                {item.type === 'live' && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
+                                                {item.category === 'Message' && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
                                             </div>
-                                            <h4 className="text-[13px] font-black text-slate-900 leading-tight mb-1 truncate">{item.activity}</h4>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.course}</p>
+                                            <h4 className="text-[13px] font-black text-slate-900 leading-tight mb-1 truncate">{item.title}</h4>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.sub}</p>
                                         </div>
                                     </div>
-                                    {item.type === 'live' && (
+                                    {item.category === 'Message' && (
                                         <div className="mt-4 pt-4 border-t border-slate-50">
                                             <Button className="w-full h-10 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
-                                                Join Live Session
+                                                Reply to Message
                                             </Button>
                                         </div>
                                     )}
@@ -215,8 +215,8 @@ export default function TeacherOverview() {
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                {mockTeacherData.squads.map(squad => (
-                                    <div key={squad.id} className="flex items-center justify-between p-4 rounded-2xl bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer">
+                                {tutorCourses.slice(0, 2).map((squad, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer">
                                         <div className="flex items-center gap-3">
                                             <div className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-lg shadow-sky-500/50" />
                                             <div>

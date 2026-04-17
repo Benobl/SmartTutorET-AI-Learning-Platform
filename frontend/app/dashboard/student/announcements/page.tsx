@@ -1,6 +1,6 @@
 "use client"
 
-import { announcements, type AnnouncementCategory } from "@/lib/student-data"
+import { announcements, type AnnouncementCategory } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { Bell, Search, Pin, Check, Eye, AlertTriangle, BookOpen, Building2, Globe, LayoutGrid, List } from "lucide-react"
 import { Input } from "@/components/ui/input"

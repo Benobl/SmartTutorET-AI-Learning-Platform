@@ -1,17 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { teacherMessages } from "@/lib/teacher-data"
+import { tutorMessages } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { Send, MessageSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 export default function TeacherMessagesPage() {
-    const [selectedThread, setSelectedThread] = useState<number>(teacherMessages[0].id)
+    const [selectedThread, setSelectedThread] = useState<number>(tutorMessages[0].id)
     const [reply, setReply] = useState("")
     const [sentReplies, setSentReplies] = useState<Record<number, string[]>>({})
 
-    const thread = teacherMessages.find(m => m.id === selectedThread)!
+    const thread = tutorMessages.find(m => m.id === selectedThread)!
     const allMessages = [
         ...thread.messages,
         ...(sentReplies[selectedThread] || []).map((text, i) => ({ id: 1000 + i, from: "teacher" as const, text, time: "Just now" })),
@@ -37,7 +37,7 @@ export default function TeacherMessagesPage() {
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Conversations</p>
                     </div>
                     <div className="overflow-y-auto flex-1">
-                        {teacherMessages.map(m => (
+                        {tutorMessages.map(m => (
                             <button
                                 key={m.id}
                                 onClick={() => setSelectedThread(m.id)}

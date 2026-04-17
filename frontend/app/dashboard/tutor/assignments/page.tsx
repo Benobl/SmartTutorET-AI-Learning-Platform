@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { teacherMessages, teacherAssignments } from "@/lib/teacher-data"
+import { tutorAssignments, tutorCourses as teacherCourses } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { Plus, FileText, Users, CheckCircle2, Clock, X, Calendar, AlignLeft, Paperclip } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ export default function TeacherAssignmentsPage() {
     const [submitted, setSubmitted] = useState(false)
     const [filter, setFilter] = useState<"all" | "active" | "closed">("all")
 
-    const filtered = teacherAssignments.filter(a => filter === "all" || a.status === filter)
+    const filtered = tutorAssignments.filter(a => filter === "all" || (a.due === "Completed" ? filter === "closed" : filter === "active"))
 
     const handleCreate = () => {
         if (!form.title || !form.course) return
@@ -132,10 +132,10 @@ export default function TeacherAssignmentsPage() {
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: "Total Assignments", value: teacherAssignments.length, color: "slate" },
-                    { label: "Active", value: teacherAssignments.filter(a => a.status === "active").length, color: "sky" },
-                    { label: "Total Submissions", value: teacherAssignments.reduce((s, a) => s + a.submitted, 0), color: "sky" },
-                    { label: "Pending Grading", value: teacherAssignments.reduce((s, a) => s + (a.submitted - a.graded), 0), color: "rose" },
+                    { label: "Total Assignments", value: tutorAssignments.length, color: "slate" },
+                    { label: "Active", value: tutorAssignments.filter(a => a.due !== "Completed").length, color: "sky" },
+                    { label: "Total Submissions", value: tutorAssignments.reduce((s, a) => s + (a.submitted || 0), 0), color: "sky" },
+                    { label: "Pending Grading", value: tutorAssignments.reduce((s, a) => s + ((a.submitted || 0) - (a.graded || 0)), 0), color: "rose" },
                 ].map(stat => (
                     <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 text-center">
                         <p className="text-3xl font-black text-slate-900">{stat.value}</p>
@@ -169,26 +169,26 @@ export default function TeacherAssignmentsPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <h3 className="text-lg font-black text-slate-900 group-hover:text-rose-600 transition-colors">{assignment.title}</h3>
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg", assignment.status === "active" ? "bg-sky-50 text-sky-600 border border-sky-100" : "bg-slate-100 text-slate-400")}>
-                                                {assignment.status}
+                                            <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg", assignment.due !== "Completed" ? "bg-sky-50 text-sky-600 border border-sky-100" : "bg-slate-100 text-slate-400")}>
+                                                {assignment.due !== "Completed" ? "active" : "closed"}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
                                             <span className="font-bold bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 text-xs">{assignment.courseCode}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="w-3.5 h-3.5" />
-                                                <span className="font-medium">Due: {assignment.dueLabel}</span>
+                                                <span className="font-medium">Due: {assignment.due}</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <Users className="w-3.5 h-3.5" />
-                                                <span className="font-medium">{assignment.totalStudents} students</span>
+                                                <span className="font-medium">Enrollment: {assignment.submitted} Submissions</span>
                                             </div>
                                         </div>
                                     </div>
-                                    {assignment.avgScore > 0 && (
+                                    {assignment.maxScore > 0 && (
                                         <div className="text-right shrink-0">
-                                            <p className="text-2xl font-black text-rose-600">{assignment.avgScore}%</p>
-                                            <p className="text-xs text-slate-400 font-bold">avg score</p>
+                                            <p className="text-2xl font-black text-rose-600">{Math.round((assignment.graded / assignment.submitted) * 100) || 0}%</p>
+                                            <p className="text-xs text-slate-400 font-bold">graded</p>
                                         </div>
                                     )}
                                 </div>
@@ -201,7 +201,7 @@ export default function TeacherAssignmentsPage() {
                                             <span className="text-slate-400">Submissions</span>
                                             <span className="text-sky-600">{assignment.submitted}/{assignment.totalStudents}</span>
                                         </div>
-                                        <Progress value={submissionRate} className="h-2 bg-slate-100" />
+                                        <Progress value={Math.round((assignment.submitted / assignment.totalStudents) * 100)} className="h-2 bg-slate-100" />
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs font-bold mb-2">

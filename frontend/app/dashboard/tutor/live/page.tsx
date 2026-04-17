@@ -29,7 +29,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorProfile as mockTeacherData } from "@/lib/mock-data"
 
 const MOCK_LIVE_SESSSIONS = [
     { id: "ls1", title: "Grade 12 Physics: Quantum Entanglement", time: "Starts in 15 mins", students: 42, active: true },

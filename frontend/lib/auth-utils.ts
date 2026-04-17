@@ -1,5 +1,4 @@
-import mockData from './mock-data.json';
-const mockUsers = mockData.users;
+import { getDb, saveDb } from './db-utils';
 
 export type UserRole = 'student' | 'tutor' | 'admin' | 'manager';
 
@@ -27,35 +26,31 @@ export interface User {
 /**
  * Mock authentication function for frontend
  */
-export const loginUser = (email: string, password: string): User | null => {
-    // Check locally stored users first (newly registered)
-    let extraUsers: User[] = [];
-    if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('smarttutor_extra_users');
-        if (stored) {
-            try {
-                extraUsers = JSON.parse(stored);
-            } catch (e) {
-                extraUsers = [];
-            }
-        }
-    }
+export const loginUser = (email: string, password: string): User | { error: string } | null => {
+    const db = getDb();
 
     const allUsers = [
-        ...mockUsers.students,
-        ...mockUsers.tutors,
-        ...mockUsers.admins,
-        ...mockUsers.managers,
-        ...extraUsers
+        ...db.users.students,
+        ...db.users.tutors,
+        ...db.users.managers,
+        ...(db.users.admins || [])
     ] as User[];
 
     // Find user with matching email and password
     const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
 
     if (user) {
+        // Block pending/rejected tutors
+        if (user.role === 'tutor' && user.status === 'pending') {
+            return { error: 'Your application is currently being reviewed by our institutional board. We will notify you via email once approved.' };
+        }
+        if (user.role === 'tutor' && user.status === 'rejected') {
+            return { error: 'Your application was not approved at this time. Please contact support for details.' };
+        }
+
         // Save to localStorage to simulate session
         if (typeof window !== 'undefined') {
-            const { password, ...userWithoutPassword } = user;
+            const { password: _, ...userWithoutPassword } = user;
             localStorage.setItem('smarttutor_user', JSON.stringify(userWithoutPassword));
         }
         return user;
@@ -69,26 +64,45 @@ export const loginUser = (email: string, password: string): User | null => {
  */
 export const registerUser = (userData: Partial<User>): User => {
     const newUser: User = {
-        id: `user_${Math.random().toString(36).substr(2, 9)}`,
+        id: userData.role === 'tutor' ? `tut_${Math.random().toString(36).substr(2, 5)}` : `std_${Math.random().toString(36).substr(2, 5)}`,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         name: `${userData.firstName} ${userData.lastName}`,
         email: userData.email || '',
         role: userData.role as UserRole || 'student',
         isVerified: false,
+        status: userData.role === 'tutor' ? 'pending' : 'approved',
+        documents: userData.role === 'tutor' ? ['degree_certificate.pdf', 'national_id.pdf'] : [],
         ...userData
     } as User;
 
     if (typeof window !== 'undefined') {
-        // Add to our "dynamic" mock database in localStorage
-        const stored = localStorage.getItem('smarttutor_extra_users');
-        const extraUsers = stored ? JSON.parse(stored) : [];
-        extraUsers.push(newUser);
-        localStorage.setItem('smarttutor_extra_users', JSON.stringify(extraUsers));
+        const db = getDb();
 
-        // Also log them in immediately
-        const { password, ...userWithoutPassword } = newUser;
-        localStorage.setItem('smarttutor_user', JSON.stringify(userWithoutPassword));
+        if (newUser.role === 'student') {
+            db.users.students.push(newUser);
+        } else if (newUser.role === 'tutor') {
+            db.users.tutors.push(newUser);
+
+            // Add notification for managers
+            if (!db.notifications) db.notifications = [];
+            db.notifications.unshift({
+                id: `notif_${Date.now()}`,
+                title: 'New Tutor Application',
+                message: `${newUser.name} has submitted a new application for ${newUser.subject}.`,
+                time: 'Just now',
+                type: 'alert',
+                isRead: false
+            });
+        }
+
+        saveDb(db);
+
+        // For students, log them in immediately. For tutors, wait for approval.
+        if (newUser.role === 'student') {
+            const { password: _, ...userWithoutPassword } = newUser;
+            localStorage.setItem('smarttutor_user', JSON.stringify(userWithoutPassword));
+        }
     }
 
     return newUser;

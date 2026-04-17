@@ -30,7 +30,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
-import { mockTeacherData } from "@/lib/teacher-data"
+import { tutorProfile as mockTeacherData } from "@/lib/mock-data"
 
 const MOCK_ASSIGNMENTS = [
     {
