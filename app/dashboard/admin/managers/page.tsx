@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { UserCog, ShieldCheck, Mail, Eye, Trash2, Plus, UserPlus } from "lucide-
 import { filterManagers } from "@/lib/admin-utils";
 import { adminManagerList } from "@/lib/admin-mock-data";
 
-export default function AdminManagersPage() {
+function ManagersContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get("q") || "";
     const [statusFilter, setStatusFilter] = useState("All Status");
@@ -218,5 +218,13 @@ export default function AdminManagersPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function AdminManagersPage() {
+    return (
+        <Suspense fallback={<div>Loading Managers...</div>}>
+            <ManagersContent />
+        </Suspense>
     );
 }

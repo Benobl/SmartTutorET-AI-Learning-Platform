@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { GraduationCap, Award, BookOpen, Clock, Eye, MessageSquare, MoreHorizont
 import { filterStudents } from "@/lib/admin-utils";
 import { adminUserList } from "@/lib/admin-mock-data";
 
-export default function AdminStudentsPage() {
+function StudentsContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get("q") || "";
     const [statusFilter, setStatusFilter] = useState("All Status");
@@ -135,5 +135,13 @@ export default function AdminStudentsPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function AdminStudentsPage() {
+    return (
+        <Suspense fallback={<div>Loading Students...</div>}>
+            <StudentsContent />
+        </Suspense>
     );
 }

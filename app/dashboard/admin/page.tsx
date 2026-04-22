@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -56,7 +56,7 @@ import {
 const fmt = (n: number) => n.toLocaleString();
 const usd = (n: number) => `$${n.toLocaleString()}`;
 
-export default function AdminDashboard() {
+function AdminOverviewContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

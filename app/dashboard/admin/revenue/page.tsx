@@ -1,12 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, CreditCard } from "lucide-react";
 import { revenueData } from "@/lib/admin-mock-data";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
-export default function AdminRevenuePage() {
+function RevenueContent() {
     const searchParams = useSearchParams();
     const timeframe = searchParams.get("timeframe") || "year";
 
@@ -92,5 +93,13 @@ export default function AdminRevenuePage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+export default function AdminRevenuePage() {
+    return (
+        <Suspense fallback={<div>Loading Revenue...</div>}>
+            <RevenueContent />
+        </Suspense>
     );
 }

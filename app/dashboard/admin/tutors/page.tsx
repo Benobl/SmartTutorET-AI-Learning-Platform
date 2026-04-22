@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { filterTutors } from "@/lib/admin-utils";
 import { tutorApplicationsData } from "@/lib/admin-mock-data";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-export default function AdminTutorsPage() {
+function TutorsContent() {
     const [selectedTutor, setSelectedTutor] = useState<any>(null);
     const searchParams = useSearchParams();
     const query = searchParams.get("q") || "";
@@ -240,5 +240,13 @@ export default function AdminTutorsPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function AdminTutorsPage() {
+    return (
+        <Suspense fallback={<div>Loading Tutors...</div>}>
+            <TutorsContent />
+        </Suspense>
     );
 }

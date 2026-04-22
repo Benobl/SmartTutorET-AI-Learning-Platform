@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Shield } from "lucide-react";
 import { filterUsers } from "@/lib/admin-utils";
 
-export default function AdminUsersPage() {
+function UsersContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get("q") || "";
     const [roleFilter, setRoleFilter] = useState("All Roles");
@@ -110,5 +110,13 @@ export default function AdminUsersPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function AdminUsersPage() {
+    return (
+        <Suspense fallback={<div>Loading Users...</div>}>
+            <UsersContent />
+        </Suspense>
     );
 }
