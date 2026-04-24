@@ -214,6 +214,56 @@ const managerNavItems: NavItem[] = [
     },
 ]
 
+/**
+ * Navigation items for the admin dashboard sidebar.
+ */
+const adminNavItems: NavItem[] = [
+    {
+        title: "Dashboard",
+        url: "/dashboard/admin",
+        icon: LayoutDashboard,
+        activeColor: "sky",
+    },
+    {
+        title: "User Management",
+        url: "/dashboard/admin/users",
+        icon: Users,
+        activeColor: "blue",
+    },
+    {
+        title: "Tutor Reviews",
+        url: "/dashboard/admin/tutor-reviews",
+        icon: GraduationCap,
+        activeColor: "emerald",
+        badge: 4,
+    },
+    {
+        title: "Moderation",
+        url: "/dashboard/admin/moderation",
+        icon: FileText,
+        activeColor: "rose",
+        badge: 2,
+    },
+    {
+        title: "Revenue",
+        url: "/dashboard/admin/revenue",
+        icon: DollarSign,
+        activeColor: "amber",
+    },
+    {
+        title: "System Health",
+        url: "/dashboard/admin/system",
+        icon: BarChart3,
+        activeColor: "violet",
+    },
+    {
+        title: "Settings",
+        url: "/dashboard/admin/settings",
+        icon: Settings,
+        activeColor: "slate",
+    },
+]
+
 
 /**
  * Refined Collapse toggle button - now integrated into the header.
@@ -251,8 +301,9 @@ export function DashboardSidebar() {
 
     const isTeacher = pathname.startsWith("/dashboard/teacher") || pathname.startsWith("/dashboard/tutor")
     const isManager = pathname.startsWith("/dashboard/manager")
-    const navigationItems = isManager ? managerNavItems : (isTeacher ? teacherNavItems : studentNavItems)
-    const navLabel = isManager ? "Registrar Console" : (isTeacher ? "Instructor Console" : "Student Hub")
+    const isAdmin = pathname.startsWith("/dashboard/admin")
+    const navigationItems = isAdmin ? adminNavItems : (isManager ? managerNavItems : (isTeacher ? teacherNavItems : studentNavItems))
+    const navLabel = isAdmin ? "Admin Console" : (isManager ? "Registrar Console" : (isTeacher ? "Instructor Console" : "Student Hub"))
 
     const toggleExpanded = (title: string) => {
         setExpandedItem(prev => prev === title ? null : title)

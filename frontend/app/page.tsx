@@ -14,36 +14,20 @@ import {
     BadgeCheck, Plus, Minus, BookOpen, Activity, Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+    NAV_ITEMS,
+    HERO_CONTENT,
+    HERO_STATS,
+    ALL_FEATURES,
+    BASE_TESTIMONIALS,
+    TESTIMONIAL_STATS,
+    SUBJECTS,
+    FOOTER_DATA,
+} from "@/lib/landing-mock-data"
 
-/* ─── Data ─── */
-const ALL_FEATURES = [
-    { icon: Brain, title: "Adaptive AI Tutor", desc: "Personalized paths that evolve in real-time with your pace and strengths.", benefits: ["24/7 AI Tutor", "Personalized Plans", "Instant Resolution"], accent: "#3B82F6" },
-    { icon: Target, title: "National Exam Prep", desc: "Full prep for Ethiopian national exams — timed mocks, past papers, analytics.", benefits: ["Papers 2010–2025", "Mock Exams", "Score Analytics"], accent: "#8B5CF6" },
-    { icon: Users, title: "Collaborative Learning", desc: "AI-matched study groups and peer discussions for deeper retention.", benefits: ["Smart Groups", "Peer Reviews", "Group Projects"], accent: "#EC4899" },
-    { icon: BarChart3, title: "Performance Analytics", desc: "Live dashboards: track progress, map weaknesses, visualize exam readiness.", benefits: ["Live Progress", "Weakness Map", "Goal Tracking"], accent: "#10B981" },
-    { icon: Video, title: "Live Expert Classes", desc: "Real-time sessions with top Ethiopian educators. Rewatch anytime.", benefits: ["Live Q&A", "Replays", "Expert Coaches"], accent: "#F59E0B" },
-    { icon: Rocket, title: "Gamified Learning", desc: "Earn XP, unlock badges, climb leaderboards. Build daily streaks that stick.", benefits: ["XP & Badges", "Leaderboards", "Streak Rewards"], accent: "#06B6D4" },
-]
-
-const BASE_TESTIMONIALS = [
-    { name: "Abebe Kebede", grade: "Grade 12", text: "Went from 65% to 92% in Mathematics in 3 months. The AI tutor is genuinely brilliant!", avatar: "AK", subject: "Mathematics" },
-    { name: "Selam Tesfaye", grade: "Grade 11", text: "Physics simulations made every concept click instantly. Absolute best platform for Ethiopian students.", avatar: "ST", subject: "Physics" },
-    { name: "Henok Mulugeta", grade: "Grade 10", text: "AI study groups connected me with top performers. Collaborative learning changed my results completely.", avatar: "HM", subject: "Chemistry" },
-    { name: "Biniyam Solomon", grade: "Grade 12", text: "National exam mocks are elite level. My confidence before exams is now sky-high.", avatar: "BS", subject: "English" },
-    { name: "Lydia Mekonnen", grade: "Grade 9", text: "Transitioning to high school was so smooth with the foundation lessons. Highly recommended!", avatar: "LM", subject: "Biology" },
-    { name: "Dawit Alemu", grade: "Grade 11", text: "Having a personal AI tutor 24/7 transformed my study habits — and my grades.", avatar: "DA", subject: "History" },
-]
+/* ─── Derived Data ─── */
 const N = BASE_TESTIMONIALS.length
 const CAROUSEL_ITEMS = [...BASE_TESTIMONIALS, ...BASE_TESTIMONIALS, ...BASE_TESTIMONIALS]
-
-const SUBJECTS = [
-    { name: "Mathematics", icon: Calculator, color: "#3B82F6", students: 2345, emoji: "🧮", grade: "Grades 9-12", rating: 4.9 },
-    { name: "Physics", icon: Atom, color: "#8B5CF6", students: 1890, emoji: "⚛️", grade: "Grades 11-12", rating: 4.8 },
-    { name: "Chemistry", icon: FlaskConical, color: "#EC4899", students: 1678, emoji: "🔬", grade: "Grades 10-12", rating: 4.9 },
-    { name: "Biology", icon: Book, color: "#10B981", students: 1456, emoji: "🧬", grade: "Grades 9-12", rating: 4.7 },
-    { name: "English", icon: Languages, color: "#F59E0B", students: 2123, emoji: "📖", grade: "Grades 9-12", rating: 4.8 },
-    { name: "History", icon: History, color: "#6366F1", students: 1234, emoji: "🏛️", grade: "Grades 9-11", rating: 4.7 },
-]
 
 /* ─── Scroll-reveal hook ─── */
 function useScrollReveal() {
@@ -187,7 +171,7 @@ function AIChatFAB({ dark }: { dark: boolean }) {
 /* ─── Neural Console (Advanced AI Interface) ─── */
 function NeuralConsole({ dark }: { dark: boolean }) {
     const [text, setText] = useState("")
-    const fullText = "I've analyzed your Grade 12 Chemistry gaps. I created a 4-week national exam plan with 3 mock tests, visual concept maps, and daily 30-min AI review sessions. Ready to start today?"
+    const fullText = "I found 12 expert chemistry tutors matching your curriculum. I've also generated a 4-week preparation timeline for your national exams. Would you like to start with a mock test?"
 
     useEffect(() => {
         let i = 0
@@ -195,86 +179,58 @@ function NeuralConsole({ dark }: { dark: boolean }) {
             setText(fullText.slice(0, i))
             i++
             if (i > fullText.length) clearInterval(interval)
-        }, 35)
+        }, 40)
         return () => clearInterval(interval)
     }, [])
 
-    const aiCards = [
-        { icon: Brain, label: "Adaptive Plan", val: "Generated", color: "#8B5CF6" },
-        { icon: Target, label: "Mock Tests", val: "3 Ready", color: "#3B82F6" },
-        { icon: TrendingUp, label: "Score Boost", val: "+34%", color: "#10B981" },
-        { icon: Zap, label: "AI Sessions", val: "Daily", color: "#F59E0B" },
-    ]
-
     return (
         <div className={cn(
-            "relative rounded-[48px] overflow-hidden border shadow-2xl transition-all duration-700",
-            dark ? "bg-[#111520] border-white/5 shadow-black" : "bg-white border-slate-100 shadow-slate-200"
+            "relative rounded-[48px] overflow-hidden border p-12 lg:p-16 h-[550px] shadow-2xl transition-all duration-700 hover:shadow-violet-500/20",
+            dark ? "bg-[#18181b] border-white/5 shadow-black" : "bg-white border-slate-100 shadow-slate-200"
         )}>
-            {/* Top: AI Brain Header */}
-            <div className={cn("p-8 border-b flex items-center justify-between", dark ? "border-white/5" : "border-slate-100")}>
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-violet-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/40 relative">
-                        <Bot className="w-6 h-6" />
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#111113]" />
-                    </div>
-                    <div>
-                        <div className="text-[10px] font-black uppercase text-violet-400 tracking-widest">SmartAI Neural Engine</div>
-                        <div className={cn("font-black text-base", dark ? "text-white" : "text-slate-900")}>Analyzing your curriculum...</div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 border border-emerald-400/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase text-emerald-400">Live</span>
-                </div>
+            {/* Neural Network Background (Animated SVG) */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <svg width="100%" height="100%" className="animate-pulse">
+                    <circle cx="10%" cy="10%" r="2" fill="#8B5CF6" className="animate-bounce" style={{ animationDelay: "0s" }} />
+                    <circle cx="90%" cy="20%" r="3" fill="#8B5CF6" className="animate-bounce" style={{ animationDelay: "0.5s" }} />
+                    <circle cx="30%" cy="80%" r="2" fill="#8B5CF6" className="animate-bounce" style={{ animationDelay: "1s" }} />
+                    <circle cx="70%" cy="70%" r="4" fill="#8B5CF6" className="animate-bounce" style={{ animationDelay: "1.5s" }} />
+                    <path d="M10% 10% L90% 20% M90% 20% L70% 70% M70% 70% L30% 80% M30% 80% L10% 10%" stroke="#8B5CF6" strokeWidth="0.5" fill="none" className="animate-reveal" />
+                </svg>
             </div>
 
-            {/* Stat cards row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px">
-                {aiCards.map((c, i) => (
-                    <div key={i} className={cn("p-5 flex flex-col gap-2 border-b", dark ? "border-white/5" : "border-slate-100")}>
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${c.color}18` }}>
-                            <c.icon className="w-4 h-4" style={{ color: c.color }} />
+            <div className="relative z-10 flex flex-col h-full gap-8">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-violet-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/40">
+                            <Bot className="w-8 h-8" />
                         </div>
-                        <div className={cn("text-lg font-black", dark ? "text-white" : "text-slate-900")}>{c.val}</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.label}</div>
+                        <div>
+                            <div className="text-[10px] font-black uppercase text-violet-400 tracking-widest">Neural AI Engaged</div>
+                            <div className="font-black text-lg text-white">SmartBot v2.4</div>
+                        </div>
                     </div>
-                ))}
-            </div>
-
-            {/* Chat area */}
-            <div className="p-8 space-y-6">
-                {/* User message */}
-                <div className="flex justify-end">
-                    <div className={cn("px-5 py-3 rounded-3xl rounded-br-sm text-sm font-semibold max-w-xs", dark ? "bg-blue-500/20 text-blue-200" : "bg-blue-50 text-blue-800")}>
-                        Find me a Grade 12 Chemistry tutor and build my exam plan.
+                    <div className="flex gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <div className="text-[10px] font-black uppercase text-emerald-400">Live</div>
                     </div>
                 </div>
-                {/* AI response */}
-                <div className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-xl bg-violet-500 flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-violet-500/20">
-                        <Bot className="w-4 h-4" />
-                    </div>
-                    <div className={cn("flex-1 px-5 py-4 rounded-3xl rounded-tl-sm text-sm font-medium leading-relaxed", dark ? "bg-white/5 text-slate-300" : "bg-slate-50 text-slate-600")}>
-                        <span className="text-violet-400 font-black">SmartBot: </span>{text}
-                        <span className="inline-block w-2 h-4 ml-1 bg-violet-400 animate-pulse" />
-                    </div>
-                </div>
-            </div>
 
-            {/* Input */}
-            <div className={cn("px-8 pb-8")}>
+                <div className={cn("flex-1 p-8 rounded-[32px] font-bold text-lg leading-relaxed shadow-inner", dark ? "bg-black/40 text-slate-200" : "bg-slate-50 text-slate-700")}>
+                    <span className="text-violet-400">assistant: </span> {text}
+                    <span className="inline-block w-2 h-5 ml-1 bg-violet-400 animate-pulse" />
+                </div>
+
                 <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-30 transition-opacity" />
-                    <div className={cn("relative flex items-center h-14 rounded-2xl px-5 border gap-3", dark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
-                        <Search className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                    <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-blue-500 rounded-3xl blur opacity-20 group-focus-within:opacity-40 transition-opacity" />
+                    <div className={cn("relative flex items-center h-16 rounded-[24px] px-6 border", dark ? "bg-black/20 border-white/10" : "bg-white border-slate-100")}>
                         <input
                             type="text"
-                            placeholder="Ask: Explain photosynthesis for my Grade 11 exam..."
-                            className={cn("flex-1 bg-transparent text-sm font-medium focus:outline-none", dark ? "text-white placeholder:text-slate-600" : "text-slate-900 placeholder:text-slate-400")}
+                            placeholder="Ask for your personalized exam road map..."
+                            className={cn("flex-1 bg-transparent text-sm font-bold focus:outline-none", dark ? "text-white placeholder:text-slate-500" : "text-slate-900 placeholder:text-slate-400")}
                         />
-                        <button className="w-8 h-8 rounded-xl bg-violet-500 hover:bg-violet-400 text-white flex items-center justify-center shadow-md shadow-violet-500/20 transition-all active:scale-90 flex-shrink-0">
-                            <Send className="w-4 h-4" />
+                        <button className="w-10 h-10 rounded-xl bg-violet-500 hover:bg-violet-400 text-white flex items-center justify-center shadow-lg shadow-violet-500/20 transition-all active:scale-90">
+                            <Send className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
@@ -283,18 +239,19 @@ function NeuralConsole({ dark }: { dark: boolean }) {
     )
 }
 
-function MiniStatCard({ icon: Icon, title, desc, dark }: { icon: any; title: string; desc: string; dark: boolean }) {
+function MiniStatCard({ icon: Icon, title, desc, dark, accent = "#3B82F6" }: { icon: any; title: string; desc: string; dark: boolean; accent?: string }) {
     return (
         <div className={cn(
-            "flex items-start gap-4 p-5 rounded-[28px] border transition-all hover:scale-[1.02] hover:shadow-2xl",
-            dark ? "bg-[#18181b] border-white/5 shadow-black" : "bg-white border-slate-100 shadow-sm"
+            "group relative flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300 hover:scale-[1.03] hover:shadow-xl cursor-default overflow-hidden",
+            dark ? "bg-[#18181b]/80 border-white/5 shadow-black/40 hover:border-blue-400/20" : "bg-white/80 border-slate-100 shadow-sm hover:border-blue-200"
         )}>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-blue-500" />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(135deg, ${accent}08, transparent 60%)` }} />
+            <div className="relative w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ backgroundColor: `${accent}15`, border: `1px solid ${accent}25` }}>
+                <Icon className="w-[18px] h-[18px]" style={{ color: accent }} />
             </div>
-            <div>
-                <h4 className={cn("text-sm font-black mb-1", dark ? "text-white" : "text-slate-900")}>{title}</h4>
-                <p className="text-[11px] font-bold text-slate-400 leading-tight">{desc}</p>
+            <div className="relative min-w-0">
+                <h4 className={cn("text-xs font-black leading-tight truncate", dark ? "text-white" : "text-slate-900")}>{title}</h4>
+                <p className="text-[10px] font-bold text-slate-400 leading-tight truncate mt-0.5">{desc}</p>
             </div>
         </div>
     )
@@ -310,15 +267,9 @@ function WaveEvangadi({ fill = "#ffffff", className }: { fill?: string; classNam
     )
 }
 
-/* ─── Smooth scroll helper ─── */
-function smoothScrollTo(id: string) {
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
-}
-
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [isDarkMode, setIsDarkMode] = useState(true)
+    const [isDarkMode, setIsDarkMode] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const [showAll, setShowAll] = useState(false)
 
@@ -329,8 +280,6 @@ export default function LandingPage() {
     useScrollReveal()
     useEffect(() => { document.documentElement.classList.toggle("dark", isDarkMode) }, [isDarkMode])
     useEffect(() => {
-        // Smooth scroll via CSS
-        document.documentElement.style.scrollBehavior = "smooth"
         const fn = () => setScrolled(window.scrollY > 20)
         window.addEventListener("scroll", fn)
         return () => window.removeEventListener("scroll", fn)
@@ -378,7 +327,7 @@ export default function LandingPage() {
     const visibleFeatures = showAll ? ALL_FEATURES : ALL_FEATURES.slice(0, 3)
 
     return (
-        <div style={{ background: dark ? "#0d0f1e" : "#f8fafc" }} className="min-h-screen transition-colors duration-500 overflow-x-hidden text-slate-900 dark:text-slate-100">
+        <div style={{ background: dark ? "#09090b" : "#f8fafc" }} className="min-h-screen transition-colors duration-500 overflow-x-hidden text-slate-900 dark:text-slate-100">
 
             {/* ── NAVBAR ── */}
             <header className={cn("fixed top-0 inset-x-0 z-[100] transition-all duration-300",
@@ -391,18 +340,20 @@ export default function LandingPage() {
                         <span className="text-xl font-black tracking-tight">SmartTutor<span className="text-blue-400">ET</span></span>
                     </Link>
                     <nav className="hidden lg:flex items-center gap-1">
-                        {[
-                            { label: "Home", id: "hero" },
-                            { label: "Features", id: "features" },
-                            { label: "Subjects", id: "courses" },
-                            { label: "AI Tutor", id: "aitutor" },
-                            { label: "Testimonials", id: "testimonials" },
-                        ].map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => { smoothScrollTo(item.id); setMobileMenuOpen(false) }}
+                        {NAV_ITEMS.map(item => (
+                            <a
+                                key={item}
+                                href={item === "Home" ? "#home" : `#${item.toLowerCase()}`}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    if (item === "Home") {
+                                        window.scrollTo({ top: 0, behavior: "smooth" })
+                                    } else {
+                                        document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: "smooth", block: "start" })
+                                    }
+                                }}
                                 className="px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-blue-400 hover:bg-blue-400/8 transition-all"
-                            >{item.label}</button>
+                            >{item}</a>
                         ))}
                     </nav>
                     <div className="flex items-center gap-3">
@@ -423,19 +374,22 @@ export default function LandingPage() {
                     </div>
                 </div>
                 {mobileMenuOpen && (
-                    <div className={cn("lg:hidden absolute top-20 inset-x-0 border-b p-6 shadow-2xl space-y-3", dark ? "bg-[#0d0f1e] border-white/5" : "bg-white border-slate-100")}>
-                        {[
-                            { label: "Home", id: "hero" },
-                            { label: "Features", id: "features" },
-                            { label: "Subjects", id: "courses" },
-                            { label: "AI Tutor", id: "aitutor" },
-                            { label: "Testimonials", id: "testimonials" },
-                        ].map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => { smoothScrollTo(item.id); setMobileMenuOpen(false) }}
-                                className="w-full text-left p-3.5 rounded-2xl font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
-                            >{item.label}</button>
+                    <div className={cn("lg:hidden absolute top-20 inset-x-0 border-b p-6 shadow-2xl space-y-3", dark ? "bg-[#09090b] border-white/5" : "bg-white border-slate-100")}>
+                        {NAV_ITEMS.map(item => (
+                            <a
+                                key={item}
+                                href={item === "Home" ? "#home" : `#${item.toLowerCase()}`}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    setMobileMenuOpen(false)
+                                    if (item === "Home") {
+                                        window.scrollTo({ top: 0, behavior: "smooth" })
+                                    } else {
+                                        document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: "smooth", block: "start" })
+                                    }
+                                }}
+                                className="block p-3.5 rounded-2xl font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
+                            >{item}</a>
                         ))}
                         <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
@@ -450,72 +404,60 @@ export default function LandingPage() {
             </header>
 
             {/* ── HERO ── */}
-            <section id="hero" className="relative min-h-screen flex items-center pt-24 pb-32">
-                {/* Ambient blobs */}
+            {/* Home anchor for smooth scroll */}
+            <section id="home" className="relative h-screen min-h-[800px] flex items-center scroll-mt-20">
+                {/* Background Clipping Wrapper */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-0 left-0 w-[700px] h-[700px] bg-blue-500/10 rounded-full blur-[200px] -translate-x-1/3 -translate-y-1/4" />
-                    <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/8 rounded-full blur-[180px] translate-x-1/4 translate-y-1/4" />
+                    <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-violet-500/8 rounded-full blur-[180px] translate-x-1/3 translate-y-1/4" />
                 </div>
 
                 <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-20 w-full">
-                    <div className="grid lg:grid-cols-2 gap-12 xl:gap-20 items-start w-full">
-
-                        {/* Left column */}
-                        <div className="sr-l space-y-8 lg:pt-16">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center w-full">
+                        <div className="sr-l space-y-10">
                             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-400/10 border border-blue-400/20 text-blue-400 text-[11px] font-black uppercase tracking-[0.2em]">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                                Ethiopia's #1 AI Platform for High Schools
+                                {HERO_CONTENT.badge}
                             </div>
-                            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black leading-[0.88] tracking-tighter">
-                                Study Smarter.<br />Score Higher.<br />
+                            <h1 className="text-5xl lg:text-6xl xl:text-[85px] font-black leading-[0.82] tracking-tighter">
+                                {HERO_CONTENT.headline.line1}<br />{HERO_CONTENT.headline.line2}<br />
                                 <span className={cn("bg-gradient-to-r bg-clip-text text-transparent", dark ? "from-blue-400 to-violet-400" : "from-blue-600 to-violet-600")}>
-                                    AI-Powered.
+                                    {HERO_CONTENT.headline.line3}
                                 </span>
                             </h1>
-                            <p className="text-lg text-slate-500 dark:text-slate-400 font-semibold max-w-md leading-relaxed">
-                                Ethiopia's smartest learning platform for Grades 9–12. Personalized AI paths, live expert sessions, and national exam mastery — all in one place.
+                            <p className="text-xl text-slate-500 dark:text-slate-400 font-bold max-w-md leading-relaxed">
+                                {HERO_CONTENT.subtitle}
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex flex-col sm:flex-row gap-5">
                                 <Link href="/signup">
-                                    <Button size="lg" className="h-14 px-10 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-base shadow-2xl shadow-blue-500/40 hover:-translate-y-1 transition-all group border-0">
-                                        Start Learning Free <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    <Button size="lg" className="h-16 px-10 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-black text-lg shadow-2xl shadow-blue-500/40 hover:-translate-y-1 transition-all group border-0">
+                                        {HERO_CONTENT.primaryCTA} <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                     </Button>
                                 </Link>
-                                <Button
-                                    size="lg"
-                                    variant="outline"
-                                    onClick={() => smoothScrollTo("aitutor")}
-                                    className={cn("h-14 px-10 rounded-2xl border-2 font-black text-base hover:-translate-y-1 transition-all", dark ? "border-white/10 text-white hover:bg-white/5" : "border-slate-200 text-slate-700 hover:bg-slate-50")}
-                                >
-                                    <PlayCircle className="mr-3 w-5 h-5 text-blue-500" /> See AI in Action
+                                <Button size="lg" variant="outline" className={cn("h-16 px-10 rounded-2xl border-2 font-black text-lg hover:-translate-y-1 transition-all", dark ? "border-white/10 text-white hover:bg-white/5" : "border-slate-200 text-slate-700 hover:bg-slate-50")}>
+                                    <PlayCircle className="mr-3 w-6 h-6 text-blue-500" /> {HERO_CONTENT.secondaryCTA}
                                 </Button>
-                            </div>
-                            {/* Trust row */}
-                            <div className="flex items-center gap-6 pt-2">
-                                <div className="flex -space-x-2">
-                                    {[
-                                        { initials: "AK", bg: "#3B82F6" },
-                                        { initials: "ST", bg: "#bca1fbff" },
-                                        { initials: "HM", bg: "#7df0c9ff" },
-                                        { initials: "BS", bg: "#93C5FD" },
-                                    ].map((a, i) => (
-                                        <div key={i} className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ backgroundColor: a.bg }}>{a.initials}</div>
-                                    ))}
-                                </div>
-                                <p className="text-xs font-bold text-slate-500"><span className={cn("font-black", dark ? "text-white" : "text-slate-900")}>15,000+</span> students already learning</p>
                             </div>
                         </div>
 
-                        {/* Right column — AI UI + stat cards, shifted to align from top so cards show */}
-                        <div className="sr-r hidden lg:flex flex-col gap-6">
+                        <div className="sr-r hidden lg:flex flex-col gap-10">
                             <div className="relative z-10">
                                 <ModernAIUI dark={dark} />
                             </div>
-                            {/* Stat cards — displayed in a row, shifted up slightly so all visible */}
-                            <div className="grid grid-cols-3 gap-3 -mt-4">
-                                <MiniStatCard dark={dark} icon={Brain} title="Adaptive AI" desc="Personalized learning pace" />
-                                <MiniStatCard dark={dark} icon={Users} title="24/7 Support" desc="Top Ethiopian teachers" />
-                                <MiniStatCard dark={dark} icon={Award} title="98% Pass Rate" desc="Grade 10 & 12 national exams" />
+
+                            {/* Stat Micro-Cards — compact & attractive */}
+                            <div className="grid grid-cols-2 gap-2.5">
+                                {HERO_STATS.map((stat) => (
+                                    <div key={stat.title} className={stat.fullWidth ? "col-span-2" : ""}>
+                                        <MiniStatCard
+                                            dark={dark}
+                                            icon={stat.icon}
+                                            title={stat.title}
+                                            desc={stat.desc}
+                                            accent={stat.title.includes("AI") ? "#3B82F6" : stat.title.includes("24/7") ? "#10B981" : "#F59E0B"}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -525,7 +467,7 @@ export default function LandingPage() {
             </section>
 
             {/* ── COURSE SLIDER (Continuous Marquee) ── */}
-            <section id="courses" className={cn("pt-32 pb-10", dark ? "bg-[#0d0f1e]" : "bg-white")}>
+            <section id="courses" className={cn("pt-32 pb-10", dark ? "bg-[#09090b]" : "bg-white")}>
                 <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center mb-10">
                     <h2 className="text-2xl font-black tracking-tight text-slate-400 uppercase tracking-[0.2em]">Explore Our Subjects</h2>
                 </div>
@@ -533,7 +475,7 @@ export default function LandingPage() {
             </section>
 
             {/* ── FEATURES ── */}
-            <section id="features" style={{ background: dark ? "#111520" : "#ffffff" }} className="pt-24 pb-32 relative">
+            <section id="features" style={{ background: dark ? "#111113" : "#ffffff" }} className="pt-24 pb-32 relative">
                 <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-20">
                     <div className="text-center mb-20 sr space-y-5">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-400/10 border border-violet-400/20 text-violet-400 text-[11px] font-black uppercase tracking-widest">
@@ -550,7 +492,7 @@ export default function LandingPage() {
                                 key={f.title}
                                 className={cn(
                                     "group sr p-9 rounded-[40px] border transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl cursor-pointer",
-                                    dark ? "bg-[#14172a] border-white/5 hover:border-blue-400/30 hover:bg-[#16193a]" : "bg-slate-50 border-slate-100 hover:border-blue-200 hover:bg-white"
+                                    dark ? "bg-[#18181b] border-white/5 hover:border-blue-400/30 hover:bg-[#1a1a1d]" : "bg-slate-50 border-slate-100 hover:border-blue-200 hover:bg-white"
                                 )}
                                 style={{ transitionDelay: `${(i % 3) * 80}ms` }}
                             >
@@ -573,7 +515,7 @@ export default function LandingPage() {
 
                     <div className="flex justify-center mt-14 sr">
                         <button
-                            onClick={() => { setShowAll(p => !p); if (!showAll) setTimeout(() => smoothScrollTo("features"), 50) }}
+                            onClick={() => setShowAll(p => !p)}
                             className={cn(
                                 "group flex items-center gap-3 px-10 py-4 rounded-full font-black text-sm transition-all duration-300 active:scale-95 border-2 hover:-translate-y-1 shadow-lg",
                                 showAll
@@ -582,8 +524,8 @@ export default function LandingPage() {
                             )}
                         >
                             {showAll
-                                ? <><Minus className="w-4 h-4" /> Show Less</>
-                                : <><Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> View All 6 Features</>
+                                ? <><Minus className="w-4 h-4" /> View Less</>
+                                : <><Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> View All Features</>
                             }
                         </button>
                     </div>
@@ -591,34 +533,19 @@ export default function LandingPage() {
             </section>
 
             {/* ── AI TUTOR SECTION ── */}
-            <section id="aitutor" style={{ background: dark ? "#0d0f1e" : "#fafafa" }} className="pt-20 pb-32 relative overflow-hidden">
+            <section id="aitutor" style={{ background: dark ? "#09090b" : "#ffffff" }} className="pt-20 pb-48 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-20">
-                    <div className="grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
-                        <div className="sr-l space-y-8">
+                    <div className="grid lg:grid-cols-2 gap-24 items-center">
+                        <div className="sr-l space-y-10">
                             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] bg-violet-400/10 border border-violet-400/20 text-violet-400">
                                 <Brain className="w-4 h-4" /> SmartAI Interactive
                             </div>
-                            <h2 className="text-5xl lg:text-6xl xl:text-7xl font-black leading-[0.88] tracking-tighter">
-                                Your Personal<br /><span className="text-violet-400">AI Brain Coach.</span>
+                            <h2 className="text-6xl lg:text-7xl font-black leading-[0.85] tracking-tighter">
+                                Train Your Brain With <span className="text-violet-400">SmartAI.</span>
                             </h2>
-                            <p className={cn("text-lg font-semibold max-w-xl leading-relaxed", dark ? "text-slate-400" : "text-slate-500")}>
-                                One conversation is all it takes. SmartAI finds the right tutor, explains any concept visually, and builds your complete national exam roadmap in seconds.
+                            <p className={cn("text-xl font-bold max-w-xl leading-relaxed", dark ? "text-slate-400" : "text-slate-500")}>
+                                One conversation to find your perfect tutor, get visual explanations, and build your entire study plan automatically.
                             </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                {[
-                                    { icon: Lightbulb, text: "Visual concept explanations", color: "#F59E0B" },
-                                    { icon: BadgeCheck, text: "AI-verified tutors only", color: "#10B981" },
-                                    { icon: BookOpen, text: "National curriculum aligned", color: "#3B82F6" },
-                                    { icon: Zap, text: "Instant 24/7 responses", color: "#8B5CF6" },
-                                ].map((item, i) => (
-                                    <div key={i} className={cn("flex items-center gap-3 p-4 rounded-2xl border", dark ? "bg-white/3 border-white/5" : "bg-white border-slate-100")}>
-                                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${item.color}15` }}>
-                                            <item.icon className="w-4 h-4" style={{ color: item.color }} />
-                                        </div>
-                                        <span className={cn("text-xs font-bold", dark ? "text-slate-300" : "text-slate-700")}>{item.text}</span>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
 
                         <div className="sr-r">
@@ -629,14 +556,14 @@ export default function LandingPage() {
             </section>
 
             {/* ── TESTIMONIALS ── */}
-            <section id="testimonials" style={{ background: dark ? "#111520" : "#f1f5f9" }} className="pt-24 pb-48 relative">
+            <section id="testimonials" style={{ background: dark ? "#111113" : "#f1f5f9" }} className="pt-24 pb-48 relative">
                 <div className="max-w-7xl mx-auto px-6 lg:px-12">
                     <div className="text-center mb-20 sr space-y-5">
                         <h2 className="text-5xl lg:text-6xl font-black tracking-tight leading-none">
-                            Real Impact. <span className="text-blue-400">Real Success.</span>
+                            {TESTIMONIAL_STATS.tagline.split(".")[0]}. <span className="text-blue-400">{TESTIMONIAL_STATS.tagline.split(".")[1].trim()}.</span>
                         </h2>
                         <p className={cn("text-lg font-bold", dark ? "text-slate-400" : "text-slate-500")}>
-                            15,000+ students across Ethiopia.
+                            {TESTIMONIAL_STATS.totalStudents} students across Ethiopia.
                         </p>
                     </div>
 
@@ -651,7 +578,7 @@ export default function LandingPage() {
                             >
                                 {CAROUSEL_ITEMS.map((t, i) => (
                                     <div key={i} className="min-w-[100%] lg:min-w-[33.333%] px-3 py-4">
-                                        <div className={cn("flex flex-col justify-between p-8 rounded-[40px] border transition-all duration-500 hover:-translate-y-1 hover:shadow-xl cursor-pointer h-full", dark ? "bg-[#14172a] border-white/5 hover:border-blue-400/20 shadow-2xl" : "bg-white border-slate-100 hover:border-blue-200 hover:shadow-blue-50")}>
+                                        <div className={cn("flex flex-col justify-between p-8 rounded-[40px] border transition-all duration-500 hover:-translate-y-1 hover:shadow-xl cursor-pointer h-full", dark ? "bg-[#18181b] border-white/5 hover:border-blue-400/20 shadow-2xl" : "bg-white border-slate-100 hover:border-blue-200 hover:shadow-blue-50")}>
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex gap-1">
@@ -686,7 +613,7 @@ export default function LandingPage() {
             </section>
 
             {/* ── FOOTER ── */}
-            <footer className={cn("py-24 border-t", dark ? "bg-[#0d0f1e] border-white/5" : "bg-slate-50 border-slate-100")}>
+            <footer id="about" className={cn("py-24 border-t scroll-mt-20", dark ? "bg-[#09090b] border-white/5" : "bg-slate-50 border-slate-100")}>
                 <div className="max-w-7xl mx-auto px-6 lg:px-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-20">
                         <div className="space-y-8">
@@ -697,12 +624,12 @@ export default function LandingPage() {
                                 <span className="text-xl font-black tracking-tight">SmartTutor<span className="text-blue-400">ET</span></span>
                             </Link>
                             <p className="text-slate-500 font-bold leading-relaxed text-sm max-w-xs">
-                                Ethiopia's premier AI platform for high school excellence — Grades 9 to 12.
+                                {FOOTER_DATA.brandTagline}
                             </p>
                             <div className="flex gap-4">
-                                {[Facebook, Twitter, Instagram, Linkedin, Youtube].map((Icon, i) => (
-                                    <a key={i} href="#" className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all", dark ? "bg-[#14172a] text-slate-400 hover:text-blue-400" : "bg-slate-100 text-slate-400 hover:text-blue-400")}>
-                                        <Icon className="w-5 h-5" />
+                                {FOOTER_DATA.socialLinks.map((social, i) => (
+                                    <a key={i} href={social.href} className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all", dark ? "bg-[#18181b] text-slate-400 hover:text-blue-400" : "bg-slate-100 text-slate-400 hover:text-blue-400")}>
+                                        <social.icon className="w-5 h-5" />
                                     </a>
                                 ))}
                             </div>
@@ -710,7 +637,7 @@ export default function LandingPage() {
                         <div>
                             <h4 className={cn("font-black text-sm uppercase tracking-widest mb-8", dark ? "text-white" : "text-slate-900")}>Platform</h4>
                             <ul className="space-y-4 text-sm font-bold text-slate-500">
-                                {["AI Tutor", "Live Classes", "National Exams", "Resources"].map(item => (
+                                {FOOTER_DATA.platformLinks.map(item => (
                                     <li key={item}><a href="#" className="hover:text-blue-400 transition-colors">{item}</a></li>
                                 ))}
                             </ul>
@@ -718,25 +645,26 @@ export default function LandingPage() {
                         <div>
                             <h4 className={cn("font-black text-sm uppercase tracking-widest mb-8", dark ? "text-white" : "text-slate-900")}>Company</h4>
                             <ul className="space-y-4 text-sm font-bold text-slate-500">
-                                {["About Success", "Our Story", "Contact Us", "Careers"].map(item => (
+                                {FOOTER_DATA.companyLinks.map(item => (
                                     <li key={item}><a href="#" className="hover:text-blue-400 transition-colors">{item}</a></li>
                                 ))}
                             </ul>
                         </div>
                         <div>
-                            <h4 className={cn("font-black text-sm uppercase tracking-widest mb-8", dark ? "text-white" : "text-slate-900")}>Newsletter</h4>
-                            <p className="text-sm font-bold text-slate-500 mb-6">Stay updated with the latest exam tips and platform updates.</p>
+                            <h4 className={cn("font-black text-sm uppercase tracking-widest mb-8", dark ? "text-white" : "text-slate-900")}>{FOOTER_DATA.newsletter.heading}</h4>
+                            <p className="text-sm font-bold text-slate-500 mb-6">{FOOTER_DATA.newsletter.description}</p>
                             <div className="flex gap-2">
-                                <input type="email" placeholder="Email" className={cn("flex-1 h-12 rounded-xl px-4 text-sm font-bold focus:outline-none", dark ? "bg-[#14172a] border-white/5" : "bg-white border-slate-200 border")} />
+                                <input type="email" placeholder={FOOTER_DATA.newsletter.placeholder} className={cn("flex-1 h-12 rounded-xl px-4 text-sm font-bold focus:outline-none", dark ? "bg-[#18181b] border-white/5" : "bg-white border-slate-200 border")} />
                                 <Button className="h-12 w-12 rounded-xl bg-blue-500 text-white"><ArrowUpRight className="w-5 h-5" /></Button>
                             </div>
                         </div>
                     </div>
                     <div className="pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <p className="text-slate-400 text-sm font-bold">© 2026 SmartTutorET. Made with <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 inline mx-1" /> in Addis Ababa.</p>
+                        <p className="text-slate-400 text-sm font-bold">{FOOTER_DATA.copyright} Made with <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 inline mx-1" /> {FOOTER_DATA.copyrightSuffix}</p>
                         <div className="flex gap-8 text-xs font-black text-slate-400 uppercase tracking-widest">
-                            <a href="#" className="hover:text-blue-400">Privacy Policy</a>
-                            <a href="#" className="hover:text-blue-400">Terms of Service</a>
+                            {FOOTER_DATA.legalLinks.map(link => (
+                                <a key={link} href="#" className="hover:text-blue-400">{link}</a>
+                            ))}
                         </div>
                     </div>
                 </div>
