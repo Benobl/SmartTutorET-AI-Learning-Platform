@@ -1,6 +1,14 @@
-node_modules
-.next
+# Global ignores
+node_modules/
+.DS_Store
 .env
-out
-dist
-tsconfig.tsbuildinfo
+.env.local
+.next/
+dist/
+build/
+*.log
+
+# Sub-projects
+frontend/node_modules/
+backend/node_modules/
+frontend/.next/
