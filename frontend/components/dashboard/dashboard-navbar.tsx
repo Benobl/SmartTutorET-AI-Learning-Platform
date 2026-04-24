@@ -13,7 +13,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { logoutUser, getCurrentUser } from "@/lib/auth-utils"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -22,6 +24,7 @@ interface DashboardNavbarProps {
 }
 
 export function DashboardNavbar({ className }: DashboardNavbarProps) {
+    const router = useRouter()
     const { toggleSidebar, isMobile } = useSidebar()
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [user, setUser] = useState<any>(null)
@@ -29,10 +32,23 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
 
     useEffect(() => {
         setIsMounted(true)
-        // Get user from auth-utils
-        const { getCurrentUser } = require("@/lib/auth-utils")
         setUser(getCurrentUser())
     }, [])
+
+    const handleLogout = () => {
+        logoutUser()
+        router.push("/")
+    }
+
+    const handleProfile = () => {
+        const role = user?.role || 'student'
+        router.push(`/dashboard/${role}/settings`) // Defaulting to settings as profile view
+    }
+
+    const handleSettings = () => {
+        const role = user?.role || 'student'
+        router.push(`/dashboard/${role}/settings`)
+    }
 
     const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "A"
     const fullName = user ? `${user.firstName} ${user.lastName}` : "Authenticated User"
@@ -107,7 +123,10 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-slate-100" />
-                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
+                            <DropdownMenuItem
+                                onClick={handleProfile}
+                                className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium"
+                            >
                                 <User className="w-4 h-4 text-slate-400" />
                                 <span>My Profile</span>
                             </DropdownMenuItem>
@@ -115,12 +134,18 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                                 <CreditCard className="w-4 h-4 text-slate-400" />
                                 <span>Subscription</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
+                            <DropdownMenuItem
+                                onClick={handleSettings}
+                                className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium"
+                            >
                                 <Settings className="w-4 h-4 text-slate-400" />
                                 <span>Settings</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-slate-100" />
-                            <DropdownMenuItem className="rounded-lg focus:bg-red-50 focus:text-red-600 flex items-center gap-2 py-2 cursor-pointer text-red-600 font-medium">
+                            <DropdownMenuItem
+                                onClick={handleLogout}
+                                className="rounded-lg focus:bg-red-50 focus:text-red-600 flex items-center gap-2 py-2 cursor-pointer text-red-600 font-medium"
+                            >
                                 <LogOut className="w-4 h-4" />
                                 <span>Log out</span>
                             </DropdownMenuItem>

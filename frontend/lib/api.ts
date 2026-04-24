@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api"
+const API_BASE_URL = "http://localhost:5001/api"
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -32,3 +32,41 @@ export const courseApi = {
     }),
 };
 
+export const groupApi = {
+    getAll: () => fetchWithAuth("/groups"),
+    getMyGroups: () => fetchWithAuth("/groups/mine"),
+    create: (data: any) => fetchWithAuth("/groups", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    join: (groupId: string) => fetchWithAuth(`/groups/join/${groupId}`, { method: "POST" }),
+};
+
+export const inviteApi = {
+    getMine: () => fetchWithAuth("/invites/mine"),
+    send: (data: any) => fetchWithAuth("/invites", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    respond: (inviteId: string, status: string) => fetchWithAuth("/invites/respond", {
+        method: "POST",
+        body: JSON.stringify({ inviteId, status })
+    }),
+};
+
+export const questionApi = {
+    getAll: () => fetchWithAuth("/questions"),
+    create: (data: any) => fetchWithAuth("/questions", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    createAnswer: (data: any) => fetchWithAuth("/questions/answers", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+};
+
+export const userApi = {
+    getAllStudents: () => fetchWithAuth("/users/students"),
+    searchByEmail: (email: string) => fetchWithAuth(`/users/search?email=${email}`),
+};

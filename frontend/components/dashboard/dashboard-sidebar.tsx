@@ -21,6 +21,7 @@ import {
     Users,
     DollarSign,
     BarChart3,
+    Shield,
 } from "lucide-react"
 import {
     Sidebar,
@@ -182,11 +183,10 @@ const managerNavItems: NavItem[] = [
         activeColor: "sky",
     },
     {
-        title: "Tutor Approvals",
-        url: "/dashboard/manager/tutors",
-        icon: Users,
+        title: "Course Catalog",
+        url: "/dashboard/manager/courses",
+        icon: BookOpen,
         activeColor: "sky",
-        badge: 1, // Simulate pending tutor
     },
     {
         title: "Job Postings",
@@ -195,10 +195,11 @@ const managerNavItems: NavItem[] = [
         activeColor: "sky",
     },
     {
-        title: "Course Catalog",
-        url: "/dashboard/manager/courses",
-        icon: BookOpen,
+        title: "Tutor Approvals",
+        url: "/dashboard/manager/tutors",
+        icon: Users,
         activeColor: "sky",
+        badge: 1,
     },
     {
         title: "Schedule Master",
@@ -207,7 +208,7 @@ const managerNavItems: NavItem[] = [
         activeColor: "sky",
     },
     {
-        title: "Analytics",
+        title: "Performance",
         url: "/dashboard/manager/analytics",
         icon: BarChart3,
         activeColor: "sky",
@@ -219,23 +220,35 @@ const managerNavItems: NavItem[] = [
  */
 const adminNavItems: NavItem[] = [
     {
-        title: "Dashboard",
+        title: "Overview",
         url: "/dashboard/admin",
         icon: LayoutDashboard,
         activeColor: "sky",
     },
     {
-        title: "User Management",
-        url: "/dashboard/admin/users",
+        title: "Tutors",
+        url: "/dashboard/admin/tutors",
+        icon: GraduationCap,
+        activeColor: "emerald",
+        badge: 4,
+    },
+    {
+        title: "Managers",
+        url: "/dashboard/admin/managers",
+        icon: Shield,
+        activeColor: "indigo",
+    },
+    {
+        title: "Students",
+        url: "/dashboard/admin/students",
         icon: Users,
         activeColor: "blue",
     },
     {
-        title: "Tutor Reviews",
-        url: "/dashboard/admin/tutor-reviews",
-        icon: GraduationCap,
-        activeColor: "emerald",
-        badge: 4,
+        title: "All Users",
+        url: "/dashboard/admin/users",
+        icon: User,
+        activeColor: "slate",
     },
     {
         title: "Moderation",
@@ -359,9 +372,9 @@ export function DashboardSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu className="space-y-1">
                             {navigationItems.map((item) => {
-                                const isActive = (item.url === "/dashboard/student" || item.url === "/dashboard/tutor" || item.url === "/dashboard/manager")
-                                    ? pathname === item.url
-                                    : pathname === item.url || pathname.startsWith(item.url + "/")
+                                const isExactMatch = pathname === item.url
+                                const isSubPathMatch = pathname.startsWith(item.url) && item.url !== "/dashboard/admin" && item.url !== "/dashboard/manager"
+                                const isActive = isExactMatch || isSubPathMatch
                                 const isExpanded = expandedItem === item.title
 
                                 return (

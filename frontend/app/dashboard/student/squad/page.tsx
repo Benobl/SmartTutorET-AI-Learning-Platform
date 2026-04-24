@@ -1,14 +1,16 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { squadPosts } from "@/lib/mock-data"
+import { groupApi, inviteApi, fetchWithAuth } from "@/lib/api"
 import {
     MessageSquare, Heart, MessageCircle, Share2,
     Search, Plus, Filter, TrendingUp, Sparkles,
     ChevronRight, ArrowUpRight, Award, Users, BookOpen,
     Trophy, Users2, UserPlus, FlaskConical, PlayCircle, X,
-    Calendar, GraduationCap, Flame, Target
+    Calendar, GraduationCap, Flame, Target, Send
 } from "lucide-react"
+import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,30 +51,88 @@ const LEADERBOARD_DATA = {
 
 export default function ClassSquad() {
     const [searchQuery, setSearchQuery] = useState("")
-    const [squads, setSquads] = useState(MOCK_STUDENT_SQUADS)
+    const [squads, setSquads] = useState<any[]>([])
+    const [selectedSquad, setSelectedSquad] = useState<any>(null)
+    const [squadMessages, setSquadMessages] = useState<any[]>([])
+    const [newMsg, setNewMsg] = useState("")
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [isInviteOpen, setIsInviteOpen] = useState(false)
     const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false)
     const [isLabsOpen, setIsLabsOpen] = useState(false)
 
-    const [newSquad, setNewSquad] = useState({ name: "", targetMembers: "8", grade: "12" })
+    const [newSquad, setNewSquad] = useState({ name: "", topic: "", avatar: "🧬" })
+    const socketRef = useRef<any>(null)
 
-    const handleCreateSquad = () => {
-        const squad = {
-            id: Date.now(),
-            name: newSquad.name,
-            members: 1,
-            grade: newSquad.grade,
-            subject: "Collaborative",
-            activity: "Fresh"
+    useEffect(() => {
+        const fetchSquads = async () => {
+            try {
+                const data = await groupApi.getMyGroups()
+                setSquads(data)
+            } catch (error) {
+                console.error("Failed to fetch squads:", error)
+            }
         }
-        setSquads([squad, ...squads])
-        setIsCreateOpen(false)
-        setNewSquad({ name: "", targetMembers: "8", grade: "12" })
-        toast({
-            title: "Squad Established",
-            description: `You are now the leader of ${squad.name}! Invite friends to start collaborating.`,
-        })
+        fetchSquads()
+
+        const user = JSON.parse(localStorage.getItem("user") || "{}")
+        if (user.id) {
+            const socket = initializeSocket(user.id)
+            socketRef.current = socket
+
+            socket.on("new-squad-message", (message: any) => {
+                setSquadMessages(prev => [...prev, message])
+            })
+        }
+
+        return () => {
+            if (socketRef.current) socketRef.current.off("new-squad-message")
+        }
+    }, [])
+
+    const handleCreateSquad = async () => {
+        if (!newSquad.name.trim()) {
+            toast({
+                title: "Squad Name Required",
+                description: "Every legendary squad needs a name!",
+                variant: "destructive",
+            })
+            return
+        }
+        try {
+            const squad = await groupApi.create({
+                name: newSquad.name,
+                topic: newSquad.topic || "General Collaboration",
+                avatar: newSquad.avatar,
+            })
+            setSquads([squad, ...squads])
+            setIsCreateOpen(false)
+            setNewSquad({ name: "", topic: "", avatar: "🧬" })
+            toast({
+                title: "Squad Established",
+                description: `You are now the leader of ${squad.name}!`,
+            })
+        } catch (error: any) {
+            toast({
+                title: "Initialization Failed",
+                description: error.message || "The squad matrix could not be initialized.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    const handleJoinSquadRoom = (squad: any) => {
+        setSelectedSquad(squad)
+        setIsLabsOpen(true)
+        if (socketRef.current) {
+            socketRef.current.emit("join-squad", squad._id)
+        }
+    }
+
+    const handleSendSquadMessage = () => {
+        if (!newMsg.trim() || !selectedSquad) return
+        const message = { text: newMsg, id: Date.now(), time: new Date().toLocaleTimeString() }
+        socketRef.current.emit("send-squad-message", { squadId: selectedSquad._id, message })
+        setNewMsg("")
     }
 
     return (
@@ -139,17 +199,17 @@ export default function ClassSquad() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {squads.map(squad => (
-                        <div key={squad.id} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 relative overflow-hidden">
+                        <div key={squad._id || squad.id} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 relative overflow-hidden">
                             <div className="mb-4">
                                 <h4 className="font-black text-slate-900 text-lg uppercase italic group-hover:text-sky-600 transition-colors">{squad.name}</h4>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{squad.subject} • Grade {squad.grade}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{squad.topic || squad.subject || "Collaboration"} • Squad Active</p>
                             </div>
                             <div className="flex items-center justify-between mt-6">
                                 <div className="flex -space-x-2">
                                     {[1, 2, 3].map(i => (
                                         <div key={i} className="w-8 h-8 rounded-lg bg-slate-50 border-2 border-white flex items-center justify-center text-[10px] font-black text-slate-300">U</div>
                                     ))}
-                                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 border-2 border-white flex items-center justify-center text-[10px] font-black">+{squad.members}</div>
+                                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 border-2 border-white flex items-center justify-center text-[10px] font-black">+{Array.isArray(squad.members) ? squad.members.length : squad.members}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button
@@ -161,7 +221,7 @@ export default function ClassSquad() {
                                         <UserPlus className="w-3.5 h-3.5 mr-1" /> Invite
                                     </Button>
                                     <Button
-                                        onClick={() => setIsLabsOpen(true)}
+                                        onClick={() => handleJoinSquadRoom(squad)}
                                         size="sm"
                                         className="h-8 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm"
                                     >
@@ -218,11 +278,25 @@ export default function ClassSquad() {
 
                                 <div className="pt-8 flex items-center justify-between border-t border-slate-50">
                                     <div className="flex items-center gap-8">
-                                        <button className="flex items-center gap-2.5 text-slate-400 hover:text-rose-500 transition-colors group/stat">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await fetchWithAuth(`/questions/upvote/${post.id}`, { method: "POST" })
+                                                    toast({ title: "Liked", description: "You upvoted this question!" })
+                                                } catch (error) {
+                                                    console.error(error)
+                                                }
+                                            }}
+                                            className="flex items-center gap-2.5 text-slate-400 hover:text-rose-500 transition-colors group/stat">
                                             <Heart className="w-5 h-5 group-hover/stat:fill-rose-500" />
                                             <span className="text-xs font-black">{post.likes}</span>
                                         </button>
-                                        <button className="flex items-center gap-2.5 text-slate-400 hover:text-sky-600 transition-colors group/stat">
+                                        <button
+                                            onClick={() => {
+                                                // Simplified reply logic for now
+                                                toast({ title: "Opening Discussion", description: "Loading replies..." })
+                                            }}
+                                            className="flex items-center gap-2.5 text-slate-400 hover:text-sky-600 transition-colors group/stat">
                                             <MessageCircle className="w-5 h-5" />
                                             <span className="text-xs font-black">{post.replies}</span>
                                         </button>
@@ -318,19 +392,19 @@ export default function ClassSquad() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Members</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Topic</label>
                                 <Input
-                                    type="number"
-                                    value={newSquad.targetMembers}
-                                    onChange={(e) => setNewSquad({ ...newSquad, targetMembers: e.target.value })}
+                                    placeholder="e.g. Physics Vitals"
+                                    value={newSquad.topic}
+                                    onChange={(e) => setNewSquad({ ...newSquad, topic: e.target.value })}
                                     className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
                                 />
                             </div>
                             <div className="space-y-2.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grade Level</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Icon</label>
                                 <Input
-                                    value={newSquad.grade}
-                                    onChange={(e) => setNewSquad({ ...newSquad, grade: e.target.value })}
+                                    value={newSquad.avatar}
+                                    onChange={(e) => setNewSquad({ ...newSquad, avatar: e.target.value })}
                                     className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
                                 />
                             </div>
@@ -339,7 +413,6 @@ export default function ClassSquad() {
                     <DialogFooter>
                         <Button
                             onClick={handleCreateSquad}
-                            disabled={!newSquad.name}
                             className="w-full h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest shadow-2xl shadow-sky-500/20 transition-all"
                         >
                             Establish Squad <ArrowUpRight className="ml-2 w-5 h-5" />
@@ -370,7 +443,20 @@ export default function ClassSquad() {
                                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active 2h ago • Grade 12</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" className="h-10 px-4 rounded-xl text-sky-600 font-black text-[10px] uppercase hover:bg-sky-50">
+                                    <Button
+                                        onClick={async () => {
+                                            try {
+                                                await inviteApi.send({
+                                                    inviteeId: i.toString(), // Mock ID for now
+                                                    targetType: "StudyGroup",
+                                                    targetId: squads[0]?.id // Current squad ID
+                                                })
+                                                toast({ title: "Invite Sent", description: "Your friend has been notified!" })
+                                            } catch (error) {
+                                                toast({ title: "Failed", description: "Could not send invite", variant: "destructive" })
+                                            }
+                                        }}
+                                        variant="ghost" className="h-10 px-4 rounded-xl text-sky-600 font-black text-[10px] uppercase hover:bg-sky-50">
                                         Invite
                                     </Button>
                                 </div>
@@ -488,33 +574,51 @@ export default function ClassSquad() {
                                 <FlaskConical className="w-12 h-12 relative z-10" />
                             </div>
                             <div className="space-y-2">
-                                <DialogTitle className="text-3xl font-black text-white uppercase italic tracking-tight">Student <span className="text-sky-400">Squad Lab</span></DialogTitle>
-                                <p className="text-slate-400 font-medium text-sm">Joining encrypted squad-peer workspace environment...</p>
+                                <DialogTitle className="text-3xl font-black text-white uppercase italic tracking-tight">{selectedSquad?.name} <span className="text-sky-400">Squad Lab</span></DialogTitle>
+                                <p className="text-slate-400 font-medium text-sm">Interactive Group Workspace</p>
                             </div>
                         </div>
 
-                        <div className="relative z-10 grid grid-cols-1 gap-4 max-w-sm mx-auto">
-                            {[
-                                { label: "Secure Connection", status: "Active" },
-                                { label: "Peer Synchronization", status: "Syncing" },
-                                { label: "Interactive Canvas Ready", status: "Pending" }
-                            ].map((step, i) => (
-                                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:bg-white/10 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-[10px]">{i + 1}</div>
-                                        <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{step.label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                        <span className="text-[8px] font-black text-sky-500 uppercase tracking-widest">{step.status}</span>
-                                    </div>
+                        <div className="relative z-10 h-64 overflow-y-auto bg-white/5 rounded-3xl p-4 border border-white/10 space-y-4 text-left">
+                            {squadMessages.map((msg, i) => (
+                                <div key={i} className="space-y-1">
+                                    <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">SQUAD_MEMBER</p>
+                                    <p className="text-sm text-slate-200 bg-white/5 p-3 rounded-2xl border border-white/5">{msg.text}</p>
                                 </div>
                             ))}
+                            {squadMessages.length === 0 && <p className="text-center text-slate-500 py-10 font-bold uppercase tracking-widest text-xs">No reports in transit...</p>}
+                        </div>
+
+                        <div className="relative z-10 flex gap-2">
+                            <Input
+                                placeholder="Broadcast to squad..."
+                                value={newMsg}
+                                onChange={(e) => setNewMsg(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendSquadMessage()}
+                                className="bg-white/5 border-white/10 text-white h-14 rounded-2xl"
+                            />
+                            <Button onClick={handleSendSquadMessage} className="h-14 px-6 rounded-2xl bg-sky-600 hover:bg-sky-700">
+                                <Send className="w-5 h-5" />
+                            </Button>
                         </div>
 
                         <div className="relative z-10 pt-4">
                             <Button
-                                onClick={() => setIsLabsOpen(false)}
+                                onClick={async () => {
+                                    try {
+                                        // In a real app, you'd navigate to a dedicated meeting page
+                                        // For now, we simulate the backend session creation
+                                        const session = await fetchWithAuth("/live", {
+                                            method: "POST",
+                                            body: JSON.stringify({ title: `${squads[0]?.name} Workshop`, roomType: "group_call" })
+                                        })
+                                        toast({ title: "Workspace Launching", description: "Connecting to secure peer environment..." })
+                                        setIsLabsOpen(false)
+                                        // window.location.href = `/live/${session.id}` // Hypothetical navigation
+                                    } catch (error) {
+                                        toast({ title: "Launch Failed", description: "Could not establish workspace connection", variant: "destructive" })
+                                    }
+                                }}
                                 className="w-full h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest shadow-2xl shadow-sky-500/40 transition-all active:scale-95"
                             >
                                 Launch Workspace <ArrowUpRight className="ml-2 w-5 h-5" />
