@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/hooks/use-toast"
+import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
+import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
+import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
+import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
 
 const MOCK_STUDENT_SQUADS = [
     { id: 1, name: "Quantum Pioneers", members: 8, grade: "12", subject: "Physics", activity: "High" },
@@ -563,66 +567,81 @@ export default function ClassSquad() {
 
             {/* Labs Entry Dialog */}
             <Dialog open={isLabsOpen} onOpenChange={setIsLabsOpen}>
-                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
-                    <div className="bg-slate-900 p-12 text-center space-y-8 relative overflow-hidden">
-                        {/* Background Pulse */}
+                <DialogContent className="sm:max-w-[1000px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
+                    <div className="bg-slate-900 p-8 text-center relative overflow-hidden">
                         <div className="absolute inset-0 bg-sky-500/5 animate-pulse" />
-
-                        <div className="relative z-10 space-y-6">
-                            <div className="w-24 h-24 rounded-[40px] bg-sky-500/10 text-sky-400 mx-auto flex items-center justify-center border border-sky-500/20 shadow-2xl relative group">
-                                <div className="absolute inset-0 bg-sky-500/20 blur-xl rounded-full animate-ping group-hover:animate-none" />
-                                <FlaskConical className="w-12 h-12 relative z-10" />
-                            </div>
-                            <div className="space-y-2">
-                                <DialogTitle className="text-3xl font-black text-white uppercase italic tracking-tight">{selectedSquad?.name} <span className="text-sky-400">Squad Lab</span></DialogTitle>
-                                <p className="text-slate-400 font-medium text-sm">Interactive Group Workspace</p>
-                            </div>
-                        </div>
-
-                        <div className="relative z-10 h-64 overflow-y-auto bg-white/5 rounded-3xl p-4 border border-white/10 space-y-4 text-left">
-                            {squadMessages.map((msg, i) => (
-                                <div key={i} className="space-y-1">
-                                    <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">SQUAD_MEMBER</p>
-                                    <p className="text-sm text-slate-200 bg-white/5 p-3 rounded-2xl border border-white/5">{msg.text}</p>
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-left">
+                                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+                                    <FlaskConical className="w-6 h-6" />
                                 </div>
-                            ))}
-                            {squadMessages.length === 0 && <p className="text-center text-slate-500 py-10 font-bold uppercase tracking-widest text-xs">No reports in transit...</p>}
-                        </div>
-
-                        <div className="relative z-10 flex gap-2">
-                            <Input
-                                placeholder="Broadcast to squad..."
-                                value={newMsg}
-                                onChange={(e) => setNewMsg(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendSquadMessage()}
-                                className="bg-white/5 border-white/10 text-white h-14 rounded-2xl"
-                            />
-                            <Button onClick={handleSendSquadMessage} className="h-14 px-6 rounded-2xl bg-sky-600 hover:bg-sky-700">
-                                <Send className="w-5 h-5" />
-                            </Button>
-                        </div>
-
-                        <div className="relative z-10 pt-4">
+                                <div>
+                                    <DialogTitle className="text-xl font-black text-white uppercase italic tracking-tight">{selectedSquad?.name} <span className="text-sky-400">Squad Lab</span></DialogTitle>
+                                    <p className="text-slate-400 font-medium text-[10px] uppercase tracking-widest">Interactive Group Workspace</p>
+                                </div>
+                            </div>
                             <Button
-                                onClick={async () => {
-                                    try {
-                                        // In a real app, you'd navigate to a dedicated meeting page
-                                        // For now, we simulate the backend session creation
-                                        const session = await fetchWithAuth("/live", {
-                                            method: "POST",
-                                            body: JSON.stringify({ title: `${squads[0]?.name} Workshop`, roomType: "group_call" })
-                                        })
-                                        toast({ title: "Workspace Launching", description: "Connecting to secure peer environment..." })
-                                        setIsLabsOpen(false)
-                                        // window.location.href = `/live/${session.id}` // Hypothetical navigation
-                                    } catch (error) {
-                                        toast({ title: "Launch Failed", description: "Could not establish workspace connection", variant: "destructive" })
-                                    }
-                                }}
-                                className="w-full h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest shadow-2xl shadow-sky-500/40 transition-all active:scale-95"
+                                onClick={() => setIsLabsOpen(false)}
+                                variant="ghost"
+                                className="w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10"
                             >
-                                Launch Workspace <ArrowUpRight className="ml-2 w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </Button>
+                        </div>
+
+                        <div className="mt-8 relative z-10">
+                            <Tabs defaultValue="chat" className="w-full">
+                                <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 h-14">
+                                    <TabsTrigger value="chat" className="rounded-xl data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all">
+                                        <MessageSquare className="w-4 h-4 mr-2" /> Chat
+                                    </TabsTrigger>
+                                    <TabsTrigger value="forum" className="rounded-xl data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all">
+                                        <BookOpen className="w-4 h-4 mr-2" /> Forum
+                                    </TabsTrigger>
+                                    <TabsTrigger value="whiteboard" className="rounded-xl data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all">
+                                        <FlaskConical className="w-4 h-4 mr-2" /> Whiteboard
+                                    </TabsTrigger>
+                                    <TabsTrigger value="qa" className="rounded-xl data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all">
+                                        <Target className="w-4 h-4 mr-2" /> Q&A
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <div className="mt-6">
+                                    <TabsContent value="chat" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
+                                        <GroupChatTab
+                                            squadId={selectedSquad?._id}
+                                            socket={socketRef.current}
+                                            messages={squadMessages}
+                                            onSendMessage={(text) => {
+                                                const message = {
+                                                    text,
+                                                    id: Date.now(),
+                                                    time: new Date().toLocaleTimeString(),
+                                                    isOwn: true,
+                                                    senderName: "You"
+                                                }
+                                                setSquadMessages(prev => [...prev, message])
+                                                socketRef.current.emit("send-squad-message", {
+                                                    squadId: selectedSquad?._id,
+                                                    message
+                                                })
+                                            }}
+                                        />
+                                    </TabsContent>
+                                    <TabsContent value="forum" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
+                                        <GroupForumTab squadId={selectedSquad?._id} />
+                                    </TabsContent>
+                                    <TabsContent value="whiteboard" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
+                                        <GroupWhiteboardTab
+                                            squadId={selectedSquad?._id}
+                                            socket={socketRef.current}
+                                        />
+                                    </TabsContent>
+                                    <TabsContent value="qa" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
+                                        <GroupQandATab squadId={selectedSquad?._id} />
+                                    </TabsContent>
+                                </div>
+                            </Tabs>
                         </div>
                     </div>
                 </DialogContent>
