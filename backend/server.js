@@ -11,6 +11,7 @@ import forumRoutes from "./routes/forum.route.js";
 import questionRoutes from "./routes/question.route.js";
 import inviteRoutes from "./routes/invite.route.js";
 import liveSessionRoutes from "./routes/liveSession.route.js";
+import paymentRoutes from "./routes/payment.route.js";
 import { app, server } from "./lib/socket.js";
 
 const PORT = process.env.PORT;
@@ -30,6 +31,7 @@ app.use("/api/forums", forumRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/invites", inviteRoutes);
 app.use("/api/live", liveSessionRoutes);
+app.use("/api/payment", paymentRoutes);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT} `);
