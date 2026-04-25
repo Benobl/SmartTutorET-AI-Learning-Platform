@@ -15,12 +15,20 @@ const isEmailConfigured = !!(process.env.EMAIL && process.env.EMAIL_PASS);
 
 // Email verification
 export const sendEmail = async (email, token) => {
-  if (!isEmailConfigured) {
-    console.warn("[Email] SMTP not configured. Skipping verification email.");
-    return;
-  }
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const link = `${frontendUrl}/verify-email?token=${token}`;
+
+  // Always log for dev visibility
+  console.log("\n" + "=".repeat(60));
+  console.log("📧 EMAIL VERIFICATION LINK (Terminal Access)");
+  console.log(`To: ${email}`);
+  console.log(`Link: ${link}`);
+  console.log("=".repeat(60) + "\n");
+
+  if (!isEmailConfigured) {
+    console.warn("[Email] SMTP not configured. Please see the link above to test.");
+    return;
+  }
 
   await transporter.sendMail({
     from: `"SmartTutorET" <${process.env.EMAIL}>`,
@@ -67,12 +75,20 @@ export const sendEmail = async (email, token) => {
 
 // Password reset email
 export const sendPasswordResetEmail = async (email, token) => {
-  if (!isEmailConfigured) {
-    console.warn("[Email] SMTP not configured. Skipping password reset email.");
-    return;
-  }
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const link = `${frontendUrl}/reset-password?token=${token}`;
+
+  // Always log the link for development/testing
+  console.log("\n" + "=".repeat(60));
+  console.log("🔑 PASSWORD RESET LINK (Terminal Access)");
+  console.log(`To: ${email}`);
+  console.log(`Link: ${link}`);
+  console.log("=".repeat(60) + "\n");
+
+  if (!isEmailConfigured) {
+    console.warn("[Email] SMTP not configured. Please see the link above to test.");
+    return;
+  }
 
   await transporter.sendMail({
     from: `"SmartTutorET" <${process.env.EMAIL}>`,
