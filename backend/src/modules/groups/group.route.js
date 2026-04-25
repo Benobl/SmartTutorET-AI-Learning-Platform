@@ -11,5 +11,6 @@ router.post("/join/:groupId", protectRoute, GroupController.join);
 router.get("/:groupId/forums", protectRoute, GroupController.getForums);
 router.post("/forums/:forumId/threads", protectRoute, GroupController.createThread);
 router.get("/forums/:forumId/threads", protectRoute, GroupController.getThreads);
+router.post("/:groupId/toggle-live", protectRoute, GroupController.toggleLive);
 
 export default router;

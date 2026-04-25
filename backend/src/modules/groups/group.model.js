@@ -34,6 +34,14 @@ const studyGroupSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isLive: {
+            type: Boolean,
+            default: false,
+        },
+        sessionData: {
+            type: Object,
+            default: null, // Stores Stream Call ID or dynamic metadata
+        },
     },
     {
         timestamps: true,

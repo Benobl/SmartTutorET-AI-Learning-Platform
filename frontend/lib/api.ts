@@ -42,6 +42,11 @@ export const groupApi = {
         body: JSON.stringify(data)
     }),
     join: (groupId: string) => fetchWithAuth(`/groups/join/${groupId}`, { method: "POST" }),
+    toggleLive: (groupId: string, data: { isLive: boolean, sessionData?: any }) =>
+        fetchWithAuth(`/groups/${groupId}/toggle-live`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        }),
 };
 
 export const inviteApi = {
@@ -96,4 +101,5 @@ export const authApi = {
     }),
     logout: () => fetchWithAuth("/auth/logout", { method: "POST" }),
     getMe: () => fetchWithAuth("/auth/me"),
+    getStreamToken: () => fetchWithAuth("/auth/stream-token"),
 };

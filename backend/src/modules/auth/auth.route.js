@@ -22,5 +22,6 @@ router.post("/forgot-password", validate(forgotPasswordSchema), AuthController.f
 router.post("/reset-password/:token", validate(resetPasswordSchema), AuthController.resetPassword);
 
 router.get("/me", protectRoute, AuthController.getMe);
+router.get("/stream-token", protectRoute, AuthController.getStreamToken);
 
 export default router;

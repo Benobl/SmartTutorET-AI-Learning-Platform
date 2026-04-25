@@ -71,4 +71,19 @@ export class GroupService {
     static async getAllGroups() {
         return await StudyGroup.find({});
     }
+
+    static async toggleLive(groupId, userId, isLive, sessionData = null) {
+        const group = await StudyGroup.findById(groupId);
+        if (!group) throw new ApiError(404, "Group not found");
+
+        // Only creator can toggle live status
+        if (group.creator.toString() !== userId.toString()) {
+            throw new ApiError(403, "Only the squad creator can start/stop live sessions");
+        }
+
+        group.isLive = isLive;
+        group.sessionData = isLive ? sessionData : null;
+        await group.save();
+        return group;
+    }
 }

@@ -63,4 +63,14 @@ export class GroupController {
             next(error);
         }
     }
+
+    static async toggleLive(req, res, next) {
+        try {
+            const { isLive, sessionData } = req.body;
+            const group = await GroupService.toggleLive(req.params.groupId, req.user._id, isLive, sessionData);
+            res.json({ success: true, data: group });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

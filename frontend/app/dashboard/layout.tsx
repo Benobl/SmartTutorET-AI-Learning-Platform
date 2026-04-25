@@ -5,6 +5,7 @@ import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { useSessionTimeout } from "@/hooks/use-session-timeout"
 import { AuthGuard } from "@/components/auth/AuthGuard"
+import { StreamProvider } from "@/components/providers/StreamProvider"
 
 /**
  * Dashboard layout wrapper — provides sidebar, navbar, breadcrumbs,
@@ -37,20 +38,22 @@ export default function DashboardLayout({
 }) {
     return (
         <AuthGuard>
-            <SidebarProvider>
-                <div className="flex h-screen w-full bg-[#f8f9fa] text-slate-900 overflow-hidden">
-                    <DashboardSidebar />
-                    <SidebarInset className="flex-1 flex flex-col bg-[#f8f9fa] overflow-y-auto custom-scrollbar relative">
-                        <SessionTimeoutBanner />
-                        <DashboardNavbar />
-                        <div className="p-4 md:p-8">
-                            <div className="max-w-7xl mx-auto">
-                                {children}
+            <StreamProvider>
+                <SidebarProvider>
+                    <div className="flex h-screen w-full bg-[#f8f9fa] text-slate-900 overflow-hidden">
+                        <DashboardSidebar />
+                        <SidebarInset className="flex-1 flex flex-col bg-[#f8f9fa] overflow-y-auto custom-scrollbar relative">
+                            <SessionTimeoutBanner />
+                            <DashboardNavbar />
+                            <div className="p-4 md:p-8">
+                                <div className="max-w-7xl mx-auto">
+                                    {children}
+                                </div>
                             </div>
-                        </div>
-                    </SidebarInset>
-                </div>
-            </SidebarProvider>
+                        </SidebarInset>
+                    </div>
+                </SidebarProvider>
+            </StreamProvider>
         </AuthGuard>
     )
 }

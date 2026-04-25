@@ -8,7 +8,7 @@ import {
     Search, Plus, Filter, TrendingUp, Sparkles,
     ChevronRight, ArrowUpRight, Award, Users, BookOpen,
     Trophy, Users2, UserPlus, FlaskConical, PlayCircle, X,
-    Calendar, GraduationCap, Flame, Target, Send
+    Calendar, GraduationCap, Flame, Target, Send, Video
 } from "lucide-react"
 import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,10 @@ import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
 import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
 import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
 import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
+import { useStream } from "@/components/providers/StreamProvider"
+import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+import { Call } from "@stream-io/video-react-sdk"
+import { getCurrentUser } from "@/lib/auth-utils"
 
 const MOCK_STUDENT_SQUADS = [
     { id: 1, name: "Quantum Pioneers", members: 8, grade: "12", subject: "Physics", activity: "High" },
@@ -63,9 +67,12 @@ export default function ClassSquad() {
     const [isInviteOpen, setIsInviteOpen] = useState(false)
     const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false)
     const [isLabsOpen, setIsLabsOpen] = useState(false)
+    const [activeCall, setActiveCall] = useState<Call | null>(null)
 
     const [newSquad, setNewSquad] = useState({ name: "", topic: "", avatar: "🧬" })
+    const { videoClient, isReady: isStreamReady } = useStream()
     const socketRef = useRef<any>(null)
+    const currentUser = getCurrentUser()
 
     useEffect(() => {
         const fetchSquads = async () => {
@@ -78,20 +85,63 @@ export default function ClassSquad() {
         }
         fetchSquads()
 
-        const user = JSON.parse(localStorage.getItem("user") || "{}")
-        if (user.id) {
-            const socket = initializeSocket(user.id)
+        if (currentUser?._id) {
+            const socket = initializeSocket(currentUser._id)
             socketRef.current = socket
-
-            socket.on("new-squad-message", (message: any) => {
-                setSquadMessages(prev => [...prev, message])
-            })
         }
 
         return () => {
-            if (socketRef.current) socketRef.current.off("new-squad-message")
+            // Socket cleanup handled in initializeSocket or globally
         }
     }, [])
+
+    const handleToggleLive = async (squad: any) => {
+        if (!videoClient || !currentUser) return
+
+        try {
+            if (squad.isLive && squad.sessionData?.callId) {
+                // Join existing call
+                const call = videoClient.call("default", squad.sessionData.callId)
+                await call.join({ create: true })
+                setActiveCall(call)
+            } else {
+                // Start a new call (only if creator)
+                if (squad.creator !== currentUser._id) {
+                    toast({ title: "Access Denied", description: "Only the squad creator can start live labs.", variant: "destructive" })
+                    return
+                }
+
+                const callId = `squad_${squad._id}_${Date.now()}`
+                const call = videoClient.call("default", callId)
+                await call.getOrCreate({
+                    data: {
+                        members: squad.members.map((m: any) => ({ user_id: typeof m === 'string' ? m : m._id })),
+                        custom: { squadName: squad.name }
+                    }
+                })
+
+                await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
+
+                // Notify via socket
+                socketRef.current?.emit("squad-live-started", { squadId: squad._id, callId, squadName: squad.name })
+
+                setActiveCall(call)
+                setSelectedSquad({ ...squad, isLive: true, sessionData: { callId } })
+            }
+        } catch (error: any) {
+            console.error("Stream Video Error:", error)
+            toast({ title: "Video Failed", description: error.message, variant: "destructive" })
+        }
+    }
+
+    const handleLeaveLive = async () => {
+        if (activeCall) {
+            await activeCall.leave()
+            setActiveCall(null)
+
+            // If creator, choice to end for all could be here, but for now just leave
+        }
+    }
 
     const handleCreateSquad = async () => {
         if (!newSquad.name.trim()) {
@@ -604,29 +654,14 @@ export default function ClassSquad() {
                                     <TabsTrigger value="qa" className="rounded-xl data-[state=active]:bg-sky-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all">
                                         <Target className="w-4 h-4 mr-2" /> Q&A
                                     </TabsTrigger>
+                                    <TabsTrigger value="live" className="rounded-xl data-[state=active]:bg-rose-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest transition-all gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Live Lab
+                                    </TabsTrigger>
                                 </TabsList>
 
                                 <div className="mt-6">
                                     <TabsContent value="chat" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
-                                        <GroupChatTab
-                                            squadId={selectedSquad?._id}
-                                            socket={socketRef.current}
-                                            messages={squadMessages}
-                                            onSendMessage={(text) => {
-                                                const message = {
-                                                    text,
-                                                    id: Date.now(),
-                                                    time: new Date().toLocaleTimeString(),
-                                                    isOwn: true,
-                                                    senderName: "You"
-                                                }
-                                                setSquadMessages(prev => [...prev, message])
-                                                socketRef.current.emit("send-squad-message", {
-                                                    squadId: selectedSquad?._id,
-                                                    message
-                                                })
-                                            }}
-                                        />
+                                        <GroupChatTab squadId={selectedSquad?._id} />
                                     </TabsContent>
                                     <TabsContent value="forum" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
                                         <GroupForumTab squadId={selectedSquad?._id} />
@@ -639,6 +674,39 @@ export default function ClassSquad() {
                                     </TabsContent>
                                     <TabsContent value="qa" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0">
                                         <GroupQandATab squadId={selectedSquad?._id} />
+                                    </TabsContent>
+                                    <TabsContent value="live" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0 h-[600px]">
+                                        {activeCall ? (
+                                            <LiveClassroom
+                                                call={activeCall}
+                                                onLeave={handleLeaveLive}
+                                                squadName={selectedSquad?.name}
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-[48px] border border-white/10 space-y-8">
+                                                <div className="w-24 h-24 rounded-[32px] bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                                                    <Video className="w-10 h-10 text-sky-400" />
+                                                </div>
+                                                <div className="text-center space-y-2">
+                                                    <h4 className="text-xl font-black text-white uppercase italic">Laboratory <span className="text-sky-500">Standby</span></h4>
+                                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+                                                        {selectedSquad?.isLive ? "The squad has initiated a live transmission!" : "No active transmissions detected in this matrix."}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    onClick={() => handleToggleLive(selectedSquad)}
+                                                    className={cn(
+                                                        "h-16 px-10 rounded-[24px] font-black text-xs uppercase tracking-widest gap-3 transition-all",
+                                                        selectedSquad?.isLive
+                                                            ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+                                                            : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20"
+                                                    )}
+                                                >
+                                                    {selectedSquad?.isLive ? "Join Transmission" : "Initialize Live Lab"}
+                                                    <ArrowUpRight className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        )}
                                     </TabsContent>
                                 </div>
                             </Tabs>

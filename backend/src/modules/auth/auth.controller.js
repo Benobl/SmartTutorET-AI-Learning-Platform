@@ -194,4 +194,14 @@ export class AuthController {
     static async getMe(req, res) {
         res.status(200).json({ success: true, data: req.user });
     }
+
+    static async getStreamToken(req, res, next) {
+        try {
+            const { generateStreamToken } = await import("../../lib/stream.js");
+            const token = generateStreamToken(req.user._id);
+            res.status(200).json({ success: true, token });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
