@@ -22,14 +22,20 @@ export function middleware(request: NextRequest) {
     // This has been removed to allow users to access login/signup even if they have an active session.
 
     // 3. Granular RBAC for Dashboards
-    if (isDashboardRoute && userRole) {
-        const segments = pathname.split('/');
-        const dashboardType = segments[2]; // e.g. 'student', 'admin', 'tutor', 'manager'
+    if (isDashboardRoute) {
+        if (!jwt?.value) {
+            const url = new URL('/login', request.url);
+            url.searchParams.set('callbackUrl', pathname);
+            return NextResponse.redirect(url);
+        }
 
-        if (dashboardType && dashboardType !== userRole) {
-            // Prevent Cross-Dashboard Access
-            // Standardize roles: ensure dashboardType matches userRole
-            return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
+        if (userRole) {
+            const segments = pathname.split('/');
+            const dashboardType = segments[2]; // e.g. 'student', 'admin', 'tutor', 'manager'
+
+            if (dashboardType && dashboardType !== userRole) {
+                return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
+            }
         }
     }
 
