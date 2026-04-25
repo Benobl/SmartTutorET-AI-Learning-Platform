@@ -15,6 +15,7 @@ import * as z from "zod"
 import { cn } from "@/lib/utils"
 
 import { loginUser } from "@/lib/auth-utils"
+import { authApi } from "@/lib/api"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -44,13 +45,10 @@ export default function LoginPage() {
     setSuccess(null)
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const user = loginUser(data.email, data.password)
+      const user = await loginUser(data.email, data.password);
 
       if (user && !('error' in user)) {
-        setSuccess(`Welcome back, ${user.firstName}! Redirecting...`)
+        setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
 
         setTimeout(() => {
           if (user.role === "admin") {
@@ -75,12 +73,56 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked")
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Initialize Google OAuth
+      // Note: We need window.google to be defined. Script is loaded in layout.
+      if (typeof window !== "undefined" && (window as any).google) {
+        (window as any).google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          context: 'signin',
+          ux_mode: 'popup',
+          callback: async (response: any) => {
+            try {
+              const res = await authApi.googleLogin(response.credential);
+              if (res.success && res.data) {
+                const user = res.data;
+                localStorage.setItem("smarttutor_user", JSON.stringify(user));
+                setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
+
+                setTimeout(() => {
+                  if (user.role === "admin") router.push("/dashboard/admin");
+                  else if (user.role === "tutor") router.push("/dashboard/tutor");
+                  else router.push("/dashboard/student");
+                }, 1000);
+              } else {
+                setError(res.message || "Google authentication failed");
+              }
+            } catch (err: any) {
+              setError(err.message || "Google authentication failed");
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        });
+
+        (window as any).google.accounts.id.prompt(); // Display the One Tap prompt
+      } else {
+        setError("Google Login is currently unavailable. Please try again later.");
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      setIsLoading(false);
+    }
   }
 
   return (
     <AuthBackground imageSrc="/auth/premium-library-bg.png">
+      <meta name="referrer" content="no-referrer-when-downgrade" />
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
 
 

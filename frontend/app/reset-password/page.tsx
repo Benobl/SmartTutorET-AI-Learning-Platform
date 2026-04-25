@@ -13,6 +13,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { cn } from "@/lib/utils"
 
+import { useSearchParams } from "next/navigation"
+import { authApi } from "@/lib/api"
+import Image from "next/image"
+
 const resetPasswordSchema = z.object({
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string()
@@ -23,8 +27,21 @@ const resetPasswordSchema = z.object({
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>
 
+import { Suspense } from "react"
+
 export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+            <ResetPasswordContent />
+        </Suspense>
+    )
+}
+
+function ResetPasswordContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const token = searchParams.get("token")
+
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -42,41 +59,57 @@ export default function ResetPasswordPage() {
     const password = watch("password", "")
 
     const onSubmit = async (data: ResetPasswordFormValues) => {
+        if (!token) {
+            setError("Invalid or expired reset token.")
+            return
+        }
+
         setIsLoading(true)
         setError(null)
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            await authApi.resetPassword(token, { password: data.password })
             setSuccess(true)
 
             setTimeout(() => {
                 router.push("/login")
             }, 3000)
-        } catch (err) {
-            setError("An error occurred while resetting your password. Please try again.")
+        } catch (err: any) {
+            setError(err.message || "An error occurred while resetting your password. Please try again.")
         } finally {
             setIsLoading(false)
         }
     }
 
     return (
-        <AuthBackground imageSrc="/auth/reset-password-bg.png">
+        <AuthBackground imageSrc="/auth/premium-library-bg.png">
             <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
                 <AuthCard>
                     {!success ? (
                         <>
                             {/* Header */}
-                            <div className="text-center mb-8">
+                            <div className="flex flex-col items-center mb-8 text-center">
+                                <Link href="/login" className="mb-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20">
+                                        <Image src="/logo.png" alt="Logo" width={64} height={64} priority />
+                                    </div>
+                                </Link>
                                 <h1 className="text-3xl font-bold text-white mb-2">Reset Password</h1>
                                 <p className="text-white/60">Choose a strong new password for your account</p>
                             </div>
 
                             {/* Error Message */}
                             {error && (
-                                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm">
+                                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm animate-shake">
                                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                     <p>{error}</p>
+                                </div>
+                            )}
+
+                            {!token && (
+                                <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-400 text-sm">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                    <p>No reset token found in URL. This link may be invalid.</p>
                                 </div>
                             )}
 
@@ -91,7 +124,7 @@ export default function ResetPasswordPage() {
                                             type={showPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             className={cn(
-                                                "bg-white/5 border-white/10 text-white pl-11 pr-12 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
+                                                "bg-white/5 border-white/10 text-white pl-11 pr-12 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
                                                 errors.password && "border-red-500/50"
                                             )}
                                         />
@@ -118,7 +151,7 @@ export default function ResetPasswordPage() {
                                             type={showPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             className={cn(
-                                                "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
+                                                "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
                                                 errors.confirmPassword && "border-red-500/50"
                                             )}
                                         />
@@ -130,7 +163,7 @@ export default function ResetPasswordPage() {
 
                                 <Button
                                     type="submit"
-                                    disabled={isLoading}
+                                    disabled={isLoading || !token}
                                     className="w-full py-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-semibold transition-smooth shadow-lg shadow-sky-500/20 group"
                                 >
                                     <span className="flex items-center gap-2">

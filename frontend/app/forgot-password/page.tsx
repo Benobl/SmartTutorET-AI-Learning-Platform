@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { cn } from "@/lib/utils"
+import { authApi } from "@/lib/api"
+import Image from "next/image"
 
 const forgotPasswordSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
@@ -36,42 +38,35 @@ export default function ForgotPasswordPage() {
         setError(null)
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            await authApi.forgotPassword(data.email)
             setSuccess(true)
-        } catch (err) {
-            setError("We couldn't find an account with that email address.")
+        } catch (err: any) {
+            setError(err.message || "We couldn't connect to the server. Please try again.")
         } finally {
             setIsLoading(false)
         }
     }
 
     return (
-        <AuthBackground imageSrc="/auth/forgot-password-bg.png">
+        <AuthBackground imageSrc="/auth/premium-library-bg.png">
             <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-                {/* Back Button */}
-                <Link
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group mb-4"
-                >
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-smooth">
-                        <ArrowLeft className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-medium">Back to Login</span>
-                </Link>
-
                 <AuthCard>
                     {!success ? (
                         <>
                             {/* Header */}
-                            <div className="text-center mb-8">
+                            <div className="flex flex-col items-center mb-8 text-center">
+                                <Link href="/login" className="mb-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20">
+                                        <Image src="/logo.png" alt="Logo" width={64} height={64} priority />
+                                    </div>
+                                </Link>
                                 <h1 className="text-3xl font-bold text-white mb-2">Forgot Password</h1>
                                 <p className="text-white/60">Enter your email and we'll send you a link to reset your password</p>
                             </div>
 
                             {/* Error Message */}
                             {error && (
-                                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm">
+                                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm animate-shake">
                                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                     <p>{error}</p>
                                 </div>
@@ -87,7 +82,7 @@ export default function ForgotPasswordPage() {
                                             {...register("email")}
                                             placeholder="name@example.com"
                                             className={cn(
-                                                "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
+                                                "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
                                                 errors.email && "border-red-500/50"
                                             )}
                                         />
@@ -117,6 +112,17 @@ export default function ForgotPasswordPage() {
                                     </span>
                                 </Button>
                             </form>
+
+                            {/* Back to Login */}
+                            <div className="mt-8 text-center text-sm">
+                                <Link
+                                    href="/login"
+                                    className="text-white/60 hover:text-white transition-colors gap-2 inline-flex items-center"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Back to Login
+                                </Link>
+                            </div>
                         </>
                     ) : (
                         <div className="text-center py-4 animate-in fade-in zoom-in duration-500">
@@ -129,7 +135,7 @@ export default function ForgotPasswordPage() {
                             </p>
                             <Button
                                 asChild
-                                className="w-full py-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/10 transition-smooth"
+                                className="w-full py-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/10 transition-smooth shadow-lg"
                             >
                                 <Link href="/login">Return to Login</Link>
                             </Button>

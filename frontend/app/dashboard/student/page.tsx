@@ -30,7 +30,7 @@ export default function StudentOverview() {
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
 
   const user = getCurrentUser()
-  const studentName = user ? user.firstName : "Student"
+  const studentName = user?.firstName || user?.fullName?.split(" ")[0] || "Student"
 
   const topCourses = courses.slice(0, 2)
   const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)

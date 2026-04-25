@@ -188,19 +188,22 @@ export default function SignupPage() {
 
     try {
       console.log("Submitting:", data)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const user = await registerUser(data)
 
-      const user = registerUser(data)
-
-      if (user.role === "student") {
-        setSuccess(`Account created successfully! Welcome, ${user.firstName}.`)
-        setTimeout(() => {
-          router.push("/dashboard/student")
-        }, 1500)
+      if (user && !('error' in user)) {
+        if (user.role === "student") {
+          setSuccess(`Account created successfully! Welcome, ${user.fullName}.`)
+          setTimeout(() => {
+            router.push("/dashboard/student")
+          }, 1500)
+        } else {
+          setSuccess(`Application submitted! We have received your documents, ${user.fullName}. Our institutional board will review your credentials and notify you via email when your account is activated.`)
+          setStep(totalSteps + 1)
+        }
+      } else if (user && 'error' in user) {
+        setError(user.error)
       } else {
-        setSuccess(`Application submitted! We have received your documents, ${user.firstName}. Our institutional board will review your credentials and notify you via email when your account is activated.`)
-        // Do not redirect tutors, let them see the message
-        setStep(totalSteps + 1) // Move to a "Success" step if we want, or just stay
+        setError("An error occurred during signup. Please try again.")
       }
     } catch (err) {
       setError("An error occurred during signup. Please try again.")

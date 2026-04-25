@@ -44,9 +44,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.className} antialiased`}>
+      <body className={`${geist.className} antialiased`} suppressHydrationWarning>
         {children}
         <Analytics />
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-import { getDb, saveDb } from './db-utils';
+import { authApi } from './api';
 
 export type UserRole = 'student' | 'tutor' | 'admin' | 'manager';
 
@@ -6,10 +6,10 @@ export type UserRole = 'student' | 'tutor' | 'admin' | 'manager';
  * User interface representing the data contract between frontend and backend.
  */
 export interface User {
-    id: string;              // Unique identifier (e.g. std_1, tut_1, man_1)
+    _id: string;             // Unique identifier from MongoDB
     firstName: string;       // User's first name
     lastName: string;        // User's last name
-    name: string;            // Full display name
+    fullName: string;        // Full display name
     email: string;           // Login email
     role: UserRole;          // Role: student, tutor, admin, or manager
     grade?: string;          // Required for students (9, 10, 11, 12)
@@ -18,98 +18,66 @@ export interface User {
     subject?: string;        // Required for tutors
     availability?: string[]; // Required for tutors (days of the week)
     isVerified: boolean;     // Whether the user's account is verified
-    status?: 'pending' | 'approved' | 'rejected'; // For tutor approval workflow
-    password?: string;       // Password (only used in mock logic)
-    profileImage?: string;   // Optional profile image URL
+    tutorStatus: 'none' | 'pending' | 'approved' | 'rejected'; // For tutor approval workflow
+    profilePic?: string;     // Optional profile image URL
 }
 
 /**
- * Mock authentication function for frontend
+ * Real authentication function for frontend
  */
-export const loginUser = (email: string, password: string): User | { error: string } | null => {
-    const db = getDb();
+export const loginUser = async (email: string, password: string): Promise<User | { error: string }> => {
+    try {
+        const response = await authApi.login({ email, password });
+        if (response.success && response.data) {
+            const user = response.data;
 
-    const allUsers = [
-        ...db.users.students,
-        ...db.users.tutors,
-        ...db.users.managers,
-        ...(db.users.admins || [])
-    ] as User[];
+            // Block pending/rejected tutors if the API doesn't handle it already
+            if (user.role === 'tutor' && user.tutorStatus === 'pending') {
+                return { error: 'Your application is currently being reviewed by our institutional board. We will notify you via email once approved.' };
+            }
+            if (user.role === 'tutor' && user.tutorStatus === 'rejected') {
+                return { error: 'Your application was not approved at this time. Please contact support for details.' };
+            }
 
-    // Find user with matching email and password
-    const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-
-    if (user) {
-        // Block pending/rejected tutors
-        if (user.role === 'tutor' && user.status === 'pending') {
-            return { error: 'Your application is currently being reviewed by our institutional board. We will notify you via email once approved.' };
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('smarttutor_user', JSON.stringify(user));
+            }
+            return user;
         }
-        if (user.role === 'tutor' && user.status === 'rejected') {
-            return { error: 'Your application was not approved at this time. Please contact support for details.' };
-        }
-
-        // Save to localStorage to simulate session
-        if (typeof window !== 'undefined') {
-            const { password: _, ...userWithoutPassword } = user;
-            localStorage.setItem('smarttutor_user', JSON.stringify(userWithoutPassword));
-        }
-        return user;
+        return { error: response.message || "Invalid email or password" };
+    } catch (error: any) {
+        return { error: error.message || "An error occurred during login." };
     }
-
-    return null;
 };
 
 /**
- * Register a new user (mocked)
+ * Register a new user
  */
-export const registerUser = (userData: Partial<User>): User => {
-    const newUser: User = {
-        id: userData.role === 'tutor' ? `tut_${Math.random().toString(36).substr(2, 5)}` : `std_${Math.random().toString(36).substr(2, 5)}`,
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email || '',
-        role: userData.role as UserRole || 'student',
-        isVerified: false,
-        status: userData.role === 'tutor' ? 'pending' : 'approved',
-        documents: userData.role === 'tutor' ? ['degree_certificate.pdf', 'national_id.pdf'] : [],
-        ...userData
-    } as User;
+export const registerUser = async (userData: any): Promise<User | { error: string }> => {
+    try {
+        // Backend expects `fullName` but signup form sends `firstName` + `lastName`
+        const payload = {
+            ...userData,
+            fullName: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName,
+        };
 
-    if (typeof window !== 'undefined') {
-        const db = getDb();
+        const response = await authApi.signup(payload);
+        if (response.success && response.data) {
+            const user = response.data;
 
-        if (newUser.role === 'student') {
-            db.users.students.push(newUser);
-        } else if (newUser.role === 'tutor') {
-            db.users.tutors.push(newUser);
-
-            // Add notification for managers
-            if (!db.notifications) db.notifications = [];
-            db.notifications.unshift({
-                id: `notif_${Date.now()}`,
-                title: 'New Tutor Application',
-                message: `${newUser.name} has submitted a new application for ${newUser.subject}.`,
-                time: 'Just now',
-                type: 'alert',
-                isRead: false
-            });
+            if (typeof window !== 'undefined' && user.role === 'student') {
+                localStorage.setItem('smarttutor_user', JSON.stringify(user));
+            }
+            return user;
         }
-
-        saveDb(db);
-
-        // For students, log them in immediately. For tutors, wait for approval.
-        if (newUser.role === 'student') {
-            const { password: _, ...userWithoutPassword } = newUser;
-            localStorage.setItem('smarttutor_user', JSON.stringify(userWithoutPassword));
-        }
+        return { error: response.message || "Registration failed" };
+    } catch (error: any) {
+        return { error: error.message || "An error occurred during registration." };
     }
-
-    return newUser;
 };
 
 /**
- * Get the currently logged-in user
+ * Get the currently logged-in user (from storage or fresh from API)
  */
 export const getCurrentUser = (): User | null => {
     if (typeof window !== 'undefined') {
@@ -128,8 +96,15 @@ export const getCurrentUser = (): User | null => {
 /**
  * Logout the user
  */
-export const logoutUser = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('smarttutor_user');
+export const logoutUser = async () => {
+    try {
+        await authApi.logout();
+    } catch (error) {
+        console.error("Logout error:", error);
+    } finally {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('smarttutor_user');
+            localStorage.removeItem('token'); // Also clean up token if stored
+        }
     }
 };

@@ -5,6 +5,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
     const headers = {
         "Content-Type": "application/json",
+        "X-ST-CSRF": "XMLHttpRequest", // Custom header for CSRF protection
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...options.headers,
     };
@@ -12,6 +13,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: "include", // Required for sending/receiving cookies
     });
 
     if (!response.ok) {
@@ -69,4 +71,29 @@ export const questionApi = {
 export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
     searchByEmail: (email: string) => fetchWithAuth(`/users/search?email=${email}`),
+};
+
+export const authApi = {
+    signup: (data: any) => fetchWithAuth("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    login: (data: any) => fetchWithAuth("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    googleLogin: (credential: string) => fetchWithAuth("/auth/google-login", {
+        method: "POST",
+        body: JSON.stringify({ credential })
+    }),
+    forgotPassword: (email: string) => fetchWithAuth("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email })
+    }),
+    resetPassword: (token: string, data: any) => fetchWithAuth(`/auth/reset-password/${token}`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    logout: () => fetchWithAuth("/auth/logout", { method: "POST" }),
+    getMe: () => fetchWithAuth("/auth/me"),
 };

@@ -50,8 +50,9 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
         router.push(`/dashboard/${role}/settings`)
     }
 
-    const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "A"
-    const fullName = user ? `${user.firstName} ${user.lastName}` : "Authenticated User"
+    const displayName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User"
+    const initials = displayName.split(" ").filter(Boolean).slice(0, 2).map((n: string) => n[0]).join("").toUpperCase() || "U"
+    const fullName = displayName
     const email = user ? user.email : "user@example.com"
 
     return (
