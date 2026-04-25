@@ -6,8 +6,8 @@ dotenv.config();
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL?.trim(),
+    pass: process.env.EMAIL_PASS?.trim()?.replace(/\s/g, "") // Remove all spaces from App Password
   }
 });
 

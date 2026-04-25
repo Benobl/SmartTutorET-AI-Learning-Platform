@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
     const userRole = request.cookies.get('user_role')?.value;
 
     // 1. If trying to access dashboard without being logged in
-    if (isDashboardRoute && !jwt) {
+    if (isDashboardRoute && !jwt?.value) {
         const url = new URL('/login', request.url);
         url.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(url);
