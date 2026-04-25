@@ -48,19 +48,8 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <AuthBackground imageSrc="/auth/premium-signup-bg.png">
+        <AuthBackground imageSrc="/auth/premium-library-bg.png">
             <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-                {/* Back Link - Now above the card as requested */}
-                <Link
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group mb-6 ml-2"
-                >
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-smooth">
-                        <ArrowLeft className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-medium">Back to Login</span>
-                </Link>
-
                 <AuthCard>
                     {!success ? (
                         <>
@@ -71,7 +60,7 @@ export default function ForgotPasswordPage() {
                                 </div>
                                 <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Forgot Password?</h1>
                                 <p className="text-base text-white/50 leading-relaxed">
-                                    No worries, we'll send you reset instructions.
+                                    Enter your email address and we'll send you a secure link to reset your password.
                                 </p>
                             </div>
 
@@ -114,7 +103,7 @@ export default function ForgotPasswordPage() {
                                         {isLoading ? (
                                             <>
                                                 <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Sending...
+                                                Sending Link...
                                             </>
                                         ) : (
                                             <>
@@ -125,6 +114,17 @@ export default function ForgotPasswordPage() {
                                     </span>
                                 </Button>
                             </form>
+
+                            {/* Back to Login - Inside the card */}
+                            <div className="mt-8 text-center">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors group px-4 py-2 rounded-xl hover:bg-white/5 font-medium"
+                                >
+                                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                    Back to Login
+                                </Link>
+                            </div>
                         </>
                     ) : (
                         <div className="text-center py-6 animate-in fade-in zoom-in duration-500 px-4">
@@ -133,7 +133,7 @@ export default function ForgotPasswordPage() {
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-4">Check Your Mailbox</h1>
                             <p className="text-white/60 mb-10 leading-relaxed text-lg">
-                                We've sent a secure reset link to your email. It should arrive in the next minute.
+                                We've sent a secure reset link to your email. It will arrive in the next minute.
                             </p>
                             <Button
                                 asChild

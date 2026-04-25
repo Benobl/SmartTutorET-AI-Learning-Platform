@@ -84,17 +84,6 @@ function ResetPasswordContent() {
     return (
         <AuthBackground imageSrc="/auth/premium-library-bg.png">
             <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-                {/* Back Link */}
-                <Link
-                    href="/login"
-                    className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group mb-6 ml-2"
-                >
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-smooth">
-                        <ArrowLeft className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-medium">Back to Login</span>
-                </Link>
-
                 <AuthCard>
                     {!success ? (
                         <>
@@ -105,7 +94,7 @@ function ResetPasswordContent() {
                                 </div>
                                 <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Set New Password</h1>
                                 <p className="text-base text-white/50 leading-relaxed">
-                                    Your new password must be different from previous passwords.
+                                    Ensure your account is secure with a strong new password.
                                 </p>
                             </div>
 
@@ -125,7 +114,7 @@ function ResetPasswordContent() {
                             )}
 
                             {/* Form */}
-                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-2">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-2">
                                 <div className="space-y-2">
                                     <Label className="text-white/80 ml-1 font-medium">New Password</Label>
                                     <div className="relative group">
@@ -185,17 +174,28 @@ function ResetPasswordContent() {
                                         {isLoading ? (
                                             <>
                                                 <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Updating...
+                                                Resetting...
                                             </>
                                         ) : (
                                             <>
-                                                Reset Password
+                                                Update Password
                                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                             </>
                                         )}
                                     </span>
                                 </Button>
                             </form>
+
+                            {/* Back to Login */}
+                            <div className="mt-8 text-center">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors group px-4 py-2 rounded-xl hover:bg-white/5 font-medium"
+                                >
+                                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                    Back to Login
+                                </Link>
+                            </div>
                         </>
                     ) : (
                         <div className="text-center py-6 animate-in fade-in zoom-in duration-500 px-4">
@@ -204,7 +204,7 @@ function ResetPasswordContent() {
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-4">Password Updated</h1>
                             <p className="text-white/60 mb-10 leading-relaxed text-lg">
-                                Your account is secure again. You'll be redirected to the login page shortly.
+                                Your account is secure again. You'll be redirected shortly.
                             </p>
                             <Button
                                 asChild

@@ -18,13 +18,8 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
-    // 2. If trying to access login/signup while already logged in
-    if (isAuthRoute && jwt) {
-        if (userRole) {
-            return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
-        }
-        return NextResponse.redirect(new URL('/dashboard/student', request.url));
-    }
+    // 2. [REMOVED] Automatic redirect for authenticated users on auth routes (login/signup)
+    // This has been removed to allow users to access login/signup even if they have an active session.
 
     // 3. Granular RBAC for Dashboards
     if (isDashboardRoute && userRole) {
