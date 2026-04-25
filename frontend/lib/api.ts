@@ -10,18 +10,23 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         ...options.headers,
     };
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-        credentials: "include", // Required for sending/receiving cookies
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+            credentials: "include", // Required for sending/receiving cookies
+        });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Something went wrong");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || "Something went wrong");
+        }
+
+        return response.json();
+    } catch (error: any) {
+        console.error(`[API FETCH ERROR] ${API_BASE_URL}${endpoint}:`, error);
+        throw error;
     }
-
-    return response.json();
 }
 
 export const courseApi = {

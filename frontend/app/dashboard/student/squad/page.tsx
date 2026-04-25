@@ -28,9 +28,9 @@ import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
 import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
 import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
 import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
-import { useStream } from "@/components/providers/StreamProvider"
-import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
-import { Call } from "@stream-io/video-react-sdk"
+// import { useStream } from "@/components/providers/StreamProvider"
+// import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+// import { Call } from "@stream-io/video-react-sdk"
 import { getCurrentUser } from "@/lib/auth-utils"
 
 const MOCK_STUDENT_SQUADS = [
@@ -67,10 +67,11 @@ export default function ClassSquad() {
     const [isInviteOpen, setIsInviteOpen] = useState(false)
     const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false)
     const [isLabsOpen, setIsLabsOpen] = useState(false)
-    const [activeCall, setActiveCall] = useState<Call | null>(null)
+    const [activeCall, setActiveCall] = useState<any | null>(null)
 
     const [newSquad, setNewSquad] = useState({ name: "", topic: "", avatar: "🧬" })
-    const { videoClient, isReady: isStreamReady } = useStream()
+    // const { videoClient, isReady: isStreamReady } = useStream()
+    const videoClient = null as any
     const socketRef = useRef<any>(null)
     const currentUser = getCurrentUser()
 
@@ -676,37 +677,17 @@ export default function ClassSquad() {
                                         <GroupQandATab squadId={selectedSquad?._id} />
                                     </TabsContent>
                                     <TabsContent value="live" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0 h-[600px]">
-                                        {activeCall ? (
-                                            <LiveClassroom
-                                                call={activeCall}
-                                                onLeave={handleLeaveLive}
-                                                squadName={selectedSquad?.name}
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-[48px] border border-white/10 space-y-8">
-                                                <div className="w-24 h-24 rounded-[32px] bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
-                                                    <Video className="w-10 h-10 text-sky-400" />
-                                                </div>
-                                                <div className="text-center space-y-2">
-                                                    <h4 className="text-xl font-black text-white uppercase italic">Laboratory <span className="text-sky-500">Standby</span></h4>
-                                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-                                                        {selectedSquad?.isLive ? "The squad has initiated a live transmission!" : "No active transmissions detected in this matrix."}
-                                                    </p>
-                                                </div>
-                                                <Button
-                                                    onClick={() => handleToggleLive(selectedSquad)}
-                                                    className={cn(
-                                                        "h-16 px-10 rounded-[24px] font-black text-xs uppercase tracking-widest gap-3 transition-all",
-                                                        selectedSquad?.isLive
-                                                            ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
-                                                            : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20"
-                                                    )}
-                                                >
-                                                    {selectedSquad?.isLive ? "Join Transmission" : "Initialize Live Lab"}
-                                                    <ArrowUpRight className="w-5 h-5" />
-                                                </Button>
+                                        <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-[48px] border border-white/10 space-y-8">
+                                            <div className="w-24 h-24 rounded-[32px] bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                                                <Video className="w-10 h-10 text-sky-400" />
                                             </div>
-                                        )}
+                                            <div className="text-center space-y-2">
+                                                <h4 className="text-xl font-black text-white uppercase italic">Laboratory <span className="text-sky-500">Maintenance</span></h4>
+                                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest px-12 leading-relaxed">
+                                                    Real-time video modules are currently being synchronized. Please use the Whiteboard and Forum for collaboration.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TabsContent>
                                 </div>
                             </Tabs>

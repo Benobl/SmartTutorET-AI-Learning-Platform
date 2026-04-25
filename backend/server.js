@@ -31,7 +31,13 @@ const PORT = process.env.PORT || 5001;
 app.use(helmet()); // Secure HTTP headers
 app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:5173", process.env.FRONTEND_URL].filter(Boolean),
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-ST-CSRF"]
