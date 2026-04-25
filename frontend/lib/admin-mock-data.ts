@@ -22,6 +22,7 @@ import {
  * Top-level KPI cards shown in the admin overview, segmented by timeframe.
  */
 export const adminStats = {
+    // Current keyed stats
     day: {
         totalUsers: 12,
         totalStudents: 10,
@@ -53,7 +54,15 @@ export const adminStats = {
         platformRevenue: 64580,
         pendingActions: 45,
         growth: "+24%"
-    }
+    },
+    // Missing flat properties expected by page.tsx (using 'year' data by default)
+    totalUsers: 2825,
+    activeCourses: 124,
+    platformRevenue: 64580,
+    avgSessionTime: "42m",
+    avgRating: 4.8,
+    successRate: 98,
+    supportTickets: 12
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,6 +105,15 @@ export const analyticsData = {
         { name: "Sun", students: 8, tutors: 0, revenue: 210 },
     ]
 }
+
+/**
+ * Expected by page.tsx
+ */
+export const userGrowthData = analyticsData.year.map(item => ({
+    month: item.name,
+    students: item.students,
+    tutors: item.tutors
+}))
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ─── USER DISTRIBUTION ──────────────────────────────────────────────────────
@@ -200,6 +218,8 @@ export const adminTutorList = [
         experience: "8 years",
         degree: "PhD",
         students: 0,
+        priority: "high", // Added for compatibility
+        country: "Ethiopia" // Added for compatibility
     },
     {
         id: "TUT-002",
@@ -212,6 +232,8 @@ export const adminTutorList = [
         experience: "6 years",
         degree: "MSc",
         students: 0,
+        priority: "medium", // Added for compatibility
+        country: "Ethiopia" // Added for compatibility
     },
     {
         id: "TUT-003",
@@ -224,6 +246,8 @@ export const adminTutorList = [
         experience: "5 years",
         degree: "BSc",
         students: 45,
+        priority: "low",
+        country: "Ethiopia"
     },
     {
         id: "TUT-004",
@@ -236,8 +260,15 @@ export const adminTutorList = [
         experience: "4 years",
         degree: "MA",
         students: 32,
+        priority: "low",
+        country: "Ethiopia"
     },
 ]
+
+/**
+ * Expected by page.tsx
+ */
+export const pendingApplications = adminTutorList;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ─── CONTENT MODERATION ─────────────────────────────────────────────────────
