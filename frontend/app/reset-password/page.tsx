@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock, CheckCircle2, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { Lock, CheckCircle2, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { AuthBackground, AuthCard, PasswordStrength } from "@/components/auth-components"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -84,18 +84,29 @@ function ResetPasswordContent() {
     return (
         <AuthBackground imageSrc="/auth/premium-library-bg.png">
             <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
+                {/* Back Link */}
+                <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group mb-6 ml-2"
+                >
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-smooth">
+                        <ArrowLeft className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium">Back to Login</span>
+                </Link>
+
                 <AuthCard>
                     {!success ? (
                         <>
                             {/* Header */}
-                            <div className="flex flex-col items-center mb-8 text-center">
-                                <Link href="/login" className="mb-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20">
-                                        <Image src="/logo.png" alt="Logo" width={64} height={64} priority />
-                                    </div>
-                                </Link>
-                                <h1 className="text-3xl font-bold text-white mb-2">Reset Password</h1>
-                                <p className="text-white/60">Choose a strong new password for your account</p>
+                            <div className="flex flex-col items-center mb-8 text-center px-4">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-xl mb-6 ring-4 ring-white/10">
+                                    <Lock className="w-8 h-8 text-white" />
+                                </div>
+                                <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Set New Password</h1>
+                                <p className="text-base text-white/50 leading-relaxed">
+                                    Your new password must be different from previous passwords.
+                                </p>
                             </div>
 
                             {/* Error Message */}
@@ -114,17 +125,19 @@ function ResetPasswordContent() {
                             )}
 
                             {/* Form */}
-                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-2">
                                 <div className="space-y-2">
-                                    <Label className="text-white/80 ml-1">New Password</Label>
+                                    <Label className="text-white/80 ml-1 font-medium">New Password</Label>
                                     <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-sky-400 transition-colors" />
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-sky-400 transition-colors pointer-events-none">
+                                            <Lock className="w-full h-full" />
+                                        </div>
                                         <Input
                                             {...register("password")}
                                             type={showPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             className={cn(
-                                                "bg-white/5 border-white/10 text-white pl-11 pr-12 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
+                                                "bg-white/5 border-white/10 text-white pl-11 pr-12 py-7 rounded-2xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/30 text-lg",
                                                 errors.password && "border-red-500/50"
                                             )}
                                         />
@@ -143,15 +156,17 @@ function ResetPasswordContent() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-white/80 ml-1">Confirm New Password</Label>
+                                    <Label className="text-white/80 ml-1 font-medium">Confirm New Password</Label>
                                     <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-sky-400 transition-colors" />
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-sky-400 transition-colors pointer-events-none">
+                                            <Lock className="w-full h-full" />
+                                        </div>
                                         <Input
                                             {...register("confirmPassword")}
                                             type={showPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             className={cn(
-                                                "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
+                                                "bg-white/5 border-white/10 text-white pl-11 py-7 rounded-2xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/30 text-lg",
                                                 errors.confirmPassword && "border-red-500/50"
                                             )}
                                         />
@@ -164,18 +179,18 @@ function ResetPasswordContent() {
                                 <Button
                                     type="submit"
                                     disabled={isLoading || !token}
-                                    className="w-full py-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-semibold transition-smooth shadow-lg shadow-sky-500/20 group"
+                                    className="w-full py-7 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-lg transition-all duration-300 shadow-xl shadow-sky-500/25 group border-0 mt-4"
                                 >
-                                    <span className="flex items-center gap-2">
+                                    <span className="flex items-center gap-3 justify-center">
                                         {isLoading ? (
                                             <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Updating Password...
+                                                <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Updating...
                                             </>
                                         ) : (
                                             <>
                                                 Reset Password
-                                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                             </>
                                         )}
                                     </span>
@@ -183,17 +198,17 @@ function ResetPasswordContent() {
                             </form>
                         </>
                     ) : (
-                        <div className="text-center py-4 animate-in fade-in zoom-in duration-500">
-                            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
+                        <div className="text-center py-6 animate-in fade-in zoom-in duration-500 px-4">
+                            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                                 <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                             </div>
-                            <h1 className="text-2xl font-bold text-white mb-3">Password Updated</h1>
-                            <p className="text-white/60 mb-8 leading-relaxed">
-                                Your password has been successfully reset. You will be redirected to the login page in a few seconds.
+                            <h1 className="text-2xl font-bold text-white mb-4">Password Updated</h1>
+                            <p className="text-white/60 mb-10 leading-relaxed text-lg">
+                                Your account is secure again. You'll be redirected to the login page shortly.
                             </p>
                             <Button
                                 asChild
-                                className="w-full py-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-lg shadow-sky-500/20 transition-smooth"
+                                className="w-full py-7 rounded-2xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-lg transition-all duration-300 shadow-xl shadow-sky-500/25"
                             >
                                 <Link href="/login">Go to Login Now</Link>
                             </Button>

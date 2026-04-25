@@ -63,4 +63,12 @@ export class GroupService {
     static async getThreadPosts(threadId) {
         return await Post.find({ threadId }).populate("author", "fullName profilePic");
     }
+
+    static async getUserGroups(userId) {
+        return await StudyGroup.find({ members: userId });
+    }
+
+    static async getAllGroups() {
+        return await StudyGroup.find({});
+    }
 }

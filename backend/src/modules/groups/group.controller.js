@@ -4,7 +4,7 @@ export class GroupController {
     static async create(req, res, next) {
         try {
             const group = await GroupService.createGroup(req.user._id, req.body);
-            res.status(201).json({ success: true, data: group });
+            res.status(201).json(group);
         } catch (error) {
             next(error);
         }
@@ -41,6 +41,24 @@ export class GroupController {
         try {
             const threads = await GroupService.getForumThreads(req.params.forumId);
             res.json({ success: true, data: threads });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getAll(req, res, next) {
+        try {
+            const groups = await GroupService.getAllGroups();
+            res.json(groups);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getMyGroups(req, res, next) {
+        try {
+            const groups = await GroupService.getUserGroups(req.user._id);
+            res.json(groups);
         } catch (error) {
             next(error);
         }

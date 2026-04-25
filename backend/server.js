@@ -22,6 +22,8 @@ import tutorRoutes from "./src/modules/tutors/tutor.route.js";
 import groupRoutes from "./src/modules/groups/group.route.js";
 import paymentRoutes from "./src/modules/payments/payment.route.js";
 import adminRoutes from "./src/modules/admin/admin.route.js";
+import questionRoutes from "./src/modules/questions/question.route.js";
+import inviteRoutes from "./src/modules/invites/invite.route.js";
 
 const PORT = process.env.PORT || 5001;
 
@@ -60,6 +62,8 @@ app.use("/api/tutors", tutorRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/invites", inviteRoutes);
 
 // Health Check
 app.get("/", (req, res) => {
