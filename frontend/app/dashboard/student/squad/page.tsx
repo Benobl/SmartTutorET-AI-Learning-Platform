@@ -420,12 +420,29 @@ export default function ClassSquad() {
 
                 const memberIds = squad.members?.map((m: any) => m._id || m) || []
 
-                await call.getOrCreate({
-                    data: {
-                        members: memberIds.map((id: string) => ({ user_id: id, role: 'admin' })), // Grant high role for trial
-                        custom: { squadName: squad.name, squadId: squad._id }
+                // Categorical sub-retry for getOrCreate which is prone to 5s edge timeouts
+                let gocSuccess = false
+                let gocAttempt = 0
+                while (gocAttempt < 2 && !gocSuccess) {
+                    try {
+                        gocAttempt++
+                        console.time(`[Stream] getOrCreate attempt ${gocAttempt}`)
+                        await call.getOrCreate({
+                            data: {
+                                members: memberIds.map((id: string) => ({ user_id: id, role: 'admin' })),
+                                custom: { squadName: squad.name, squadId: squad._id }
+                            }
+                        })
+                        console.timeEnd(`[Stream] getOrCreate attempt ${gocAttempt}`)
+                        gocSuccess = true
+                    } catch (gocErr: any) {
+                        console.timeEnd(`[Stream] getOrCreate attempt ${gocAttempt}`)
+                        console.error(`[Stream] getOrCreate failed (Attempt ${gocAttempt}):`, gocErr)
+                        if (gocAttempt >= 2) throw gocErr
+                        await new Promise(r => setTimeout(r, 500)) // Tiny backoff
                     }
-                })
+                }
+
                 console.log(`[Video Join] Entering join phase for ${callId} (40s timeout)`)
                 const joinPromise = call.join({ create: true, maxJoinRetries: 5 })
                 const timeoutPromise = new Promise((_, reject) =>
@@ -555,6 +572,8 @@ export default function ClassSquad() {
                     onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }}
                     isStreamReady={isStreamReady}
                     socket={socketRef.current}
+                    isPermissionModalOpen={isPermissionModalOpen}
+                    setIsPermissionModalOpen={setIsPermissionModalOpen}
                 />
                 {liveAlert && (
                     <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />
@@ -825,8 +844,15 @@ const TABS = [
     { id: "qa", label: "Q&A", Icon: HelpCircle },
 ]
 
-function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, socket }: {
-    squad: any; onBack: () => void; onStartLive: () => void; onInvite: () => void; isStreamReady: boolean; socket: any
+function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, socket, isPermissionModalOpen, setIsPermissionModalOpen }: {
+    squad: any;
+    onBack: () => void;
+    onStartLive: () => void;
+    onInvite: () => void;
+    isStreamReady: boolean;
+    socket: any;
+    isPermissionModalOpen: boolean;
+    setIsPermissionModalOpen: (open: boolean) => void;
 }) {
     const [activeTab, setActiveTab] = useState("chat")
 

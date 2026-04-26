@@ -88,16 +88,16 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                     name: user.fullName || "User",
                     image: user.profilePic || ""
                 }
+
+                console.time("[StreamVideo] Client Init");
                 const vClient = new StreamVideoClient({
                     apiKey,
                     user: videoUser,
                     token,
-                    options: {
-                        axiosConfig: { timeout: 30000 } // Extended 30s timeout for stability
-                    }
                 })
-                setVideoClient(vClient)
+                console.timeEnd("[StreamVideo] Client Init");
 
+                setVideoClient(vClient)
                 setIsReady(true)
                 console.log("[StreamProvider] Stream Ready");
             } catch (error) {
