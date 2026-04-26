@@ -14,7 +14,7 @@ const inviteSchema = new mongoose.Schema(
         },
         targetType: {
             type: String,
-            enum: ["StudyGroup", "LiveSession"],
+            enum: ["StudyGroup"],
             required: true,
         },
         targetId: {

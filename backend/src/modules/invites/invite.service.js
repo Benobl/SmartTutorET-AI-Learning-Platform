@@ -37,12 +37,21 @@ export class InviteService {
     }
 
     static async getMyInvites(userId) {
-        return await Invite.find({
-            $or: [{ invitee: userId }, { inviter: userId }]
-        })
-            .populate("inviter", "fullName profilePic")
-            .populate("invitee", "fullName profilePic")
-            .populate("targetId");
+        try {
+            return await Invite.find({
+                $or: [{ invitee: userId }, { inviter: userId }]
+            })
+                .populate("inviter", "fullName profilePic")
+                .populate("invitee", "fullName profilePic")
+                .populate("targetId")
+                .lean();
+        } catch (error) {
+            console.error("[InviteService] getMyInvites population failure:", error);
+            // Fallback: return unpopulated if the SDK is choking on polymorphic rules
+            return await Invite.find({
+                $or: [{ invitee: userId }, { inviter: userId }]
+            }).lean();
+        }
     }
 
     static async respondToInvite(userId, inviteId, status) {
