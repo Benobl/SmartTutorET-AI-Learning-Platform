@@ -28,17 +28,35 @@ interface LiveClassroomProps {
     socket?: any
 }
 
-export const LiveClassroom = ({ call, onLeave, squadName, squadId, socket }: LiveClassroomProps) => {
+// --- Consumer Component (Uses Hooks) ---
+const LiveSessionContent = ({
+    call,
+    onLeave,
+    squadName,
+    squadId,
+    socket
+}: LiveClassroomProps) => {
     const [isInviteOpen, setIsInviteOpen] = React.useState(false)
     const [searchQuery, setSearchQuery] = React.useState("")
     const [students, setStudents] = React.useState<any[]>([])
     const [invitedIds, setInvitedIds] = React.useState<Set<string>>(new Set())
-    const [loading, setLoading] = React.useState(false)
+
     const currentUser = getCurrentUser()
     const { useMicrophoneState, useCameraState, useScreenShareState } = useCallStateHooks()
-    const microphone = useMicrophoneState()
-    const camera = useCameraState()
-    const screenShare = useScreenShareState()
+
+    const { isEnabled: micEnabled } = useMicrophoneState()
+    const { isEnabled: camEnabled } = useCameraState()
+    const { isEnabled: screenShareEnabled } = useScreenShareState()
+    const isRecording = call.state.recording // Using direct observable for stability
+
+    React.useEffect(() => {
+        // Cleanup call on unmount to prevent WebRTC stale connections
+        return () => {
+            if (call.state.status === 'joined') {
+                call.leave()
+            }
+        }
+    }, [call])
 
     React.useEffect(() => {
         if (isInviteOpen) {
@@ -60,230 +78,289 @@ export const LiveClassroom = ({ call, onLeave, squadName, squadId, socket }: Liv
         setInvitedIds(prev => new Set(prev).add(targetId))
         toast({ title: "Invite Sent!", description: `Notified ${student.fullName} about this session.` })
     }
+
     return (
-        <StreamCall call={call}>
-            <StreamTheme className="h-full w-full flex flex-col bg-[#f0f4f8]">
-                {/* Modern Lighter Header */}
-                <div className="flex items-center justify-between px-8 py-5 bg-white/70 backdrop-blur-2xl border-b border-slate-200 sticky top-0 z-50">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-lg shadow-lg relative overflow-hidden">
-                                <Video className="w-5 h-5 text-white relative z-10" />
-                                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+        <StreamTheme className="h-full w-full flex flex-col bg-[#f0f4f8]">
+            {/* Advanced Premium Header */}
+            <div className="flex items-center justify-between px-8 py-6 bg-white/40 backdrop-blur-3xl border-b border-white/20 sticky top-0 z-50">
+                <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-4 bg-white/60 backdrop-blur-md px-6 py-3 rounded-[2rem] border border-white/40 shadow-xl shadow-slate-200/20">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 via-sky-500 to-emerald-400 flex items-center justify-center text-white shadow-2xl relative overflow-hidden group">
+                            <Video className="w-6 h-6 relative z-10 group-hover:scale-110 transition-transform" />
+                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                        </div>
+                        <div className="flex flex-col">
+                            <p className="text-slate-900 font-black text-base tracking-tighter uppercase">{squadName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">High Definition Stream</span>
                             </div>
-                            <div className="flex flex-col">
-                                <p className="text-slate-900 font-black text-sm tracking-tight">{squadName}</p>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Live Transmission</span>
+                        </div>
+                    </div>
+
+                    <div className="hidden lg:flex items-center gap-3 px-5 py-2.5 bg-sky-500/10 rounded-2xl border border-sky-500/20">
+                        <Radio className="w-4 h-4 text-sky-600 animate-pulse" />
+                        <span className="text-[10px] font-black text-sky-700 uppercase tracking-widest">Global Sync Active</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsInviteOpen(true)}
+                        className="h-14 px-8 rounded-3xl bg-white/80 border-white text-slate-800 font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:scale-105 transition-all shadow-xl shadow-slate-200/40 border-2"
+                    >
+                        <UserPlus className="w-5 h-5 mr-3 text-sky-500" />
+                        Invite Partners
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={onLeave}
+                        className="h-14 px-8 rounded-3xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[12px] uppercase tracking-[0.15em] shadow-2xl shadow-rose-500/30 border-none transition-all active:scale-95"
+                    >
+                        End Session
+                    </Button>
+                </div>
+            </div>
+
+            {/* Primary Content Area */}
+            <div className="flex-1 min-h-0 relative flex gap-8 p-8">
+                <div className="flex-1 relative overflow-hidden bg-slate-900 rounded-[3rem] border-8 border-white/30 shadow-[0_40px_100px_rgba(0,0,0,0.3)] ring-1 ring-white/20">
+                    <SpeakerLayout />
+
+                    {/* Overlay Status Indicators */}
+                    <div className="absolute top-6 left-6 flex gap-3 z-30">
+                        {screenShareEnabled && (
+                            <div className="px-4 py-2 bg-emerald-500/90 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-emerald-400 border-2">
+                                <Monitor className="w-3.5 h-3.5" /> Screen Sharing
+                            </div>
+                        )}
+                        {isRecording && (
+                            <div className="px-4 py-2 bg-rose-500/90 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-rose-400 border-2 animate-pulse">
+                                <Radio className="w-3.5 h-3.5" /> Recording Session
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Participant Sidebar - Redesigned for Desktop Premium */}
+                <div className="hidden xl:block w-[400px] z-20 transition-all border-l border-white/20 bg-white/40 backdrop-blur-3xl">
+                    <div className="h-full flex flex-col p-10 px-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-[0.4em] flex items-center gap-3">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                Participants
+                            </h3>
+                            <div className="px-3 py-1 bg-slate-900/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                Global Sync
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto scrollbar-premium pr-2">
+                            <CallParticipantsList
+                                onClose={() => { }}
+                            />
+                        </div>
+
+                        <div className="mt-8 pt-8 border-t border-slate-200/50">
+                            <div className="flex items-center gap-4 bg-white/40 p-4 rounded-3xl border border-white/60">
+                                <div className="w-10 h-10 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600">
+                                    <Radio className="w-5 h-5 animate-pulse" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-900 uppercase">Live Bitrate</span>
+                                    <span className="text-[9px] font-bold text-slate-400">Optimizing for HD...</span>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-sky-50/50 rounded-xl border border-sky-100/50">
-                            <Users className="w-4 h-4 text-sky-500" />
-                            <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest">Collaborative Hub</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsInviteOpen(true)}
-                            className="h-12 px-6 rounded-2xl bg-white border-slate-200 text-slate-800 font-black text-[11px] uppercase tracking-[0.15em] hover:bg-slate-50 transition-all shadow-sm hover:shadow-md"
-                        >
-                            <UserPlus className="w-4 h-4 mr-2.5 text-sky-500" />
-                            Invite Partners
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={onLeave}
-                            className="h-12 px-8 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[11px] uppercase tracking-[0.15em] shadow-lg shadow-rose-200 border border-transparent transition-all"
-                        >
-                            Disconnect
-                        </Button>
                     </div>
                 </div>
+            </div>
 
-                {/* Primary Content Area */}
-                <div className="flex-1 min-h-0 relative flex gap-6 p-6">
-                    <div className="flex-1 relative overflow-hidden bg-white rounded-[40px] border border-slate-200 shadow-2xl shadow-slate-200/50">
-                        <SpeakerLayout />
-                    </div>
+            {/* Advanced Glassmorphism Control Bar */}
+            <div className="shrink-0 flex items-center justify-center p-10 bg-gradient-to-t from-slate-200/50 to-transparent">
+                <div className="bg-white/40 backdrop-blur-3xl rounded-[3rem] p-5 flex items-center gap-10 border border-white/60 shadow-[0_30px_100px_rgba(0,0,0,0.1)] ring-1 ring-white/40">
 
-                    {/* Final Refined Participant Sidebar */}
-                    <div className="hidden xl:block w-80 z-20 transition-all">
-                        <div className="h-full bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-2xl flex flex-col p-6 px-4">
-                            <div className="flex-1 overflow-y-auto scrollbar-hide">
-                                <CallParticipantsList onClose={() => { }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Lighter Control Bar */}
-                <div className="shrink-0 flex items-center justify-center p-8 bg-gradient-to-t from-slate-100 to-transparent">
-                    <div className="bg-white/90 backdrop-blur-3xl rounded-full p-4 flex items-center gap-8 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-black/5">
-                        <div className="flex items-center gap-4 px-6 border-r border-slate-100 hidden md:flex">
-                            <div className="flex gap-1.5 items-end h-5">
-                                {[1, 2, 3, 2.5, 4, 1.5, 3].map((h, i) => (
-                                    <div key={i} className="w-1.5 rounded-full bg-sky-500/20" style={{ height: `${h * 25}%` }} />
+                    <div className="flex items-center gap-5 px-8 border-r border-slate-200/50 hidden md:flex">
+                        <div className="flex flex-col gap-1 items-center">
+                            <div className="flex gap-2 items-end h-6">
+                                {[1.5, 3, 2, 4, 3.5, 2.5, 3, 1].map((h, i) => (
+                                    <div key={i} className={cn("w-1.5 rounded-full transition-all duration-500",
+                                        micEnabled ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]" : "bg-slate-300")}
+                                        style={{ height: `${micEnabled ? h * 25 : 10}%` }} />
                                 ))}
                             </div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Voice Stream</span>
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-4 pr-4">
-                            <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-5 pr-5">
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-center gap-2 group">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={async () => {
-                                        if ((call.microphone.state as any).status === 'enabled') {
-                                            await call.microphone.disable()
-                                        } else {
-                                            await call.microphone.enable()
-                                        }
-                                    }}
-                                    className={cn("w-14 h-14 rounded-3xl transition-all border shadow-sm active:scale-90",
-                                        (call.microphone.state as any).status === 'enabled' ? "bg-emerald-500 text-white border-emerald-600 shadow-emerald-200" : "bg-white text-slate-400 border-slate-200")}
+                                    onClick={async () => await call.microphone.toggle()}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
+                                        micEnabled ? "bg-emerald-500 text-white border-emerald-400 soft-shadow-emerald" : "bg-white text-slate-400 border-slate-100")}
                                 >
-                                    {(call.microphone.state as any).status === 'enabled' ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                                    {micEnabled ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
                                 </Button>
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest", micEnabled ? "text-emerald-600" : "text-slate-400")}>
+                                    {micEnabled ? "Open" : "Muted"}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-2 group">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={async () => {
-                                        if ((call.camera.state as any).status === 'enabled') {
-                                            await call.camera.disable()
-                                        } else {
-                                            await call.camera.enable()
-                                        }
-                                    }}
-                                    className={cn("w-14 h-14 rounded-3xl transition-all border shadow-sm active:scale-90",
-                                        (call.camera.state as any).status === 'enabled' ? "bg-sky-500 text-white border-sky-600 shadow-sky-200" : "bg-white text-slate-400 border-slate-200")}
+                                    onClick={async () => await call.camera.toggle()}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
+                                        camEnabled ? "bg-sky-500 text-white border-sky-400 soft-shadow-sky" : "bg-white text-slate-400 border-slate-100")}
                                 >
-                                    {(call.camera.state as any).status === 'enabled' ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                                    {camEnabled ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
                                 </Button>
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest", camEnabled ? "text-sky-600" : "text-slate-400")}>
+                                    {camEnabled ? "Live" : "Off"}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-2 group">
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => call.screenShare.toggle()}
-                                    className={cn("w-14 h-14 rounded-3xl transition-all border shadow-sm active:scale-90",
-                                        (call.screenShare.state as any).status === 'enabled' ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-50 text-slate-400 border-slate-200")}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
+                                        screenShareEnabled ? "bg-indigo-600 text-white border-indigo-500 soft-shadow-indigo" : "bg-white text-slate-400 border-slate-100")}
                                 >
-                                    <Monitor className="w-6 h-6" />
+                                    <Monitor className="w-7 h-7" />
                                 </Button>
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest", screenShareEnabled ? "text-indigo-600 font-black" : "text-slate-400 font-bold")}>
+                                    {screenShareEnabled ? "Sharing" : "Screen"}
+                                </span>
+                            </div>
 
+                            <div className="flex flex-col items-center gap-2 group">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => call.state.recording ? call.stopRecording() : call.startRecording()}
-                                    className={cn("w-14 h-14 rounded-3xl transition-all border shadow-sm active:scale-90",
-                                        call.state.recording ? "bg-rose-500 text-white border-rose-600 animate-pulse shadow-rose-200" : "bg-slate-50 text-slate-400 border-slate-200")}
+                                    onClick={() => isRecording ? call.stopRecording() : call.startRecording()}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
+                                        isRecording ? "bg-rose-500 text-white border-rose-400 animate-pulse soft-shadow-rose" : "bg-white text-slate-400 border-slate-100")}
                                 >
-                                    <Radio className="w-6 h-6" />
+                                    <Radio className="w-7 h-7" />
                                 </Button>
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest", isRecording ? "text-rose-600" : "text-slate-400")}>
+                                    {isRecording ? "Recording" : "Record"}
+                                </span>
                             </div>
-
-                            <div className="w-px h-10 bg-slate-100 mx-2" />
-
-                            <Button
-                                variant="destructive"
-                                onClick={onLeave}
-                                className="h-14 w-14 rounded-3xl bg-rose-600 hover:bg-rose-700 text-white shadow-xl shadow-rose-200 border border-transparent flex items-center justify-center p-0 active:scale-90"
-                            >
-                                <X className="w-7 h-7" />
-                            </Button>
                         </div>
+
+                        <div className="w-[1.5px] h-12 bg-slate-200/60 mx-4" />
+
+                        <Button
+                            variant="destructive"
+                            onClick={onLeave}
+                            title="Exit Session"
+                            className="h-16 w-16 rounded-[2rem] bg-rose-600 hover:bg-rose-700 text-white shadow-2xl shadow-rose-500/40 border-none flex items-center justify-center p-0 active:scale-90 transition-all hover:rotate-90 hover:scale-110"
+                        >
+                            <X className="w-8 h-8" />
+                        </Button>
                     </div>
                 </div>
+            </div>
 
-                <style jsx global>{`
-                    .str-video__speaker-layout {
-                        background: transparent !important;
-                    }
-                    .str-video__call-controls {
-                        gap: 12px !important;
-                        padding: 0 !important;
-                        background: transparent !important;
-                    }
-                    .str-video__call-controls__button {
-                        width: 50px !important;
-                        height: 50px !important;
-                        border-radius: 20px !important;
-                        background: rgba(255,255,255,0.05) !important;
-                        border: 1px solid rgba(255,255,255,0.1) !important;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                    }
-                    .str-video__call-controls__button:hover {
-                        background: rgba(255,255,255,0.1) !important;
-                        transform: translateY(-2px) !important;
-                    }
-                    .str-video__participants-list {
-                        background: transparent !important;
-                        padding: 0 !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                        gap: 12px !important;
-                        overflow: hidden !important;
-                        width: 100% !important;
-                    }
-                    .str-video__participants-list-header {
-                        padding: 0 0 16px 0 !important;
-                        color: #1e1b4b !important;
-                        font-weight: 950 !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 0.25em !important;
-                        font-size: 11px !important;
-                        border-bottom: 2px solid #e0e7ff !important;
-                        margin-bottom: 24px !important;
-                        width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-                    .str-video__participant-list-item {
-                        border-radius: 20px !important;
-                        background: #f5f3ff !important;
-                        margin-bottom: 0 !important;
-                        border: 1px solid #e0e7ff !important;
-                        padding: 12px 14px !important;
-                        transition: all 0.2s ease !important;
-                        width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-                    .str-video__participant-list-item:hover {
-                        background: white !important;
-                        border-color: #c4b5fd !important;
-                        box-shadow: 0 12px 30px rgba(79,70,229,0.1) !important;
-                    }
-                    .str-video__participant-details {
-                        font-weight: 900 !important;
-                        font-size: 14px !important;
-                        color: #1e1b4b !important;
-                    }
-                    .str-video__participants-list-input-container {
-                        background: #eef2ff !important;
-                        border-radius: 16px !important;
-                        border: 1px solid #c7d2fe !important;
-                        margin-bottom: 20px !important;
-                        padding: 4px !important;
-                    }
-                    .str-video__participants-list-input {
-                        color: #1e1b4b !important;
-                        font-size: 13px !important;
-                        font-weight: 800 !important;
-                    }
-                    .str-video__participants-list-search-icon {
-                        color: #4f46e5 !important;
-                    }
-                    .str-video__participant-avatar {
-                        border: 3px solid white !important;
-                        box-shadow: 0 4px 15px rgba(79,70,229,0.2) !important;
-                    }
-                `}</style>
-            </StreamTheme>
+            <style jsx global>{`
+                .str-video__speaker-layout {
+                    background: transparent !important;
+                }
+                .str-video__call-controls {
+                    gap: 12px !important;
+                    padding: 0 !important;
+                    background: transparent !important;
+                }
+                /* Desktop Premium Participant Sidebar & List Override */
+                .str-video__participants-list {
+                    background: transparent !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 12px !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: auto !important;
+                }
+                .str-video__participants-list-header {
+                    display: none !important; /* Managed by custom header */
+                }
+                .str-video__participant-list-item {
+                    background: rgba(255, 255, 255, 0.4) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+                    border-radius: 2rem !important;
+                    padding: 16px 20px !important;
+                    margin: 0 !important;
+                    transition: all 0.3s ease !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                }
+                .str-video__participant-list-item:hover {
+                    background: white !important;
+                    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.05) !important;
+                    transform: translateY(-2px) !important;
+                }
+                .str-video__participant-details {
+                    font-weight: 900 !important;
+                    color: #0f172a !important;
+                    font-size: 15px !important;
+                }
+                .str-video__participant-avatar {
+                    border: 3px solid white !important;
+                    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1) !important;
+                }
+                .str-video__participants-list-input-container {
+                    background: #f8fafc !important;
+                    border-radius: 1.5rem !important;
+                    border: 1px solid #e2e8f0 !important;
+                    margin-bottom: 24px !important;
+                    padding: 4px 12px !important;
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+                }
+                .str-video__participants-list-input {
+                    font-weight: 700 !important;
+                    color: #0f172a !important;
+                    font-size: 14px !important;
+                }
+                .str-video__participants-list-search-icon {
+                    color: #94a3b8 !important;
+                }
+
+                .scrollbar-premium::-webkit-scrollbar {
+                    width: 5px;
+                }
+                .scrollbar-premium::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .scrollbar-premium::-webkit-scrollbar-thumb {
+                    background: #e2e8f0;
+                    border-radius: 10px;
+                }
+                .scrollbar-premium::-webkit-scrollbar-thumb:hover {
+                    background: #cbd5e1;
+                }
+
+                .soft-shadow-emerald { box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4); }
+                .soft-shadow-sky { box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.4); }
+                .soft-shadow-indigo { box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); }
+                .soft-shadow-rose { box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.4); }
+            `}</style>
+
             {/* Final Refined Invite Dialog */}
             <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                <DialogContent className="bg-white border border-slate-200 text-slate-900 rounded-[40px] max-w-sm p-8 shadow-3xl ring-1 ring-black/5">
+                <DialogContent className="bg-white/90 backdrop-blur-3xl border border-white/40 text-slate-900 rounded-[3rem] max-w-sm p-8 shadow-3xl ring-1 ring-black/5">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-black italic uppercase tracking-tight text-slate-800">Invite <span className="text-sky-600">Partners</span></DialogTitle>
                     </DialogHeader>
@@ -298,23 +375,26 @@ export const LiveClassroom = ({ call, onLeave, squadName, squadId, socket }: Liv
                                 autoFocus
                             />
                         </div>
-                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-hide">
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1 scrollbar-hide">
                             {students
                                 .filter(s => (s._id || s.id) !== (currentUser?._id || currentUser?.id))
                                 .filter(s => !invitedIds.has(s._id || s.id))
                                 .filter(s => s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
                                 .map(student => (
-                                    <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-3xl bg-indigo-50/50 border border-indigo-100 group hover:bg-white transition-all shadow-sm">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-200">
+                                    <div key={student._id || student.id} className="group flex items-center justify-between p-5 rounded-[2rem] bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-sky-500/5 transition-all duration-300">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-[1.25rem] bg-gradient-to-br from-sky-400 to-indigo-500 text-white flex items-center justify-center font-black shadow-lg uppercase">
                                                 {student.fullName[0]}
                                             </div>
-                                            <span className="text-xs font-black text-indigo-900">{student.fullName}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-black text-slate-800">{student.fullName}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Student Academic</span>
+                                            </div>
                                         </div>
                                         <Button
                                             size="sm"
                                             onClick={() => sendInvite(student)}
-                                            className="h-9 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase shadow-lg shadow-indigo-100"
+                                            className="h-10 px-6 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-sky-100 transition-all active:scale-95"
                                         >
                                             Invite
                                         </Button>
@@ -325,6 +405,15 @@ export const LiveClassroom = ({ call, onLeave, squadName, squadId, socket }: Liv
                     </div>
                 </DialogContent>
             </Dialog>
+        </StreamTheme>
+    )
+}
+
+// --- Parent Wrapper (Provides Context) ---
+export const LiveClassroom = (props: LiveClassroomProps) => {
+    return (
+        <StreamCall call={props.call}>
+            <LiveSessionContent {...props} />
         </StreamCall>
     )
 }

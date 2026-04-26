@@ -9,6 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
+import {
+    StreamCall,
+    StreamVideo,
+    Call,
+    StreamTheme
+} from "@stream-io/video-react-sdk"
 import { useStream } from "@/components/providers/StreamProvider"
 import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
 import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
@@ -136,29 +142,36 @@ function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: ()
 
 function LiveAlert({ alert, onJoin, onDismiss }: { alert: any, onJoin: () => void, onDismiss: () => void }) {
     return (
-        <div className="fixed bottom-8 right-8 z-[100] w-full max-w-[340px] bg-white/90 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-sky-100 shadow-[0_20px_50px_rgba(14,165,233,0.15)] animate-in slide-in-from-right-10 duration-500 ring-1 ring-black/5">
+        <div className="fixed bottom-8 right-8 z-[100] w-full max-w-[360px] bg-white/80 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-sky-100 shadow-[0_25px_60px_rgba(14,165,233,0.2)] animate-in slide-in-from-right-10 duration-700 ring-1 ring-black/5 group">
             <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-lg relative overflow-hidden shrink-0">
-                    <Video className="w-6 h-6 relative z-10" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-xl relative overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
+                    <Video className="w-7 h-7 relative z-10" />
                     <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                    <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-white/40"></span>
+                    </div>
                 </div>
                 <div className="flex-1 min-w-0 pr-2">
-                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1">Transmission Alert</h4>
-                    <p className="text-[13px] text-slate-800 font-bold leading-snug">
-                        <span className="text-sky-600">{alert.hostName}</span> is live in <span className="text-sky-600">{alert.squadName}</span>
+                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] mb-1">Transmission Online</h4>
+                    <p className="text-[14px] text-slate-800 font-black leading-tight">
+                        <span className="text-sky-600 underline decoration-sky-200 decoration-2 underline-offset-2">{alert.hostName}</span>
                     </p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-tight">Active collaboration in progress</p>
+                    <p className="text-[11px] text-slate-500 font-bold mt-1">
+                        Active in <span className="text-slate-900">{alert.squadName}</span>
+                    </p>
                 </div>
-                <button onClick={onDismiss} className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all shrink-0">
+                <button onClick={onDismiss} className="w-8 h-8 rounded-full bg-slate-100/50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all shrink-0">
                     <X className="w-4 h-4" />
                 </button>
             </div>
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-2 mt-6">
                 <Button
                     onClick={onJoin}
-                    className="flex-1 h-12 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-sky-200 transition-all active:scale-95"
+                    className="flex-1 h-14 rounded-[1.25rem] bg-sky-600 hover:bg-sky-700 text-white font-black text-[12px] uppercase tracking-widest shadow-xl shadow-sky-600/20 transition-all active:scale-95 group/btn overflow-hidden relative"
                 >
-                    <Play className="w-4 h-4 mr-2" /> Join Session
+                    <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                    <Play className="w-4 h-4 mr-2" /> Join Session Now
                 </Button>
             </div>
         </div>
@@ -179,8 +192,9 @@ export default function ClassSquad() {
     const [invitingSids, setInvitingSids] = useState<Set<string>>(new Set())
 
     // Active workspace
-    const [activeSquad, setActiveSquad] = useState<any | null>(null)
-    const [activeCall, setActiveCall] = useState<any | null>(null)
+    const [activeCall, setActiveCall] = useState<Call | null>(null)
+    const [activeSquad, setActiveSquad] = useState<any>(null)
+    const [isJoining, setIsJoining] = useState(false)
     const [liveAlert, setLiveAlert] = useState<{ callId: string; squadName: string; hostName: string; squadId: string } | null>(null)
 
     // Dialogs
@@ -340,13 +354,16 @@ export default function ClassSquad() {
     // ─────────── Video Call Handlers ───────────
 
     const handleJoinLive = async (squad: any, existingCallId?: string) => {
-        if (!videoClient || !isStreamReady) {
-            toast({ title: "Stream not ready", description: "Please wait a moment.", variant: "destructive" })
+        if (!videoClient || !isStreamReady || isJoining) {
+            if (isJoining) toast({ title: "Joining session...", description: "Please wait." })
             return
         }
+        setIsJoining(true)
         try {
             const callId = existingCallId || `squad-${squad._id}`
             const call = videoClient.call("default", callId)
+
+            // Single precise join attempt
             await call.getOrCreate()
             await call.join({ create: true })
 
@@ -355,7 +372,6 @@ export default function ClassSquad() {
                 // Set live status in backend
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
 
-                // Only notify if we started (no existingCallId)
                 socketRef.current.emit("squad-live-start", {
                     callId,
                     squadId: squad._id,
@@ -376,9 +392,17 @@ export default function ClassSquad() {
                     description: "Please enable camera and microphone access in your browser settings to join the live session.",
                     variant: "destructive"
                 })
+            } else if (e.name === "AxiosError" && e.message?.includes("timeout")) {
+                toast({
+                    title: "Connection Timeout",
+                    description: "Stream API is currently unreachable. Please check your internet connection and try again.",
+                    variant: "destructive"
+                })
             } else {
-                toast({ title: "Video Error", description: e.message, variant: "destructive" })
+                toast({ title: "Video Error", description: e.message || "Failed to initialize stream.", variant: "destructive" })
             }
+        } finally {
+            setIsJoining(false)
         }
     }
 
@@ -746,12 +770,18 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                         onClick={onStartLive}
                         disabled={!isStreamReady}
                         className={cn(
-                            "h-9 px-3 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 shadow-md",
-                            isStreamReady ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20" : "bg-slate-300"
+                            "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
+                            isStreamReady
+                                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
+                                : "bg-slate-300"
                         )}
                     >
-                        <Video className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Start Live</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                        <div className="relative flex items-center gap-2">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                            <Video className="w-4 h-4" />
+                            <span className="hidden sm:inline">Initialize Live</span>
+                        </div>
                     </Button>
                 </div>
             </div>
