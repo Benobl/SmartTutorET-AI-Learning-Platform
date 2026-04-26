@@ -58,7 +58,7 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         if (socket) {
             socket.on("whiteboard-draw", (data: any) => {
                 const { x, y, prevX, prevY, color, size } = data
-                drawOnCanvas(ctx, x, y, prevX, prevY, color, size)
+                drawOnCanvas(ctx, x, y, prevX, prevY, color, size, true) // Explicitly enabled smoothing for remote strokes
             })
 
             socket.on("whiteboard-clear", () => {
@@ -81,13 +81,15 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         ctx.lineWidth = size
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
+        ctx.imageSmoothingEnabled = true
 
-        if (isSmooth) {
-            // Quadratic curve for smoother lines
-            ctx.moveTo(prevX, prevY)
+        if (isSmooth && prevX !== x && prevY !== y) {
+            // Superior Smoothing using Midpoint Quadratic Curves
             const midX = (prevX + x) / 2
             const midY = (prevY + y) / 2
+            ctx.moveTo(prevX, prevY)
             ctx.quadraticCurveTo(prevX, prevY, midX, midY)
+            ctx.lineTo(x, y) // Ensure it reaches the current point
         } else {
             ctx.moveTo(prevX, prevY)
             ctx.lineTo(x, y)

@@ -13,6 +13,7 @@ import {
     StreamCall,
     StreamVideo,
     Call,
+    CallingState,
     StreamTheme
 } from "@stream-io/video-react-sdk"
 import { useStream } from "@/components/providers/StreamProvider"
@@ -21,6 +22,7 @@ import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboard
 import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
 import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
 import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+import { PermissionRecoveryModal } from "@/components/dashboard/stream/PermissionRecoveryModal"
 import { getCurrentUser } from "@/lib/auth-utils"
 
 const AVATARS = ["🧬", "⚗️", "🔭", "🧪", "📡", "🛸", "⚡", "🌌", "🔬", "📐"]
@@ -51,26 +53,41 @@ function SquadCard({ squad, onOpen, onInvite, currentUserId }: {
 }) {
     const isOwner = (squad.creator?._id || squad.creator)?.toString() === currentUserId
     const memberCount = squad.members?.length || 0
+    const isLive = squad.isLive
 
     return (
         <div
-            className="group relative bg-white border border-slate-100 rounded-3xl p-5 hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col gap-4 shadow-sm"
+            className={cn(
+                "group relative bg-white border rounded-3xl p-5 hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col gap-4 shadow-sm",
+                isLive ? "border-rose-200 bg-rose-50/30" : "border-slate-100"
+            )}
             onClick={() => onOpen(squad)}
         >
             {/* Top row */}
             <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-xl shadow-lg">
+                <div className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg transition-transform group-hover:scale-110",
+                    isLive ? "bg-gradient-to-br from-rose-500 to-orange-500" : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                )}>
                     {squad.avatar || "🧬"}
                 </div>
-                {isOwner && (
-                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-full">
-                        <Crown className="w-2.5 h-2.5" /> Owner
-                    </span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                    {isLive && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-100 text-rose-600 rounded-full animate-pulse border border-rose-200">
+                            <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Live Now</span>
+                        </div>
+                    )}
+                    {isOwner && (
+                        <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-full">
+                            <Crown className="w-2.5 h-2.5" /> Owner
+                        </span>
+                    )}
+                </div>
             </div>
             {/* Info */}
             <div className="flex-1">
-                <h3 className="font-black text-slate-900 text-base leading-tight">{squad.name}</h3>
+                <h3 className="font-black text-slate-900 text-base leading-tight group-hover:text-sky-600 transition-colors">{squad.name}</h3>
                 <p className="text-[10px] font-semibold text-slate-400 mt-0.5 uppercase tracking-wider truncate">{squad.topic || "General Collaboration"}</p>
             </div>
             {/* Footer */}
@@ -85,16 +102,19 @@ function SquadCard({ squad, onOpen, onInvite, currentUserId }: {
                         size="sm"
                         variant="ghost"
                         onClick={e => { e.stopPropagation(); onInvite(squad) }}
-                        className="h-8 px-3 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50"
+                        className="h-8 px-3 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                     >
                         <UserPlus className="w-3 h-3 mr-1" /> Invite
                     </Button>
                     <Button
                         size="sm"
                         onClick={e => { e.stopPropagation(); onOpen(squad) }}
-                        className="h-8 px-3 rounded-xl text-[10px] font-black uppercase bg-slate-900 text-white hover:bg-slate-700"
+                        className={cn(
+                            "h-8 px-3 rounded-xl text-[10px] font-black uppercase shadow-lg transition-all",
+                            isLive ? "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-200" : "bg-slate-900 text-white hover:bg-slate-700"
+                        )}
                     >
-                        Open
+                        {isLive ? "Join Live" : "Open"}
                     </Button>
                 </div>
             </div>
@@ -142,36 +162,41 @@ function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: ()
 
 function LiveAlert({ alert, onJoin, onDismiss }: { alert: any, onJoin: () => void, onDismiss: () => void }) {
     return (
-        <div className="fixed bottom-8 right-8 z-[100] w-full max-w-[360px] bg-white/80 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-sky-100 shadow-[0_25px_60px_rgba(14,165,233,0.2)] animate-in slide-in-from-right-10 duration-700 ring-1 ring-black/5 group">
-            <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-xl relative overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
-                    <Video className="w-7 h-7 relative z-10" />
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-[420px] bg-white/90 backdrop-blur-3xl p-6 rounded-[3rem] border border-white shadow-[0_40px_100px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in duration-500 ring-4 ring-rose-500/10">
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-rose-500 via-rose-600 to-orange-500 flex items-center justify-center text-white shadow-2xl relative overflow-hidden shrink-0 group">
+                    <Video className="w-8 h-8 relative z-10 group-hover:scale-110 transition-transform" />
                     <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                    <div className="absolute -top-1 -right-1 flex h-4 w-4">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-white/40"></span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">Live Classroom</h4>
                     </div>
-                </div>
-                <div className="flex-1 min-w-0 pr-2">
-                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] mb-1">Transmission Online</h4>
-                    <p className="text-[14px] text-slate-800 font-black leading-tight">
-                        <span className="text-sky-600 underline decoration-sky-200 decoration-2 underline-offset-2">{alert.hostName}</span>
+                    <p className="text-[16px] text-slate-900 font-black leading-tight">
+                        {alert.hostName} <span className="text-slate-400 font-medium">is teaching in</span>
                     </p>
-                    <p className="text-[11px] text-slate-500 font-bold mt-1">
-                        Active in <span className="text-slate-900">{alert.squadName}</span>
+                    <p className="text-[12px] text-sky-600 font-black uppercase tracking-wider mt-0.5">
+                        {alert.squadName}
                     </p>
                 </div>
-                <button onClick={onDismiss} className="w-8 h-8 rounded-full bg-slate-100/50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all shrink-0">
-                    <X className="w-4 h-4" />
+                <button onClick={onDismiss} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all">
+                    <X className="w-5 h-5" />
                 </button>
             </div>
-            <div className="flex gap-2 mt-6">
+            <div className="mt-6 flex gap-3">
+                <Button
+                    variant="outline"
+                    onClick={onDismiss}
+                    className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-slate-200"
+                >
+                    Dismiss
+                </Button>
                 <Button
                     onClick={onJoin}
-                    className="flex-1 h-14 rounded-[1.25rem] bg-sky-600 hover:bg-sky-700 text-white font-black text-[12px] uppercase tracking-widest shadow-xl shadow-sky-600/20 transition-all active:scale-95 group/btn overflow-hidden relative"
+                    className="flex-1 h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/20 active:scale-95 transition-all"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
-                    <Play className="w-4 h-4 mr-2" /> Join Session Now
+                    <Play className="w-3.5 h-3.5 mr-2 fill-current" /> Join Class Now
                 </Button>
             </div>
         </div>
@@ -204,6 +229,7 @@ export default function ClassSquad() {
     const [inviteSearch, setInviteSearch] = useState("")
     const [newSquad, setNewSquad] = useState({ name: "", topic: "", avatar: "🧬" })
     const [squadSearch, setSquadSearch] = useState("")
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
 
     const socketRef = useRef<any>(null)
@@ -219,6 +245,17 @@ export default function ClassSquad() {
             const squadRes = await groupApi.getMyGroups()
             const squadsArr = Array.isArray(squadRes) ? squadRes : (squadRes?.data || [])
             setSquads(squadsArr)
+
+            // Initial check for any squad that is already live
+            const liveSquad = squadsArr.find((s: any) => s.isLive)
+            if (liveSquad && liveSquad.sessionData?.callId) {
+                setLiveAlert({
+                    callId: liveSquad.sessionData.callId,
+                    squadName: liveSquad.name,
+                    squadId: liveSquad._id,
+                    hostName: "A squad member", // Or specific host if stored
+                })
+            }
         } catch (e) {
             console.warn("[Squad] Failed to fetch squads:", e)
         }
@@ -275,11 +312,19 @@ export default function ClassSquad() {
             toast({ title: "🏆 New Squad Invite!", description: `${data.inviter?.fullName || "Someone"} invited you to ${data.targetId?.name || "a squad"}` })
         })
 
-        // Squad member started a live session → show join alert
+        // Squad member started a live session → show join alert and update indicator
         socket.on("squad-live-started", (data: any) => {
             const { callId, squadName, hostName, squadId } = data
             if (data.hostId === currentUserId) return
+
+            setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: true, sessionData: { callId } } : s))
             setLiveAlert({ callId, squadName, hostName, squadId })
+        })
+
+        socket.on("squad-live-ended", (data: any) => {
+            const { squadId } = data
+            setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: false, sessionData: null } : s))
+            setLiveAlert(prev => prev?.squadId === squadId ? null : prev)
         })
 
         // Direct video call invite
@@ -355,21 +400,69 @@ export default function ClassSquad() {
 
     const handleJoinLive = async (squad: any, existingCallId?: string) => {
         if (!videoClient || !isStreamReady || isJoining) {
-            if (isJoining) toast({ title: "Joining session...", description: "Please wait." })
+            if (isJoining) toast({ title: "Joining session...", description: "Please wait, connection in progress." })
             return
         }
         setIsJoining(true)
+        const callId = existingCallId || `squad-${squad._id}`
+        const call = videoClient.call("default", callId)
+
+        toast({ title: "⚡ Connecting...", description: "Establishing secure link to the laboratory." })
+
+        const maxRetries = 3
+        let attempt = 0
+        let success = false
+
+        while (attempt < maxRetries && !success) {
+            try {
+                attempt++
+                console.log(`[Video Join] Attempt ${attempt} for ${callId}`)
+
+                const memberIds = squad.members?.map((m: any) => m._id || m) || []
+
+                await call.getOrCreate({
+                    data: {
+                        members: memberIds.map((id: string) => ({ user_id: id, role: 'admin' })), // Grant high role for trial
+                        custom: { squadName: squad.name, squadId: squad._id }
+                    }
+                })
+                console.log(`[Video Join] Entering join phase for ${callId} (40s timeout)`)
+                const joinPromise = call.join({ create: true, maxJoinRetries: 5 })
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Join phase timed out (40s)")), 40000)
+                )
+
+                await Promise.race([joinPromise, timeoutPromise])
+                console.log(`[Video Join] Successfully joined ${callId}`)
+                success = true
+            } catch (e: any) {
+                console.error(`[Video Join Error] Attempt ${attempt} failed:`, e)
+                if (attempt >= maxRetries) {
+                    setIsJoining(false)
+                    if (e.name === "NotAllowedError" || e.message?.includes("Permission denied") || e.message?.includes("not granted")) {
+                        setIsPermissionModalOpen(true)
+                        toast({
+                            title: "Camera/Mic Permission Denied",
+                            description: "Please follow the instructions in the popup to allow hardware access.",
+                            variant: "destructive"
+                        })
+                    } else if (e.message?.includes("timeout") || e.code === "ECONNABORTED") {
+                        toast({
+                            title: "Connection Timeout",
+                            description: "The connection is taking too long. Please try again.",
+                            variant: "destructive"
+                        })
+                    } else {
+                        toast({ title: "Video Error", description: "Connection failed. Please refresh.", variant: "destructive" })
+                    }
+                    return
+                }
+                await new Promise(resolve => setTimeout(resolve, 1500 * attempt))
+            }
+        }
+
         try {
-            const callId = existingCallId || `squad-${squad._id}`
-            const call = videoClient.call("default", callId)
-
-            // Single precise join attempt
-            await call.getOrCreate()
-            await call.join({ create: true })
-
-            // Notify all squad members via socket
             if (!existingCallId && socketRef.current) {
-                // Set live status in backend
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
 
                 socketRef.current.emit("squad-live-start", {
@@ -385,22 +478,9 @@ export default function ClassSquad() {
             setActiveCall(call)
             setActiveSquad(squad)
         } catch (e: any) {
-            console.error("[Video Join Error]", e)
-            if (e.name === "NotAllowedError" || e.message?.includes("Permission denied")) {
-                toast({
-                    title: "Camera/Mic Permission Denied",
-                    description: "Please enable camera and microphone access in your browser settings to join the live session.",
-                    variant: "destructive"
-                })
-            } else if (e.name === "AxiosError" && e.message?.includes("timeout")) {
-                toast({
-                    title: "Connection Timeout",
-                    description: "Stream API is currently unreachable. Please check your internet connection and try again.",
-                    variant: "destructive"
-                })
-            } else {
-                toast({ title: "Video Error", description: e.message || "Failed to initialize stream.", variant: "destructive" })
-            }
+            console.error("[Post-Join Error]", e)
+            setActiveCall(call)
+            setActiveSquad(squad)
         } finally {
             setIsJoining(false)
         }
@@ -408,22 +488,33 @@ export default function ClassSquad() {
 
     const handleLeaveLive = async () => {
         if (!activeCall || !activeSquad) return
-        const isHost = activeCall.state.createdBy?.id === currentUserId
+
+        const callToLeave = activeCall
+        const squadToLeave = activeSquad
+
+        // Wipe local state immediately to close classroom UI
+        setActiveCall(null)
+        setActiveSquad(null)
+
         try {
-            await activeCall.leave()
+            // Check state to avoid "already left" error
+            const s = callToLeave.state.callingState
+            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
+                await callToLeave.leave()
+            }
+
+            const isHost = callToLeave.state.createdBy?.id === currentUserId
             if (isHost && socketRef.current) {
                 // Reset live status in backend
-                await groupApi.toggleLive(activeSquad._id, { isLive: false })
+                await groupApi.toggleLive(squadToLeave._id, { isLive: false })
                 // Notify members
                 socketRef.current.emit("squad-live-stop", {
-                    squadId: activeSquad._id,
-                    memberIds: activeSquad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [],
+                    squadId: squadToLeave._id,
+                    memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [],
                 })
             }
         } catch (e) {
             console.error("Error leaving call", e)
-        } finally {
-            setActiveCall(null)
         }
     }
 
@@ -448,6 +539,7 @@ export default function ClassSquad() {
                     socket={socketRef.current}
                     onLeave={handleLeaveLive}
                 />
+                <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
             </div>
         )
     }
@@ -467,6 +559,7 @@ export default function ClassSquad() {
                 {liveAlert && (
                     <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />
                 )}
+                <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
             </>
         )
     }
@@ -820,6 +913,7 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                     <GroupQandATab squadId={squad._id} />
                 </div>
             </div>
+            <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
         </div>
     )
 }

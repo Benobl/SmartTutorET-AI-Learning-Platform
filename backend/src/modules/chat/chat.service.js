@@ -13,9 +13,14 @@ export class ChatService {
      * Get chat history for a specific squad
      */
     static async getSquadHistory(squadId, limit = 200) {
-        return await ChatMessage.find({ squadId })
-            .sort({ createdAt: 1 })
-            .limit(limit);
+        try {
+            return await ChatMessage.find({ squadId: squadId })
+                .sort({ createdAt: 1 })
+                .limit(limit);
+        } catch (error) {
+            console.error(`[ChatService] Failed to get squad history for ${squadId}:`, error);
+            throw error;
+        }
     }
 
     /**

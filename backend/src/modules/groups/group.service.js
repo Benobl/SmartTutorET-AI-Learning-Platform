@@ -16,7 +16,9 @@ export class GroupService {
 
         // Automatically create a default forum for the group
         await Forum.create({
-            groupId: group._id,
+            relatedId: group._id,
+            typeModel: "StudyGroup",
+            type: "group",
             title: "General Discussion",
             description: `Welcome to the ${group.name} general forum.`
         });
@@ -61,12 +63,14 @@ export class GroupService {
     }
 
     static async getGroupForums(groupId) {
-        let forums = await Forum.find({ groupId });
+        let forums = await Forum.find({ relatedId: groupId, typeModel: "StudyGroup" });
         if (forums.length === 0) {
             const group = await StudyGroup.findById(groupId);
             if (group) {
                 const defaultForum = await Forum.create({
-                    groupId: group._id,
+                    relatedId: group._id,
+                    typeModel: "StudyGroup",
+                    type: "group",
                     title: "General Discussion",
                     description: `Welcome to the ${group.name} general forum.`
                 });
@@ -105,17 +109,27 @@ export class GroupService {
     }
 
     static async toggleLive(groupId, userId, isLive, sessionData = null) {
-        const group = await StudyGroup.findById(groupId);
-        if (!group) throw new ApiError(404, "Group not found");
+        try {
+            console.log(`[GroupService] Toggling live for ${groupId}, user: ${userId}, isLive: ${isLive}`);
+            const group = await StudyGroup.findById(groupId);
+            if (!group) throw new ApiError(404, "Group not found");
 
-        // Only creator can toggle live status
-        if (group.creator.toString() !== userId.toString()) {
-            throw new ApiError(403, "Only the squad creator can start/stop live sessions");
+            // Verify membership
+            const isMember = group.members.some(m => m.toString() === userId.toString());
+            if (!isMember) {
+                throw new ApiError(403, "You must be a member of this squad to manage live sessions");
+            }
+
+            group.isLive = !!isLive;
+            group.sessionData = isLive ? sessionData : null;
+            await group.save();
+
+            console.log(`[GroupService] Successfully toggled live for ${groupId}`);
+            return group;
+        } catch (error) {
+            console.error(`[GroupService] Error toggling live for ${groupId}:`, error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError(500, `Failed to toggle session: ${error.message}`);
         }
-
-        group.isLive = isLive;
-        group.sessionData = isLive ? sessionData : null;
-        await group.save();
-        return group;
     }
 }

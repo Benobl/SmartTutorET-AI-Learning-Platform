@@ -60,6 +60,7 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 // 1. Get Token
                 const { token } = await authApi.getStreamToken()
+                if (!token) throw new Error("Failed to retrieve valid stream token")
 
                 // 2. Chat Client Singleton
                 const chat = StreamChat.getInstance(apiKey)
@@ -87,7 +88,14 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                     name: user.fullName || "User",
                     image: user.profilePic || ""
                 }
-                const vClient = new StreamVideoClient({ apiKey, user: videoUser, token })
+                const vClient = new StreamVideoClient({
+                    apiKey,
+                    user: videoUser,
+                    token,
+                    options: {
+                        axiosConfig: { timeout: 30000 } // Extended 30s timeout for stability
+                    }
+                })
                 setVideoClient(vClient)
 
                 setIsReady(true)

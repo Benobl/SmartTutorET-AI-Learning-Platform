@@ -196,7 +196,9 @@ io.on("connection", (socket) => {
     // Squad live session broadcast — send to each specific member
     socket.on("squad-live-start", (data) => {
         const { memberIds = [], callId, squadId, squadName, hostName, hostId } = data;
-        memberIds.forEach((memberId) => {
+        const safeMemberIds = Array.isArray(memberIds) ? memberIds : [];
+
+        safeMemberIds.forEach((memberId) => {
             const memberSocketId = getReceiverSocketId(memberId);
             if (memberSocketId) {
                 io.to(memberSocketId).emit("squad-live-started", {

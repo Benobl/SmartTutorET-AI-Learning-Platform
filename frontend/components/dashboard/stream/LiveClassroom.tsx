@@ -4,11 +4,13 @@ import React from 'react'
 import {
     Call,
     CallControls,
+    CallingState,
     CallParticipantsList,
     SpeakerLayout,
     StreamCall,
     StreamTheme,
     useCallStateHooks,
+    ParticipantView,
 } from '@stream-io/video-react-sdk'
 import { ArrowLeft, Video, Users, Mic, MicOff, VideoOff, UserPlus, Search, X, Loader2, Monitor, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,7 @@ import { userApi } from '@/lib/api'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { PermissionRecoveryModal } from './PermissionRecoveryModal'
 import "@stream-io/video-react-sdk/dist/css/styles.css"
 
 interface LiveClassroomProps {
@@ -37,12 +40,23 @@ const LiveSessionContent = ({
     socket
 }: LiveClassroomProps) => {
     const [isInviteOpen, setIsInviteOpen] = React.useState(false)
+    const [isPermissionOpen, setIsPermissionOpen] = React.useState(false)
     const [searchQuery, setSearchQuery] = React.useState("")
     const [students, setStudents] = React.useState<any[]>([])
     const [invitedIds, setInvitedIds] = React.useState<Set<string>>(new Set())
 
     const currentUser = getCurrentUser()
-    const { useMicrophoneState, useCameraState, useScreenShareState } = useCallStateHooks()
+    const {
+        useMicrophoneState,
+        useCameraState,
+        useScreenShareState,
+        useParticipants,
+        useLocalParticipant
+    } = useCallStateHooks()
+
+    const localParticipant = useLocalParticipant()
+    const participants = useParticipants()
+    const isSolo = participants.length <= 1
 
     const { isEnabled: micEnabled } = useMicrophoneState()
     const { isEnabled: camEnabled } = useCameraState()
@@ -52,11 +66,35 @@ const LiveSessionContent = ({
     React.useEffect(() => {
         // Cleanup call on unmount to prevent WebRTC stale connections
         return () => {
-            if (call.state.status === 'joined') {
-                call.leave()
+            if (call && call.state.callingState !== CallingState.LEFT) {
+                call.leave().catch(err => console.error("Error leaving call:", err))
             }
         }
     }, [call])
+
+    // Auto-Activation Logic
+    React.useEffect(() => {
+        const autoEnable = async () => {
+            try {
+                if (!micEnabled) await call.microphone.enable()
+                if (!camEnabled) await call.camera.enable()
+                toast({ title: "Media Engaged", description: "Camera and Microphone activated automatically." })
+            } catch (e: any) {
+                console.warn("[Auto-Media Error]", e)
+                const isPermissionError =
+                    e.name === "NotAllowedError" ||
+                    e.name === "PermissionDeniedError" ||
+                    e.message?.toLowerCase().includes("denied") ||
+                    e.message?.toLowerCase().includes("granted")
+
+                if (isPermissionError) {
+                    setIsPermissionOpen(true)
+                }
+            }
+        }
+        autoEnable()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     React.useEffect(() => {
         if (isInviteOpen) {
@@ -128,19 +166,40 @@ const LiveSessionContent = ({
 
             {/* Primary Content Area */}
             <div className="flex-1 min-h-0 relative flex gap-8 p-8">
-                <div className="flex-1 relative overflow-hidden bg-slate-900 rounded-[3rem] border-8 border-white/30 shadow-[0_40px_100px_rgba(0,0,0,0.3)] ring-1 ring-white/20">
-                    <SpeakerLayout />
+                <div className="flex-1 relative overflow-hidden bg-slate-950 rounded-[3rem] border-8 border-white/20 shadow-[0_45px_120px_rgba(0,0,0,0.4)] flex items-center justify-center group/video">
+                    {/* Cinematic Backdrop */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 opacity-50" />
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20" />
 
-                    {/* Overlay Status Indicators */}
-                    <div className="absolute top-6 left-6 flex gap-3 z-30">
+                    {/* Aspect Ratio Controlled Content Wrapper */}
+                    <div className="relative w-full h-full max-h-[80vh] aspect-video flex items-center justify-center overflow-hidden rounded-3xl bg-slate-900 shadow-inner">
+                        {!localParticipant && isSolo ? (
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-16 h-16 rounded-full border-4 border-sky-500/20 border-t-sky-500 animate-spin" />
+                                <p className="text-xs font-black text-sky-500 uppercase tracking-[0.2em] animate-pulse">Connecting Hardware...</p>
+                            </div>
+                        ) : isSolo ? (
+                            <ParticipantView
+                                participant={localParticipant!}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <SpeakerLayout />
+                        )}
+                    </div>
+
+                    {/* Overlay Status Indicators - Advanced Glassmorphism */}
+                    <div className="absolute top-8 left-8 flex gap-4 z-30 transition-all group-hover/video:translate-y-1">
                         {screenShareEnabled && (
-                            <div className="px-4 py-2 bg-emerald-500/90 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-emerald-400 border-2">
-                                <Monitor className="w-3.5 h-3.5" /> Screen Sharing
+                            <div className="px-5 py-2.5 bg-emerald-500/80 backdrop-blur-2xl rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2.5 border border-emerald-400/40 shadow-2xl shadow-emerald-500/20">
+                                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                <Monitor className="w-4 h-4" /> SCREEN STREAMING
                             </div>
                         )}
                         {isRecording && (
-                            <div className="px-4 py-2 bg-rose-500/90 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-rose-400 border-2 animate-pulse">
-                                <Radio className="w-3.5 h-3.5" /> Recording Session
+                            <div className="px-5 py-2.5 bg-rose-500/80 backdrop-blur-2xl rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2.5 border border-rose-400/40 shadow-2xl shadow-rose-500/20 animate-pulse">
+                                <div className="w-2 h-2 rounded-full bg-white" />
+                                <Radio className="w-4 h-4" /> RECORDING HUB
                             </div>
                         )}
                     </div>
@@ -203,14 +262,43 @@ const LiveSessionContent = ({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={async () => await call.microphone.toggle()}
-                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
-                                        micEnabled ? "bg-emerald-500 text-white border-emerald-400 soft-shadow-emerald" : "bg-white text-slate-400 border-slate-100")}
+                                    onClick={async () => {
+                                        try {
+                                            if (micEnabled) {
+                                                await call.microphone.disable()
+                                                // Hardware Force Release
+                                                const tracks = await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks()).catch(() => [])
+                                                tracks.forEach(track => track.stop())
+                                            } else {
+                                                await call.microphone.enable()
+                                                toast({ title: "Microphone Active", description: "Audio stream engaged." })
+                                            }
+                                        } catch (e: any) {
+                                            console.error("[Mic Error]", e)
+                                            const isPermissionError =
+                                                e.name === "NotAllowedError" ||
+                                                e.name === "PermissionDeniedError" ||
+                                                e.name === "SecurityError" ||
+                                                e.message?.toLowerCase().includes("denied") ||
+                                                e.message?.toLowerCase().includes("granted") ||
+                                                e.message?.toLowerCase().includes("prompt")
+
+                                            if (isPermissionError) {
+                                                setIsPermissionOpen(true)
+                                            } else {
+                                                toast({ title: "Microphone Error", description: "Hardware busy or unavailable.", variant: "destructive" })
+                                            }
+                                        }
+                                    }}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border-2 shadow-lg active:scale-95 group-hover:-translate-y-1 flex items-center justify-center",
+                                        micEnabled
+                                            ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-200"
+                                            : "bg-rose-50 text-rose-500 border-rose-100 hover:bg-rose-100")}
                                 >
                                     {micEnabled ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
                                 </Button>
-                                <span className={cn("text-[9px] font-black uppercase tracking-widest", micEnabled ? "text-emerald-600" : "text-slate-400")}>
-                                    {micEnabled ? "Open" : "Muted"}
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", micEnabled ? "text-emerald-600" : "text-rose-600")}>
+                                    {micEnabled ? "Active" : "Muted"}
                                 </span>
                             </div>
 
@@ -218,14 +306,46 @@ const LiveSessionContent = ({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={async () => await call.camera.toggle()}
-                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
-                                        camEnabled ? "bg-sky-500 text-white border-sky-400 soft-shadow-sky" : "bg-white text-slate-400 border-slate-100")}
+                                    onClick={async () => {
+                                        try {
+                                            if (camEnabled) {
+                                                await call.camera.disable()
+                                                // Hardware Force Release (Fixes the "Light Stayed ON" issue)
+                                                const stream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null)
+                                                if (stream) {
+                                                    stream.getTracks().forEach(track => track.stop())
+                                                }
+                                                toast({ title: "Camera Closed", description: "Hardware released." })
+                                            } else {
+                                                await call.camera.enable()
+                                                toast({ title: "Camera Active", description: "Video stream engaged." })
+                                            }
+                                        } catch (e: any) {
+                                            console.error("[Camera Error]", e)
+                                            const isPermissionError =
+                                                e.name === "NotAllowedError" ||
+                                                e.name === "PermissionDeniedError" ||
+                                                e.name === "SecurityError" ||
+                                                e.message?.toLowerCase().includes("denied") ||
+                                                e.message?.toLowerCase().includes("granted") ||
+                                                e.message?.toLowerCase().includes("prompt")
+
+                                            if (isPermissionError) {
+                                                setIsPermissionOpen(true)
+                                            } else {
+                                                toast({ title: "Camera Error", description: "Hardware busy or unavailable.", variant: "destructive" })
+                                            }
+                                        }
+                                    }}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border-2 shadow-lg active:scale-95 group-hover:-translate-y-1 flex items-center justify-center",
+                                        camEnabled
+                                            ? "bg-sky-500 text-white border-sky-400 shadow-sky-200"
+                                            : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100")}
                                 >
                                     {camEnabled ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
                                 </Button>
-                                <span className={cn("text-[9px] font-black uppercase tracking-widest", camEnabled ? "text-sky-600" : "text-slate-400")}>
-                                    {camEnabled ? "Live" : "Off"}
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", camEnabled ? "text-sky-600" : "text-slate-400")}>
+                                    {camEnabled ? "Cam On" : "Cam Off"}
                                 </span>
                             </div>
 
@@ -233,13 +353,26 @@ const LiveSessionContent = ({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => call.screenShare.toggle()}
-                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
-                                        screenShareEnabled ? "bg-indigo-600 text-white border-indigo-500 soft-shadow-indigo" : "bg-white text-slate-400 border-slate-100")}
+                                    onClick={async () => {
+                                        try {
+                                            await call.screenShare.toggle()
+                                        } catch (e: any) {
+                                            console.error("[Screen Share Error]", e)
+                                            if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError" || e.message?.toLowerCase().includes("denied")) {
+                                                setIsPermissionOpen(true)
+                                            } else {
+                                                toast({ title: "Screen Share Error", description: "Failed to start sharing.", variant: "destructive" })
+                                            }
+                                        }
+                                    }}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border-2 shadow-lg active:scale-95 group-hover:-translate-y-1 flex items-center justify-center",
+                                        screenShareEnabled
+                                            ? "bg-indigo-600 text-white border-indigo-400 shadow-indigo-200 animate-pulse"
+                                            : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100")}
                                 >
                                     <Monitor className="w-7 h-7" />
                                 </Button>
-                                <span className={cn("text-[9px] font-black uppercase tracking-widest", screenShareEnabled ? "text-indigo-600 font-black" : "text-slate-400 font-bold")}>
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", screenShareEnabled ? "text-indigo-600" : "text-slate-400")}>
                                     {screenShareEnabled ? "Sharing" : "Screen"}
                                 </span>
                             </div>
@@ -248,14 +381,33 @@ const LiveSessionContent = ({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => isRecording ? call.stopRecording() : call.startRecording()}
-                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border shadow-lg active:scale-95 group-hover:-translate-y-1",
-                                        isRecording ? "bg-rose-500 text-white border-rose-400 animate-pulse soft-shadow-rose" : "bg-white text-slate-400 border-slate-100")}
+                                    onClick={async () => {
+                                        try {
+                                            if (isRecording) {
+                                                await call.stopRecording()
+                                                toast({ title: "Recording Saved", description: "Session capture has ended." })
+                                            } else {
+                                                await call.startRecording()
+                                                toast({ title: "Recording Started", description: "Capturing laboratory session." })
+                                            }
+                                        } catch (e: any) {
+                                            console.error("[Recording Error]", e)
+                                            toast({
+                                                title: "Recording Unavailable",
+                                                description: e.message || "You may not have permission to record this session.",
+                                                variant: "destructive"
+                                            })
+                                        }
+                                    }}
+                                    className={cn("w-16 h-16 rounded-[2rem] transition-all border-2 shadow-lg active:scale-95 group-hover:-translate-y-1 flex items-center justify-center",
+                                        isRecording
+                                            ? "bg-rose-600 text-white border-rose-500 shadow-rose-200 animate-pulse"
+                                            : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100")}
                                 >
                                     <Radio className="w-7 h-7" />
                                 </Button>
-                                <span className={cn("text-[9px] font-black uppercase tracking-widest", isRecording ? "text-rose-600" : "text-slate-400")}>
-                                    {isRecording ? "Recording" : "Record"}
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", isRecording ? "text-rose-600" : "text-slate-400")}>
+                                    {isRecording ? "REC ON" : "Record"}
                                 </span>
                             </div>
                         </div>
@@ -405,6 +557,7 @@ const LiveSessionContent = ({
                     </div>
                 </DialogContent>
             </Dialog>
+            <PermissionRecoveryModal open={isPermissionOpen} onOpenChange={setIsPermissionOpen} />
         </StreamTheme>
     )
 }
