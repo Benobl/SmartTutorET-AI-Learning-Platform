@@ -72,22 +72,24 @@ const LiveSessionContent = ({
         }
     }, [call])
 
-    // Auto-Activation Logic
+    // Zero-Click Auto-Activation Logic
     React.useEffect(() => {
         const autoEnable = async () => {
             try {
-                if (!micEnabled) await call.microphone.enable()
-                if (!camEnabled) await call.camera.enable()
-                toast({ title: "Media Engaged", description: "Camera and Microphone activated automatically." })
-            } catch (e: any) {
-                console.warn("[Auto-Media Error]", e)
-                const isPermissionError =
-                    e.name === "NotAllowedError" ||
-                    e.name === "PermissionDeniedError" ||
-                    e.message?.toLowerCase().includes("denied") ||
-                    e.message?.toLowerCase().includes("granted")
+                // Short wait to ensure SDK context is definitely ready
+                await new Promise(resolve => setTimeout(resolve, 800))
 
-                if (isPermissionError) {
+                if (call.microphone && !micEnabled) {
+                    await call.microphone.enable().catch(console.warn)
+                }
+                if (call.camera && !camEnabled) {
+                    await call.camera.enable().catch(console.warn)
+                }
+
+                toast({ title: "Laboratory Active", description: "Hardware synchronized automatically." })
+            } catch (e: any) {
+                console.warn("[Auto-Media Warning]", e)
+                if (e.name === "NotAllowedError" || e.message?.toLowerCase().includes("denied")) {
                     setIsPermissionOpen(true)
                 }
             }
@@ -182,6 +184,7 @@ const LiveSessionContent = ({
                             <ParticipantView
                                 participant={localParticipant!}
                                 className="w-full h-full object-cover"
+                                mirror={true}
                             />
                         ) : (
                             <SpeakerLayout />
@@ -310,30 +313,17 @@ const LiveSessionContent = ({
                                         try {
                                             if (camEnabled) {
                                                 await call.camera.disable()
-                                                // Hardware Force Release (Fixes the "Light Stayed ON" issue)
-                                                const stream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null)
-                                                if (stream) {
-                                                    stream.getTracks().forEach(track => track.stop())
-                                                }
-                                                toast({ title: "Camera Closed", description: "Hardware released." })
+                                                toast({ title: "Camera Off" })
                                             } else {
                                                 await call.camera.enable()
-                                                toast({ title: "Camera Active", description: "Video stream engaged." })
+                                                toast({ title: "Camera On" })
                                             }
                                         } catch (e: any) {
-                                            console.error("[Camera Error]", e)
-                                            const isPermissionError =
-                                                e.name === "NotAllowedError" ||
-                                                e.name === "PermissionDeniedError" ||
-                                                e.name === "SecurityError" ||
-                                                e.message?.toLowerCase().includes("denied") ||
-                                                e.message?.toLowerCase().includes("granted") ||
-                                                e.message?.toLowerCase().includes("prompt")
-
-                                            if (isPermissionError) {
+                                            console.error("[Camera Toggle Error]", e)
+                                            if (e.name === "NotAllowedError" || e.message?.includes("denied")) {
                                                 setIsPermissionOpen(true)
                                             } else {
-                                                toast({ title: "Camera Error", description: "Hardware busy or unavailable.", variant: "destructive" })
+                                                toast({ title: "Media Error", description: "Failed to toggle camera.", variant: "destructive" })
                                             }
                                         }
                                     }}
