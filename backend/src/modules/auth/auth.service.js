@@ -44,12 +44,20 @@ export class AuthService {
     }
 
     static async login(email, password) {
+        logger.info(`[AuthService] Attempting login for ${email}`);
         const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) throw new ApiError(401, "Invalid credentials");
+        if (!user) {
+            logger.warn(`[AuthService] User not found: ${email}`);
+            throw new ApiError(401, "Invalid credentials");
+        }
 
         const isMatch = await user.matchPassword(password);
-        if (!isMatch) throw new ApiError(401, "Invalid credentials");
+        if (!isMatch) {
+            logger.warn(`[AuthService] Password mismatch for ${email}`);
+            throw new ApiError(401, "Invalid credentials");
+        }
 
+        logger.info(`[AuthService] Login successful for ${email}`);
         return user;
     }
 
@@ -113,14 +121,17 @@ export class AuthService {
     }
 
     static async googleLogin(credential) {
+        logger.info("[AuthService] Starting Google Login verification");
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
         try {
+            logger.info("[AuthService] Verifying token with Google...");
             const ticket = await client.verifyIdToken({
                 idToken: credential,
                 audience: process.env.GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
             const { email, given_name, family_name, picture, sub } = payload;
+            logger.info(`[AuthService] Google token verified for ${email}`);
 
             let user = await User.findOne({ email: email.toLowerCase() });
 

@@ -24,18 +24,28 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
+        // Join room explicitly
+        if (socket) {
+            socket.emit("join-squad", squadId)
+        }
+
         // Set canvas size to parent container size
         const resizeCanvas = () => {
             const parent = canvas.parentElement
             if (parent) {
-                canvas.width = parent.clientWidth
-                canvas.height = parent.clientHeight
+                // Use offsetParent if parent ClientHeight is 0
+                const width = parent.clientWidth || 800
+                const height = parent.clientHeight || 500
+                canvas.width = width
+                canvas.height = height
+
+                // Redraw settings after resize as size change clears the canvas
                 ctx.lineCap = "round"
                 ctx.lineJoin = "round"
             }
         }
 
-        resizeCanvas()
+        setTimeout(resizeCanvas, 100) // Small delay to ensure parent has size
         window.addEventListener("resize", resizeCanvas)
 
         // Socket listener for drawing

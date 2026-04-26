@@ -11,18 +11,24 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     };
 
     try {
+        console.log(`[API Request] ${API_BASE_URL}${endpoint}`, options.method || "GET");
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
             credentials: "include", // Required for sending/receiving cookies
         });
 
+        console.log(`[API Response] ${endpoint} Status:`, response.status);
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error(`[API Error Response] ${endpoint}:`, errorData);
             throw new Error(errorData.message || "Something went wrong");
         }
 
-        return response.json();
+        const data = await response.json();
+        console.log(`[API Success] ${endpoint} Data received`);
+        return data;
     } catch (error: any) {
         console.error(`[API FETCH ERROR] ${API_BASE_URL}${endpoint}:`, error);
         throw error;
@@ -64,6 +70,7 @@ export const groupApi = {
             method: "POST",
             body: JSON.stringify({ content })
         }),
+    getPosts: (threadId: string) => fetchWithAuth(`/groups/threads/${threadId}/posts`),
 };
 
 export const inviteApi = {
@@ -80,6 +87,7 @@ export const inviteApi = {
 
 export const questionApi = {
     getAll: () => fetchWithAuth("/questions"),
+    getBySquad: (squadId: string) => fetchWithAuth(`/questions/squad/${squadId}`),
     create: (data: any) => fetchWithAuth("/questions", {
         method: "POST",
         body: JSON.stringify(data)

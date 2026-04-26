@@ -1,15 +1,20 @@
 import { StreamChat } from "stream-chat"
 import "dotenv/config"
 
-const apikey = process.env.STEAM_API_KEY
-const apiSecret = process.env.STEAM_API_SECRET
+const apikey = process.env.STREAM_API_KEY || process.env.STEAM_API_KEY
+const apiSecret = process.env.STREAM_API_SECRET || process.env.STEAM_API_SECRET
 
-if (!apikey || !apiSecret) {
-    console.error("Stream API key or Secret is missing")
+let streamClient = null;
+
+if (apikey && apiSecret) {
+    streamClient = StreamChat.getInstance(apikey, apiSecret);
+    console.log("[Stream] Initialized with API key:", apikey?.slice(0, 6) + "...");
+} else {
+    console.warn("[Stream] API key or Secret missing — Stream Chat/Video disabled. Set STREAM_API_KEY and STREAM_API_SECRET in .env");
 }
-const streamClient = StreamChat.getInstance(apikey, apiSecret);
 
 export const upsertStreamUser = async (userData) => {
+    if (!streamClient) return userData;
     try {
         await streamClient.upsertUsers([userData]);
         return userData;
@@ -18,11 +23,20 @@ export const upsertStreamUser = async (userData) => {
     }
 }
 export const generateStreamToken = (userId) => {
+    if (!streamClient) return null;
     try {
-        //ensure userId is a string
         const userIdStr = userId.toString();
         return streamClient.createToken(userIdStr)
     } catch (error) {
         console.error("Error generating Stream token", error)
     }
 }
+export const addStreamChannelMember = async (channelId, userId) => {
+    if (!streamClient) return;
+    try {
+        const channel = streamClient.channel("messaging", channelId);
+        await channel.addMembers([userId.toString()]);
+    } catch (error) {
+        console.error("Error adding member to Stream channel:", error);
+    }
+};

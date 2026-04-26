@@ -93,6 +93,7 @@ export default function LoginPage() {
               if (res.success && res.data) {
                 const user = res.data;
                 localStorage.setItem("smarttutor_user", JSON.stringify(user));
+                if (res.token) localStorage.setItem("token", res.token);
                 setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
 
                 if (user.role === "admin") {

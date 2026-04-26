@@ -117,9 +117,34 @@ io.on("connection", (socket) => {
         io.to(`squad_${squadId}`).emit("new-squad-message", { ...message, senderId: userId });
     });
 
-    socket.on("squad-live-started", (data) => {
+    // Squad live session broadcast — send to each specific member
+    socket.on("squad-live-start", (data) => {
+        const { memberIds = [], callId, squadId, squadName, hostName, hostId } = data;
+        memberIds.forEach((memberId) => {
+            const memberSocketId = getReceiverSocketId(memberId);
+            if (memberSocketId) {
+                io.to(memberSocketId).emit("squad-live-started", {
+                    callId,
+                    squadId,
+                    squadName,
+                    hostName,
+                    hostId,
+                });
+            }
+        });
+        // Also broadcast to squad room (for members who joined the room socket)
+        socket.to(`squad_${squadId}`).emit("squad-live-started", { callId, squadId, squadName, hostName, hostId });
+    });
+
+    socket.on("squad-live-stop", (data) => {
         const { squadId } = data;
-        socket.to(`squad_${squadId}`).emit("squad-live-started", data);
+        io.to(`squad_${squadId}`).emit("squad-live-ended", { squadId });
+        // Also notify members directly in case they aren't in the room
+        const { memberIds = [] } = data;
+        memberIds.forEach(mId => {
+            const mSocketId = getReceiverSocketId(mId);
+            if (mSocketId) io.to(mSocketId).emit("squad-live-ended", { squadId });
+        });
     });
 
     socket.on("disconnect", () => {

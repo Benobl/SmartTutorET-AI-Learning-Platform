@@ -2,23 +2,33 @@ import PeerQuestion from "../users/question.model.js";
 import PeerAnswer from "../users/answer.model.js";
 
 export class QuestionService {
-    static async getAllQuestions() {
-        return await PeerQuestion.find({})
-            .populate("authorId", "fullName profilePic")
+    static async getAllQuestions(filters = {}) {
+        return await PeerQuestion.find(filters)
+            .populate("author", "fullName profilePic")
             .sort({ createdAt: -1 });
+    }
+
+    static async getSquadQuestions(squadId) {
+        return await this.getAllQuestions({ squadId });
     }
 
     static async askQuestion(authorId, questionData) {
         return await PeerQuestion.create({
             ...questionData,
-            authorId
+            author: authorId
         });
+    }
+
+    static async getAnswers(questionId) {
+        return await PeerAnswer.find({ questionId })
+            .populate("author", "fullName profilePic")
+            .sort({ createdAt: 1 });
     }
 
     static async answerQuestion(authorId, questionId, content) {
         return await PeerAnswer.create({
             questionId,
-            authorId,
+            author: authorId,
             content
         });
     }

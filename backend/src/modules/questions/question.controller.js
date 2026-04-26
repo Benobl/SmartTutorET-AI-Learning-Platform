@@ -4,9 +4,16 @@ export class QuestionController {
     static async getAll(req, res, next) {
         try {
             const questions = await QuestionService.getAllQuestions();
-            // Convert to format expected by frontend if necessary
-            // For now, return array directly to match frontend expectation
-            res.json(questions);
+            res.json({ success: true, data: questions });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getBySquad(req, res, next) {
+        try {
+            const questions = await QuestionService.getSquadQuestions(req.params.squadId);
+            res.json({ success: true, data: questions });
         } catch (error) {
             next(error);
         }
@@ -15,7 +22,16 @@ export class QuestionController {
     static async create(req, res, next) {
         try {
             const question = await QuestionService.askQuestion(req.user._id, req.body);
-            res.status(201).json(question);
+            res.status(201).json({ success: true, data: question });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getAnswers(req, res, next) {
+        try {
+            const answers = await QuestionService.getAnswers(req.params.questionId);
+            res.json({ success: true, data: answers });
         } catch (error) {
             next(error);
         }
@@ -24,7 +40,7 @@ export class QuestionController {
     static async createAnswer(req, res, next) {
         try {
             const answer = await QuestionService.answerQuestion(req.user._id, req.body.questionId, req.body.content);
-            res.status(201).json(answer);
+            res.status(201).json({ success: true, data: answer });
         } catch (error) {
             next(error);
         }
@@ -33,7 +49,7 @@ export class QuestionController {
     static async upvote(req, res, next) {
         try {
             const question = await QuestionService.upvoteQuestion(req.params.questionId);
-            res.json(question);
+            res.json({ success: true, data: question });
         } catch (error) {
             next(error);
         }

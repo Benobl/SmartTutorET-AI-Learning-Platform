@@ -42,6 +42,10 @@ export const loginUser = async (email: string, password: string): Promise<User |
 
             if (typeof window !== 'undefined') {
                 localStorage.setItem('smarttutor_user', JSON.stringify(user));
+                // Store JWT token for API authorization
+                if (response.token) {
+                    localStorage.setItem('token', response.token);
+                }
             }
             return user;
         }
@@ -50,6 +54,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
         return { error: error.message || "An error occurred during login." };
     }
 };
+
 
 /**
  * Register a new user
@@ -68,6 +73,10 @@ export const registerUser = async (userData: any): Promise<User | { error: strin
 
             if (typeof window !== 'undefined' && user.role === 'student') {
                 localStorage.setItem('smarttutor_user', JSON.stringify(user));
+            }
+            // Store JWT token for API authorization
+            if (typeof window !== 'undefined' && response.token) {
+                localStorage.setItem('token', response.token);
             }
             return user;
         }

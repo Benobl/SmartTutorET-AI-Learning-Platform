@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
@@ -34,14 +35,22 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-ST-CSRF"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF"]
 }));
+
+// Preflight debug
+app.options("*", (req, res) => {
+  logger.debug(`[Preflight] OPTIONS ${req.path} from ${req.headers.origin}`);
+  res.sendStatus(204);
+});
 
 // Global Rate Limiter
 const globalLimiter = rateLimit({
@@ -72,6 +81,16 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/invites", inviteRoutes);
 
 // Health Check
+app.get("/api/health", (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
+  res.json({
+    success: true,
+    status: "Running",
+    database: dbStatus,
+    timestamp: new Date()
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({ success: true, message: "SmartTutorET Modular API Running" });
 });

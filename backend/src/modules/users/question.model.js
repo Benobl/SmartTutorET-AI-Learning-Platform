@@ -29,6 +29,11 @@ const peerQuestionSchema = new mongoose.Schema(
                 ref: "User",
             },
         ],
+        squadId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "StudyGroup",
+            default: null,
+        },
         isResolved: {
             type: Boolean,
             default: false,

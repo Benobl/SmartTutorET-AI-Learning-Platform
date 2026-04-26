@@ -4,7 +4,7 @@ export class GroupController {
     static async create(req, res, next) {
         try {
             const group = await GroupService.createGroup(req.user._id, req.body);
-            res.status(201).json(group);
+            res.status(201).json({ success: true, data: group });
         } catch (error) {
             next(error);
         }
@@ -49,7 +49,7 @@ export class GroupController {
     static async getAll(req, res, next) {
         try {
             const groups = await GroupService.getAllGroups();
-            res.json(groups);
+            res.json({ success: true, data: groups });
         } catch (error) {
             next(error);
         }
@@ -58,7 +58,7 @@ export class GroupController {
     static async getMyGroups(req, res, next) {
         try {
             const groups = await GroupService.getUserGroups(req.user._id);
-            res.json(groups);
+            res.json({ success: true, data: groups });
         } catch (error) {
             next(error);
         }

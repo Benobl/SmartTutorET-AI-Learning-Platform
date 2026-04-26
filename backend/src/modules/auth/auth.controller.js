@@ -34,6 +34,7 @@ export class AuthController {
             res.status(201).json({
                 success: true,
                 message: "Registration successful. Please verify your email.",
+                token: accessToken,
                 data: {
                     _id: user._id,
                     id: user._id,
@@ -50,7 +51,11 @@ export class AuthController {
     static async login(req, res, next) {
         try {
             const { email, password } = req.body;
+            logger.info(`[Auth] Login attempt for: ${email}`);
+
             const user = await AuthService.login(email, password);
+            logger.info(`[Auth] User found: ${user._id}`);
+
             const { accessToken, refreshToken } = AuthService.generateTokens(user._id);
 
             user.refreshTokens.push(refreshToken);
@@ -77,7 +82,7 @@ export class AuthController {
                 secure: process.env.NODE_ENV === "production",
             });
 
-            res.status(200).json({ success: true, data: user });
+            res.status(200).json({ success: true, token: accessToken, data: user });
         } catch (error) {
             next(error);
         }
@@ -154,7 +159,7 @@ export class AuthController {
                 secure: process.env.NODE_ENV === "production",
             });
 
-            res.status(200).json({ success: true, data: user });
+            res.status(200).json({ success: true, token: accessToken, data: user });
         } catch (error) {
             next(error);
         }

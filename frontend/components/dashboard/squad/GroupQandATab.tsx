@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { HelpCircle, ChevronUp, CheckCircle2, User, Plus, MessageCircle } from "lucide-react"
+import { HelpCircle, Plus, ChevronLeft, Loader2, Send, ChevronUp, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,11 +15,14 @@ interface GroupQandATabProps {
 
 export function GroupQandATab({ squadId }: GroupQandATabProps) {
     const [questions, setQuestions] = useState<any[]>([])
-    const [isAsking, setIsAsking] = useState(false)
-    const [newQuestion, setNewQuestion] = useState({ title: "", content: "", tags: "" })
-    const [selectedQuestion, setSelectedQuestion] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [askOpen, setAskOpen] = useState(false)
+    const [newQ, setNewQ] = useState({ title: "", content: "", tags: "" })
+    const [selectedQ, setSelectedQ] = useState<any>(null)
     const [answers, setAnswers] = useState<any[]>([])
-    const [newAnswer, setNewAnswer] = useState("")
+    const [answerText, setAnswerText] = useState("")
+    const [submitting, setSubmitting] = useState(false)
+    const [asking, setAsking] = useState(false)
 
     useEffect(() => {
         fetchQuestions()
@@ -27,197 +30,197 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
 
     const fetchQuestions = async () => {
         try {
-            const data = await questionApi.getAll()
+            const data = await questionApi.getBySquad(squadId)
             setQuestions(data.data || [])
-        } catch (error) {
-            console.error("Failed to fetch questions:", error)
-        }
+        } catch (e) {
+            console.error(e)
+            toast({ title: "Failed to load questions", variant: "destructive" })
+        } finally { setLoading(false) }
     }
 
-    const handleAskQuestion = async () => {
-        if (!newQuestion.title || !newQuestion.content) return
+    const openQuestion = async (q: any) => {
+        setSelectedQ(q)
         try {
-            await questionApi.create({
-                title: newQuestion.title,
-                content: newQuestion.content,
-                tags: newQuestion.tags.split(",").map(t => t.trim())
-            })
-            setIsAsking(false)
-            setNewQuestion({ title: "", content: "", tags: "" })
-            fetchQuestions()
-            toast({ title: "Inquiry Published", description: "The squad has been notified." })
-        } catch (error) {
-            toast({ title: "Failed", description: "Question transmission failed.", variant: "destructive" })
-        }
-    }
-
-    const selectQuestion = async (q: any) => {
-        setSelectedQuestion(q)
-        try {
-            // Need a way to fetch answers for a question.
-            // Assuming questionApi has getAnswers or the question object has them.
-            const data = await questionApi.getAnswers(q._id) // Adding this to api.ts
+            const data = await questionApi.getAnswers(q._id)
             setAnswers(data.data || [])
-        } catch (error) {
-            console.error("Failed to fetch answers:", error)
-        }
+        } catch (e) { console.error(e) }
+    }
+
+    const handleAsk = async () => {
+        if (!newQ.title.trim() || !newQ.content.trim()) return
+        setAsking(true)
+        try {
+            const res = await questionApi.create({
+                title: newQ.title,
+                content: newQ.content,
+                tags: newQ.tags.split(",").map(t => t.trim()).filter(Boolean),
+                squadId // Scoping to current squad
+            })
+            const created = res.data || res
+            setAskOpen(false)
+            setNewQ({ title: "", content: "", tags: "" })
+            fetchQuestions()
+            toast({ title: "Question posted to squad!" })
+        } catch (e) {
+            console.error("[QA] Create Error:", e)
+            toast({ title: "Failed to post", variant: "destructive" })
+        } finally { setAsking(false) }
+    }
+
+    const handleAnswer = async () => {
+        if (!answerText.trim() || !selectedQ) return
+        setSubmitting(true)
+        try {
+            await questionApi.createAnswer({ questionId: selectedQ._id, content: answerText })
+            const data = await questionApi.getAnswers(selectedQ._id)
+            setAnswers(data.data || [])
+            setAnswerText("")
+            toast({ title: "Answer submitted!" })
+        } catch (e) {
+            toast({ title: "Failed to submit", variant: "destructive" })
+        } finally { setSubmitting(false) }
     }
 
     const handleVote = async (id: string, type: "upvote" | "downvote") => {
         try {
-            await questionApi.vote(id, type) // Adding this to api.ts
+            await questionApi.vote(id, type)
             fetchQuestions()
-            toast({ title: "Vote Cast", description: "Your feedback matters." })
-        } catch (error) {
-            console.error(error)
-        }
+        } catch (e) { }
     }
 
-    const handlePostAnswer = async () => {
-        if (!newAnswer.trim()) return
-        try {
-            const data = await questionApi.createAnswer({ questionId: selectedQuestion._id, content: newAnswer })
-            setAnswers([...answers, data.data])
-            setNewAnswer("")
-            toast({ title: "Resolution Proposed" })
-        } catch (error) {
-            toast({ title: "Failed to post answer", variant: "destructive" })
-        }
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
+            </div>
+        )
     }
 
-    return (
-        <div className="flex gap-6 h-[500px]">
-            {/* Questions List */}
-            <div className="w-1/3 flex flex-col bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-                <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Peer Inquiries</h4>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setIsAsking(true)}
-                        className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100"
-                    >
-                        <Plus className="w-4 h-4" />
+    // Question detail view
+    if (selectedQ) {
+        return (
+            <div className="flex flex-col h-full bg-white">
+                {/* Header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedQ(null)} className="rounded-xl h-9 w-9 hover:bg-white hover:shadow-sm text-slate-500 transition-all">
+                        <ChevronLeft className="w-5 h-5" />
                     </Button>
+                    <div className="flex-1 min-w-0 ml-1">
+                        <p className="font-bold text-sm text-slate-900 truncate tracking-tight">{selectedQ.title}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 font-medium">{answers.length} answers</span>
+                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                            <span className="text-[10px] text-slate-400 font-medium">In this squad</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                    {questions.map(q => (
-                        <div
-                            key={q._id}
-                            onClick={() => selectQuestion(q)}
-                            className={cn(
-                                "p-4 rounded-2xl cursor-pointer transition-all duration-300 border",
-                                selectedQuestion?._id === q._id ? "bg-sky-50 border-sky-100" : "bg-white border-transparent hover:bg-slate-50"
-                            )}
-                        >
-                            <h5 className={cn("text-xs font-black uppercase italic leading-tight", selectedQuestion?._id === q._id ? "text-sky-700" : "text-slate-700")}>{q.title}</h5>
-                            <div className="flex items-center justify-between mt-3">
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleVote(q._id, "upvote"); }}
-                                        className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-sky-600"
-                                    >
-                                        <ChevronUp className="w-3 h-3" /> {(q.upvotes?.length || 0) - (q.downvotes?.length || 0)}
-                                    </button>
-                                </div>
-                                <div className="text-[8px] font-black text-slate-300 uppercase">Grade {q.author.grade || "12"}</div>
+                {/* Content */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+                    {/* Question */}
+                    <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-6 h-6 rounded-lg bg-indigo-200 text-indigo-700 flex items-center justify-center font-black text-[10px]">
+                                {selectedQ.author?.fullName?.[0] || "Q"}
                             </div>
+                            <span className="text-xs font-bold text-indigo-800">{selectedQ.author?.fullName || "Student"}</span>
+                            <div className="ml-auto flex gap-1">
+                                {selectedQ.tags?.map((tag: string) => (
+                                    <span key={tag} className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded-full text-[9px] font-bold">{tag}</span>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">{selectedQ.content}</p>
+                    </div>
+                    {answers.length === 0 && (
+                        <p className="text-center text-xs text-slate-400 py-4">No answers yet. Be the first to help!</p>
+                    )}
+                    {answers.map((ans: any) => (
+                        <div key={ans._id} className={cn("p-3 rounded-2xl border border-slate-100 bg-slate-50", ans.isAccepted && "border-emerald-200 bg-emerald-50")}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <div className="w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center font-black text-[10px]">
+                                    {ans.author?.fullName?.[0] || "A"}
+                                </div>
+                                <span className="text-xs font-bold text-slate-600">{ans.author?.fullName || "Member"}</span>
+                                {ans.isAccepted && (
+                                    <span className="ml-auto flex items-center gap-1 text-[10px] font-black text-emerald-600">
+                                        <CheckCircle2 className="w-3 h-3" /> Accepted
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-slate-700 leading-relaxed">{ans.content}</p>
                         </div>
                     ))}
                 </div>
+                {/* Answer input */}
+                <div className="shrink-0 p-3 border-t border-slate-100 bg-white">
+                    <div className="flex items-center gap-2">
+                        <Input value={answerText} onChange={e => setAnswerText(e.target.value)}
+                            placeholder="Write your answer..."
+                            className="flex-1 h-10 rounded-xl text-sm border-slate-200"
+                            onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleAnswer()} />
+                        <Button size="icon" onClick={handleAnswer} disabled={submitting || !answerText.trim()}
+                            className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        </Button>
+                    </div>
+                </div>
             </div>
+        )
+    }
 
-            {/* Inquiry Context */}
-            <div className="flex-1 bg-white rounded-3xl border border-slate-100 overflow-hidden flex flex-col shadow-sm">
-                {selectedQuestion ? (
-                    <>
-                        <div className="p-8 border-b border-slate-50">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[8px] font-black uppercase tracking-widest border border-sky-100">Live Inquiry</span>
-                                <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{selectedQuestion.author.fullName}</span>
-                            </div>
-                            <h4 className="text-2xl font-black text-slate-900 italic uppercase leading-none mb-4">{selectedQuestion.title}</h4>
-                            <p className="text-sm font-medium text-slate-600 leading-relaxed">{selectedQuestion.content}</p>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Proposed Resolutions
-                            </h5>
-                            {answers.map(ans => (
-                                <div key={ans._id} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 space-y-4">
-                                    <p className="text-sm text-slate-700 font-medium leading-relaxed italic">"{ans.content}"</p>
-                                    <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-black text-[8px] text-slate-400">
-                                                {ans.author.fullName[0]}
-                                            </div>
-                                            <span className="text-[9px] font-black text-slate-400 uppercase">{ans.author.fullName}</span>
-                                        </div>
-                                        <Button variant="ghost" className="h-8 rounded-xl text-[9px] font-black uppercase text-sky-600 hover:bg-sky-50">
-                                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Best Fit
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                            {answers.length === 0 && (
-                                <div className="text-center py-10">
-                                    <p className="text-[10px] font-black text-slate-300 uppercase italic">No resolutions proposed yet...</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
-                            <Input
-                                placeholder="Propose a resolution..."
-                                value={newAnswer}
-                                onChange={(e) => setNewAnswer(e.target.value)}
-                                className="h-12 bg-white rounded-xl border-slate-200"
-                            />
-                            <Button onClick={handlePostAnswer} className="h-12 rounded-xl bg-sky-600 hover:bg-sky-700">
-                                <Plus className="w-4 h-4 mr-2" /> Resolve
+    // Question list
+    return (
+        <div className="flex flex-col h-full bg-white">
+            {/* Ask new question */}
+            <div className="p-4 border-b border-slate-100 shrink-0">
+                {!askOpen ? (
+                    <Button onClick={() => setAskOpen(true)}
+                        className="w-full h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 text-sm font-semibold hover:bg-slate-100 justify-start px-4">
+                        <HelpCircle className="w-4 h-4 mr-2 text-indigo-400" /> Ask the squad a question...
+                    </Button>
+                ) : (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <Input value={newQ.title} onChange={e => setNewQ(p => ({ ...p, title: e.target.value }))}
+                            placeholder="Your question..." className="h-10 rounded-xl text-sm border-slate-200" />
+                        <Textarea value={newQ.content} onChange={e => setNewQ(p => ({ ...p, content: e.target.value }))}
+                            placeholder="Add details..." className="text-sm rounded-xl border-slate-200 min-h-[60px] resize-none" />
+                        <Input value={newQ.tags} onChange={e => setNewQ(p => ({ ...p, tags: e.target.value }))}
+                            placeholder="Tags (comma separated, e.g. math, physics)" className="h-9 rounded-xl text-xs border-slate-200" />
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setAskOpen(false)} className="rounded-xl text-xs">Cancel</Button>
+                            <Button size="sm" onClick={handleAsk} disabled={asking}
+                                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs">
+                                {asking ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />} Post Question
                             </Button>
                         </div>
-                    </>
-                ) : isAsking ? (
-                    <div className="p-10 space-y-8 animate-in zoom-in-95 duration-300">
-                        <div className="space-y-2">
-                            <h4 className="text-2xl font-black text-slate-900 uppercase italic">Formulate <span className="text-sky-600">Inquiry</span></h4>
-                            <p className="text-xs font-medium text-slate-400">Describe your academic block clearly for the squad.</p>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Inquiry Header</label>
-                                <Input
-                                    placeholder="e.g. Solving for X in Vector Space"
-                                    value={newQuestion.title}
-                                    onChange={(e) => setNewQuestion({ ...newQuestion, title: e.target.value })}
-                                    className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Problem Matrix</label>
-                                <Textarea
-                                    placeholder="Explain the technical difficulty..."
-                                    value={newQuestion.content}
-                                    onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })}
-                                    className="min-h-[120px] rounded-2xl bg-slate-50 border-slate-100 font-medium pt-4"
-                                />
-                            </div>
-                            <div className="flex gap-4 pt-4">
-                                <Button onClick={() => setIsAsking(false)} variant="outline" className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest">Abort</Button>
-                                <Button onClick={handleAskQuestion} className="flex-1 h-14 rounded-2xl bg-sky-600 hover:bg-sky-700 font-black text-xs uppercase tracking-widest">Broadcast</Button>
-                            </div>
-                        </div>
+                    </div>
+                )}
+            </div>
+            {/* List */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+                {questions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 py-16">
+                        <HelpCircle className="w-10 h-10 text-slate-200" />
+                        <p className="text-sm text-slate-400 font-semibold">No questions yet</p>
+                        <p className="text-xs text-slate-300">Ask the first question above</p>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-20 space-y-6">
-                        <div className="w-20 h-20 rounded-[32px] bg-sky-50 border border-sky-100 flex items-center justify-center">
-                            <HelpCircle className="w-10 h-10 text-sky-200" />
-                        </div>
-                        <div className="space-y-2">
-                            <h5 className="text-lg font-black text-slate-700 uppercase italic">Matrix Inquiry Required</h5>
-                            <p className="text-xs text-slate-400 font-medium max-w-[240px]">Select an inquiry from the left or formulate a new peer question.</p>
-                        </div>
-                    </div>
+                    questions.map(q => (
+                        <button key={q._id} onClick={() => openQuestion(q)}
+                            className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-100 transition-all group">
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-[13px] text-slate-800 truncate leading-snug group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{q.title}</p>
+                                <p className="text-[11px] text-slate-400 mt-1 line-clamp-1 font-medium">{q.content}</p>
+                                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                    {q.tags?.slice(0, 3).map((tag: string) => (
+                                        <span key={tag} className="px-2 py-0.5 bg-white border border-slate-100 text-slate-500 rounded-lg text-[9px] font-bold shadow-sm">{tag}</span>
+                                    ))}
+                                    <span className="text-[10px] text-indigo-400 font-bold ml-auto bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100/50">{q.answers?.length || 0} answers</span>
+                                </div>
+                            </div>
+                            <ChevronLeft className="w-4 h-4 text-slate-300 rotate-180 group-hover:text-indigo-400 group-hover:translate-x-0.5 shrink-0 mt-1.5 transition-all" />
+                        </button>
+                    ))
                 )}
             </div>
         </div>
