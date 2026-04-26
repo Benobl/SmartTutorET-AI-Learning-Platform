@@ -55,19 +55,21 @@ const LiveSessionContent = ({
         useCallCallingState
     } = useCallStateHooks()
 
-    const localParticipant = useLocalParticipant()
-    const participants = useParticipants()
-    const callingState = useCallCallingState()
-
-    // Robust detection: Fallback to the first participant if localParticipant hook is still syncing
-    const targetParticipant = localParticipant || participants[0]
-    const isSolo = participants.length <= 1
-    const isJoined = callingState === CallingState.JOINED
-
     const { isEnabled: micEnabled } = useMicrophoneState()
     const { isEnabled: camEnabled } = useCameraState()
     const { isEnabled: screenShareEnabled } = useScreenShareState()
     const isRecording = call.state.recording // Using direct observable for stability
+
+    const localParticipant = useLocalParticipant() || call.state.localParticipant // Direct state fallback
+    const participants = useParticipants()
+    const callingState = useCallCallingState()
+
+    // Robust detection: Bridge the gap between camera active and participant list sync
+    const targetParticipant = localParticipant || participants[0]
+    const isSolo = participants.length <= 1
+    const isJoined = callingState === CallingState.JOINED
+    const hasMedia = camEnabled || micEnabled
+    const isCamActive = camEnabled || !!targetParticipant?.videoStream
 
     React.useEffect(() => {
         // Cleanup call on unmount to prevent WebRTC stale connections
@@ -181,16 +183,19 @@ const LiveSessionContent = ({
 
                     {/* Aspect Ratio Controlled Content Wrapper */}
                     <div className="relative w-full h-full max-h-[80vh] aspect-video flex items-center justify-center overflow-hidden rounded-3xl bg-slate-900 shadow-inner">
-                        {!isJoined || (!targetParticipant && isSolo) ? (
+                        {!isJoined || (isSolo && !targetParticipant && !camEnabled) ? (
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-16 h-16 rounded-full border-4 border-sky-500/20 border-t-sky-500 animate-spin" />
                                 <p className="text-xs font-black text-sky-500 uppercase tracking-[0.2em] animate-pulse">
-                                    {!isJoined ? "Establishing Secure Link..." : "Connecting Hardware..."}
+                                    {!isJoined ? "Establishing Secure Link..." : "Synchronizing Hardware..."}
                                 </p>
                             </div>
                         ) : isSolo ? (
                             <ParticipantView
-                                participant={targetParticipant!}
+                                participant={targetParticipant || {
+                                    user: currentUser ? { id: currentUser._id, name: currentUser.fullName } : { id: 'local' },
+                                    isLocalParticipant: true,
+                                } as any}
                                 className="w-full h-full object-cover"
                                 mirror={true}
                             />
@@ -321,6 +326,11 @@ const LiveSessionContent = ({
                                         try {
                                             if (camEnabled) {
                                                 await call.camera.disable()
+                                                // Robust Hardware Kill: Release tracks manually after a brief delay to ensure SDK cleanup
+                                                setTimeout(async () => {
+                                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null)
+                                                    if (stream) stream.getTracks().forEach(t => t.stop())
+                                                }, 500)
                                                 toast({ title: "Camera Off" })
                                             } else {
                                                 await call.camera.enable()
@@ -331,7 +341,7 @@ const LiveSessionContent = ({
                                             if (e.name === "NotAllowedError" || e.message?.includes("denied")) {
                                                 setIsPermissionOpen(true)
                                             } else {
-                                                toast({ title: "Media Error", description: "Failed to toggle camera.", variant: "destructive" })
+                                                toast({ title: "Hardware Error", description: "Failed to sync camera.", variant: "destructive" })
                                             }
                                         }
                                     }}
