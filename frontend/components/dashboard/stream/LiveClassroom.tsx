@@ -51,12 +51,18 @@ const LiveSessionContent = ({
         useCameraState,
         useScreenShareState,
         useParticipants,
-        useLocalParticipant
+        useLocalParticipant,
+        useCallCallingState
     } = useCallStateHooks()
 
     const localParticipant = useLocalParticipant()
     const participants = useParticipants()
+    const callingState = useCallCallingState()
+
+    // Robust detection: Fallback to the first participant if localParticipant hook is still syncing
+    const targetParticipant = localParticipant || participants[0]
     const isSolo = participants.length <= 1
+    const isJoined = callingState === CallingState.JOINED
 
     const { isEnabled: micEnabled } = useMicrophoneState()
     const { isEnabled: camEnabled } = useCameraState()
@@ -175,14 +181,16 @@ const LiveSessionContent = ({
 
                     {/* Aspect Ratio Controlled Content Wrapper */}
                     <div className="relative w-full h-full max-h-[80vh] aspect-video flex items-center justify-center overflow-hidden rounded-3xl bg-slate-900 shadow-inner">
-                        {!localParticipant && isSolo ? (
+                        {!isJoined || (!targetParticipant && isSolo) ? (
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-16 h-16 rounded-full border-4 border-sky-500/20 border-t-sky-500 animate-spin" />
-                                <p className="text-xs font-black text-sky-500 uppercase tracking-[0.2em] animate-pulse">Connecting Hardware...</p>
+                                <p className="text-xs font-black text-sky-500 uppercase tracking-[0.2em] animate-pulse">
+                                    {!isJoined ? "Establishing Secure Link..." : "Connecting Hardware..."}
+                                </p>
                             </div>
                         ) : isSolo ? (
                             <ParticipantView
-                                participant={localParticipant!}
+                                participant={targetParticipant!}
                                 className="w-full h-full object-cover"
                                 mirror={true}
                             />
