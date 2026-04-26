@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { groupApi, inviteApi, userApi } from "@/lib/api"
-import {
-    Search, Plus, Users, UserPlus, Video, Send, X, Check,
-    Loader2, Crown, MessageSquare, BookOpen, PenTool, HelpCircle,
-    Bell, ArrowLeft, Clock, Play, PhoneCall
-} from "lucide-react"
+import { X, Video, UserPlus, Search, Loader2, Mic, MicOff, VideoOff, Monitor, Radio, Plus, Users, Check, Crown, MessageSquare, BookOpen, PenTool, HelpCircle, Bell, ArrowLeft, Clock, Play, PhoneCall } from 'lucide-react'
 import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -138,30 +134,33 @@ function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: ()
 
 // ─────────── Live Session Alert ───────────
 
-function LiveAlert({ alert, onJoin, onDismiss }: { alert: any; onJoin: () => void; onDismiss: () => void }) {
+function LiveAlert({ alert, onJoin, onDismiss }: { alert: any, onJoin: () => void, onDismiss: () => void }) {
     return (
-        <div className="fixed top-20 right-4 z-50 w-80 bg-white border border-rose-200 rounded-3xl p-4 shadow-2xl shadow-rose-500/10 animate-in slide-in-from-right-4">
-            <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                    <Video className="w-5 h-5" />
+        <div className="fixed bottom-8 right-8 z-[100] w-full max-w-[340px] bg-white/90 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-sky-100 shadow-[0_20px_50px_rgba(14,165,233,0.15)] animate-in slide-in-from-right-10 duration-500 ring-1 ring-black/5">
+            <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-lg relative overflow-hidden shrink-0">
+                    <Video className="w-6 h-6 relative z-10" />
+                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm text-slate-900">Live Session Started!</p>
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">
-                        <span className="font-bold text-slate-700">{alert.hostName}</span> started live in{" "}
-                        <span className="font-bold text-slate-700">{alert.squadName}</span>
+                <div className="flex-1 min-w-0 pr-2">
+                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1">Transmission Alert</h4>
+                    <p className="text-[13px] text-slate-800 font-bold leading-snug">
+                        <span className="text-sky-600">{alert.hostName}</span> is live in <span className="text-sky-600">{alert.squadName}</span>
                     </p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-tight">Active collaboration in progress</p>
                 </div>
-                <button onClick={onDismiss} className="text-slate-400 hover:text-slate-700 shrink-0">
+                <button onClick={onDismiss} className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all shrink-0">
                     <X className="w-4 h-4" />
                 </button>
             </div>
-            <Button
-                onClick={onJoin}
-                className="w-full mt-3 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
-            >
-                <Play className="w-3.5 h-3.5 mr-2" /> Join Live Session
-            </Button>
+            <div className="flex gap-2 mt-5">
+                <Button
+                    onClick={onJoin}
+                    className="flex-1 h-12 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-sky-200 transition-all active:scale-95"
+                >
+                    <Play className="w-4 h-4 mr-2" /> Join Session
+                </Button>
+            </div>
         </div>
     )
 }
@@ -265,14 +264,20 @@ export default function ClassSquad() {
         // Squad member started a live session → show join alert
         socket.on("squad-live-started", (data: any) => {
             const { callId, squadName, hostName, squadId } = data
-            // Don't show if we are the host
             if (data.hostId === currentUserId) return
             setLiveAlert({ callId, squadName, hostName, squadId })
+        })
+
+        // Direct video call invite
+        socket.on("direct-live-invited", (data: any) => {
+            const { callId, hostName } = data
+            setLiveAlert({ callId, squadName: "Direct Session", hostName, squadId: "direct" })
         })
 
         return () => {
             socket.off("new-invite")
             socket.off("squad-live-started")
+            socket.off("direct-live-invited")
         }
     }, [currentUserId])
 
@@ -415,6 +420,8 @@ export default function ClassSquad() {
                 <LiveClassroom
                     call={activeCall}
                     squadName={activeSquad.name}
+                    squadId={activeSquad._id}
+                    socket={socketRef.current}
                     onLeave={handleLeaveLive}
                 />
             </div>

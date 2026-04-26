@@ -9,7 +9,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "http://localhost:3001"],
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
         methods: ["GET", "POST"]
     },
 });
@@ -210,6 +210,19 @@ io.on("connection", (socket) => {
         });
         // Also broadcast to squad room (for members who joined the room socket)
         socket.to(`squad_${squadId}`).emit("squad-live-started", { callId, squadId, squadName, hostName, hostId });
+    });
+
+    // Direct (Individual) Video Call Invite
+    socket.on("direct-live-invite", (data) => {
+        const { inviteeId, callId, hostName, hostId } = data;
+        const receiverSocketId = getReceiverSocketId(inviteeId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("direct-live-invited", {
+                callId,
+                hostName,
+                hostId: hostId || userId
+            });
+        }
     });
 
     socket.on("squad-live-stop", (data) => {

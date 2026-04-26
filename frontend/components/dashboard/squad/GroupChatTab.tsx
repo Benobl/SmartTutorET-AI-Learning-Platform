@@ -11,7 +11,7 @@ import {
 } from "stream-chat-react"
 import "stream-chat-react/dist/css/v2/index.css"
 import { useStream } from "@/components/providers/StreamProvider"
-import { Loader2, Hash, AlertCircle, Send, Check, CheckCheck, User, Reply, X, Smile, MoreVertical } from "lucide-react"
+import { Loader2, Hash, AlertCircle, Send, Check, CheckCheck, User, Reply, X, Smile, MoreVertical, MessageCircle } from "lucide-react"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
@@ -316,12 +316,21 @@ export function GroupChatTab({ squadId, members = [] }: GroupChatTabProps) {
                 <SocketChatView squadId={squadId} />
             </div>
 
-            <div className="hidden lg:flex w-72 border-l border-slate-100 flex-col bg-white shrink-0">
-                <div className="p-5 border-b border-slate-100">
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Squad Roster</h3>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{members.length} members enrolled</p>
+            <div className="hidden lg:flex w-72 border-l border-slate-50 flex-col bg-[#fdfdfe] shrink-0">
+                <div className="p-6 border-b border-slate-50 bg-white/50 backdrop-blur-md sticky top-0 z-10">
+                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Squad Roster</h3>
+                    <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                            {members.slice(0, 3).map((m: any, i: number) => (
+                                <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm">
+                                    <img src={(m.profilePic || m.pic) || `https://ui-avatars.com/api/?name=${m.fullName || m.name || "S"}&background=random`} alt="" className="w-full h-full object-cover" />
+                                </div>
+                            ))}
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{members.length} members enrolled</span>
+                    </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
                     {members.map((member: any) => {
                         const mid = (member._id || member.id || member) as string
                         const isMe = mid === (currentUser?._id || currentUser?.id)
@@ -333,20 +342,40 @@ export function GroupChatTab({ squadId, members = [] }: GroupChatTabProps) {
                                 key={mid}
                                 onClick={() => !isMe && setSelectedUserForDM(member)}
                                 className={cn(
-                                    "w-full flex items-center gap-3 p-3 rounded-2xl transition-all group relative",
-                                    isMe ? "cursor-default" : "hover:bg-slate-50"
+                                    "w-full flex items-center gap-3 p-3 rounded-[24px] transition-all group relative border border-transparent",
+                                    isMe ? "bg-white shadow-sm border-slate-50 cursor-default" : "hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 hover:-translate-y-0.5"
                                 )}
                             >
                                 <div className="relative">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-sky-600 font-black overflow-hidden group-hover:scale-105 transition-transform">
-                                        {pic ? <img src={pic} className="w-full h-full object-cover" /> : name[0]}
+                                    <div className="w-11 h-11 rounded-[1.25rem] bg-gradient-to-br from-slate-50 to-white border border-slate-100 flex items-center justify-center text-sky-600 font-black overflow-hidden transition-all group-hover:scale-105 shadow-inner">
+                                        {pic ? (
+                                            <img src={pic} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-sm">{name[0]}</span>
+                                        )}
                                     </div>
-                                    <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
+                                    <span className={cn(
+                                        "absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm",
+                                        isMe ? "bg-sky-500" : "bg-emerald-500"
+                                    )} />
                                 </div>
-                                <div className="flex flex-col items-start min-w-0">
-                                    <span className="text-[13px] font-bold text-slate-700 truncate w-full">{name} {isMe && "✨"}</span>
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{isMe ? "You (Owner)" : "Student"}</span>
+                                <div className="flex flex-col items-start min-w-0 flex-1">
+                                    <span className="text-[13px] font-black text-slate-800 truncate w-full flex items-center gap-1.5">
+                                        {name}
+                                        {isMe && <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 border border-sky-100 tracking-tighter">YOU</span>}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight whitespace-nowrap">
+                                            {isMe ? "Squad Architect" : (member.role || "Member")}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                {!isMe && (
+                                    <div className="opacity-0 group-hover:opacity-100 transition-all text-sky-500">
+                                        <MessageCircle className="w-4 h-4" />
+                                    </div>
+                                )}
                             </button>
                         )
                     })}
