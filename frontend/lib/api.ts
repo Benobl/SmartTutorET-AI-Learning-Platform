@@ -52,6 +52,18 @@ export const groupApi = {
             method: "POST",
             body: JSON.stringify(data)
         }),
+    getForums: (groupId: string) => fetchWithAuth(`/groups/${groupId}/forums`),
+    getThreads: (forumId: string) => fetchWithAuth(`/groups/forums/${forumId}/threads`),
+    createThread: (forumId: string, data: { title: string, content: string }) =>
+        fetchWithAuth(`/groups/forums/${forumId}/threads`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        }),
+    createPost: (threadId: string, content: string) =>
+        fetchWithAuth(`/groups/threads/${threadId}/posts`, {
+            method: "POST",
+            body: JSON.stringify({ content })
+        }),
 };
 
 export const inviteApi = {
@@ -72,14 +84,19 @@ export const questionApi = {
         method: "POST",
         body: JSON.stringify(data)
     }),
+    getAnswers: (questionId: string) => fetchWithAuth(`/questions/answers/${questionId}`),
     createAnswer: (data: any) => fetchWithAuth("/questions/answers", {
         method: "POST",
         body: JSON.stringify(data)
+    }),
+    vote: (id: string, type: "upvote" | "downvote") => fetchWithAuth(`/questions/${type}/${id}`, {
+        method: "POST"
     }),
 };
 
 export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
+    getAllTutors: () => fetchWithAuth("/users/tutors"),
     searchByEmail: (email: string) => fetchWithAuth(`/users/search?email=${email}`),
 };
 

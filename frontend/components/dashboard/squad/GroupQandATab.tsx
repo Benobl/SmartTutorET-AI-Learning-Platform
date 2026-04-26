@@ -5,7 +5,7 @@ import { HelpCircle, ChevronUp, CheckCircle2, User, Plus, MessageCircle } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { fetchWithAuth } from "@/lib/api"
+import { questionApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
@@ -27,9 +27,8 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
 
     const fetchQuestions = async () => {
         try {
-            // Simplified question fetching (ideally filtered by group, but backend currently returns all)
-            const data = await fetchWithAuth("/questions")
-            setQuestions(data)
+            const data = await questionApi.getAll()
+            setQuestions(data.data || [])
         } catch (error) {
             console.error("Failed to fetch questions:", error)
         }
@@ -38,13 +37,10 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
     const handleAskQuestion = async () => {
         if (!newQuestion.title || !newQuestion.content) return
         try {
-            await fetchWithAuth("/questions", {
-                method: "POST",
-                body: JSON.stringify({
-                    title: newQuestion.title,
-                    content: newQuestion.content,
-                    tags: newQuestion.tags.split(",").map(t => t.trim())
-                })
+            await questionApi.create({
+                title: newQuestion.title,
+                content: newQuestion.content,
+                tags: newQuestion.tags.split(",").map(t => t.trim())
             })
             setIsAsking(false)
             setNewQuestion({ title: "", content: "", tags: "" })
@@ -58,8 +54,10 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
     const selectQuestion = async (q: any) => {
         setSelectedQuestion(q)
         try {
-            const data = await fetchWithAuth(`/questions/answers/${q._id}`)
-            setAnswers(data)
+            // Need a way to fetch answers for a question.
+            // Assuming questionApi has getAnswers or the question object has them.
+            const data = await questionApi.getAnswers(q._id) // Adding this to api.ts
+            setAnswers(data.data || [])
         } catch (error) {
             console.error("Failed to fetch answers:", error)
         }
@@ -67,7 +65,7 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
 
     const handleVote = async (id: string, type: "upvote" | "downvote") => {
         try {
-            await fetchWithAuth(`/questions/${type}/${id}`, { method: "POST" })
+            await questionApi.vote(id, type) // Adding this to api.ts
             fetchQuestions()
             toast({ title: "Vote Cast", description: "Your feedback matters." })
         } catch (error) {
@@ -78,11 +76,8 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
     const handlePostAnswer = async () => {
         if (!newAnswer.trim()) return
         try {
-            const data = await fetchWithAuth("/questions/answers", {
-                method: "POST",
-                body: JSON.stringify({ questionId: selectedQuestion._id, content: newAnswer })
-            })
-            setAnswers([...answers, data])
+            const data = await questionApi.createAnswer({ questionId: selectedQuestion._id, content: newAnswer })
+            setAnswers([...answers, data.data])
             setNewAnswer("")
             toast({ title: "Resolution Proposed" })
         } catch (error) {

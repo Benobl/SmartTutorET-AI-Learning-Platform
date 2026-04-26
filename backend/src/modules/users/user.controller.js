@@ -36,4 +36,31 @@ export class UserController {
             next(error);
         }
     }
+
+    static async getStudents(req, res, next) {
+        try {
+            const students = await UserService.getStudents();
+            res.json({ success: true, data: students });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getTutors(req, res, next) {
+        try {
+            const tutors = await UserService.getTutors();
+            res.json({ success: true, data: tutors });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async searchByEmail(req, res, next) {
+        try {
+            const user = await UserService.searchByEmail(req.query.email);
+            res.json({ success: true, data: user });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

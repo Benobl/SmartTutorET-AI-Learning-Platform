@@ -17,7 +17,6 @@ export const upsertStreamUser = async (userData) => {
         console.error("Error upserting Stream user:", error)
     }
 }
-// todo    :do it latter
 export const generateStreamToken = (userId) => {
     try {
         //ensure userId is a string

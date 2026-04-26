@@ -29,11 +29,51 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [user, setUser] = useState<any>(null)
     const [isMounted, setIsMounted] = useState(false)
+    const [invites, setInvites] = useState<any[]>([])
 
     useEffect(() => {
         setIsMounted(true)
-        setUser(getCurrentUser())
+        const currentUser = getCurrentUser()
+        setUser(currentUser)
+
+        if (currentUser) {
+            const fetchInvites = async () => {
+                try {
+                    const { inviteApi } = await import("@/lib/api")
+                    const res = await inviteApi.getMine()
+                    const incoming = (res.data || []).filter((inv: any) => {
+                        const inviteeId = (inv.invitee?._id || inv.invitee)?.toString()
+                        return (inviteeId === currentUser._id || inviteeId === currentUser.id) && inv.status === "pending"
+                    })
+                    setInvites(incoming)
+                } catch (e) { console.error("Error fetching invites:", e) }
+            }
+            fetchInvites()
+
+            // Socket Listener
+            const { initializeSocket } = require("@/lib/socket")
+            const socket = initializeSocket(currentUser._id || currentUser.id)
+            socket.on("new-invite", (data: any) => {
+                setInvites(prev => [data, ...prev])
+                // Optional: trigger a sound or browser notification
+            })
+
+            return () => {
+                socket.off("new-invite")
+            }
+        }
     }, [])
+
+    const handleRespond = async (inviteId: string, status: 'accepted' | 'declined') => {
+        try {
+            const { inviteApi, groupApi } = await import("@/lib/api")
+            await inviteApi.respond(inviteId, status)
+            setInvites(prev => prev.filter(inv => inv._id !== inviteId))
+            if (status === 'accepted') {
+                router.push('/dashboard/student/squad')
+            }
+        } catch (e) { console.error("Error responding to invite:", e) }
+    }
 
     const handleLogout = () => {
         logoutUser()
@@ -99,11 +139,65 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
-                {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-sky-500 rounded-full border-2 border-white" />
-                </Button>
+                {/* Notifications & Invites */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+                            <Bell className="w-5 h-5" />
+                            {invites.length > 0 && (
+                                <span className="absolute top-2 right-2 w-4 h-4 bg-amber-500 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center animate-pulse">
+                                    {invites.length}
+                                </span>
+                            )}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80 bg-white border-slate-200 text-slate-900 rounded-2xl p-2 shadow-2xl backdrop-blur-xl bg-white/90">
+                        <DropdownMenuLabel className="font-black text-[10px] uppercase tracking-widest text-slate-400 p-2">Squad Invitations</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-slate-100" />
+                        {invites.length === 0 ? (
+                            <div className="py-8 px-4 text-center">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No pending transmissions...</p>
+                            </div>
+                        ) : (
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-1 p-1">
+                                {invites.map((invite: any) => (
+                                    <div key={invite._id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center font-black text-[10px]">
+                                                {invite.inviter?.fullName?.[0] || "U"}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-black text-slate-900 truncate italic">{invite.inviter?.fullName}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase truncate">To {invite.targetId?.name || "Squad"}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleRespond(invite._id, 'accepted')}
+                                                className="flex-1 h-8 bg-sky-600 hover:bg-sky-700 text-white font-black text-[9px] uppercase rounded-lg"
+                                            >
+                                                Join
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleRespond(invite._id, 'declined')}
+                                                className="flex-1 h-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-black text-[9px] uppercase rounded-lg"
+                                            >
+                                                Skip
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <DropdownMenuSeparator className="bg-slate-100" />
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/student/squad')} className="justify-center text-[10px] font-black uppercase text-sky-600 focus:text-sky-700 cursor-pointer py-2">
+                            View All Squads
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
                 {isMounted && (
                     <DropdownMenu>

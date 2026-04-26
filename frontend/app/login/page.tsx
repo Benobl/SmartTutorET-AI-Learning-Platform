@@ -50,17 +50,19 @@ export default function LoginPage() {
       if (user && !('error' in user)) {
         setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
 
-        setTimeout(() => {
-          if (user.role === "admin") {
-            router.push("/dashboard/admin")
-          } else if (user.role === "tutor") {
-            router.push("/dashboard/tutor")
-          } else if (user.role === "manager") {
-            router.push("/dashboard/manager")
-          } else {
-            router.push("/dashboard/student")
-          }
-        }, 1000)
+        if (user.role === "admin") {
+          console.log("[LoginPage] Redirecting to /dashboard/admin");
+          router.push("/dashboard/admin")
+        } else if (user.role === "tutor") {
+          console.log("[LoginPage] Redirecting to /dashboard/tutor");
+          router.push("/dashboard/tutor")
+        } else if (user.role === "manager") {
+          console.log("[LoginPage] Redirecting to /dashboard/manager");
+          router.push("/dashboard/manager")
+        } else {
+          console.log("[LoginPage] Redirecting to /dashboard/student");
+          router.push("/dashboard/student")
+        }
       } else if (user && 'error' in user) {
         setError(user.error)
       } else {
@@ -93,11 +95,19 @@ export default function LoginPage() {
                 localStorage.setItem("smarttutor_user", JSON.stringify(user));
                 setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
 
-                setTimeout(() => {
-                  if (user.role === "admin") router.push("/dashboard/admin");
-                  else if (user.role === "tutor") router.push("/dashboard/tutor");
-                  else router.push("/dashboard/student");
-                }, 1000);
+                if (user.role === "admin") {
+                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/admin");
+                  router.push("/dashboard/admin");
+                } else if (user.role === "tutor") {
+                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/tutor");
+                  router.push("/dashboard/tutor");
+                } else if (user.role === "manager") {
+                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/manager");
+                  router.push("/dashboard/manager");
+                } else {
+                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/student");
+                  router.push("/dashboard/student");
+                }
               } else {
                 setError(res.message || "Google authentication failed");
               }

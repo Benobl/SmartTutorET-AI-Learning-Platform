@@ -7,6 +7,7 @@ export type UserRole = 'student' | 'tutor' | 'admin' | 'manager';
  */
 export interface User {
     _id: string;             // Unique identifier from MongoDB
+    id?: string;             // Alias used in some responses
     firstName: string;       // User's first name
     lastName: string;        // User's last name
     fullName: string;        // Full display name

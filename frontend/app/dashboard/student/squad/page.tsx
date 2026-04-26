@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { squadPosts } from "@/lib/mock-data"
-import { groupApi, inviteApi, fetchWithAuth } from "@/lib/api"
+import { groupApi, inviteApi, userApi, fetchWithAuth } from "@/lib/api"
 import {
     MessageSquare, Heart, MessageCircle, Share2,
     Search, Plus, Filter, TrendingUp, Sparkles,
@@ -24,13 +24,13 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/hooks/use-toast"
+import { useStream } from "@/components/providers/StreamProvider"
 import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
 import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
 import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
 import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
-// import { useStream } from "@/components/providers/StreamProvider"
-// import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
-// import { Call } from "@stream-io/video-react-sdk"
+import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+import { Call } from "@stream-io/video-react-sdk"
 import { getCurrentUser } from "@/lib/auth-utils"
 
 const MOCK_STUDENT_SQUADS = [
@@ -60,6 +60,7 @@ const LEADERBOARD_DATA = {
 export default function ClassSquad() {
     const [searchQuery, setSearchQuery] = useState("")
     const [squads, setSquads] = useState<any[]>([])
+    const [allStudents, setAllStudents] = useState<any[]>([])
     const [selectedSquad, setSelectedSquad] = useState<any>(null)
     const [squadMessages, setSquadMessages] = useState<any[]>([])
     const [newMsg, setNewMsg] = useState("")
@@ -69,32 +70,79 @@ export default function ClassSquad() {
     const [isLabsOpen, setIsLabsOpen] = useState(false)
     const [activeCall, setActiveCall] = useState<any | null>(null)
 
+    // Q&A Hub State
+    const [forums, setForums] = useState<any[]>([])
+    const [threads, setThreads] = useState<any[]>([])
+    const [selectedForum, setSelectedForum] = useState<any>(null)
+    const [isAsking, setIsAsking] = useState(false)
+    const [newQuestion, setNewQuestion] = useState({ title: "", content: "" })
+
     const [newSquad, setNewSquad] = useState({ name: "", topic: "", avatar: "🧬" })
-    // const { videoClient, isReady: isStreamReady } = useStream()
-    const videoClient = null as any
+    const [pendingInvites, setPendingInvites] = useState<Set<string>>(new Set())
+    const [receivedInvites, setReceivedInvites] = useState<any[]>([])
+    const [sentInvites, setSentInvites] = useState<any[]>([])
+    const { videoClient, isReady: isStreamReady } = useStream()
     const socketRef = useRef<any>(null)
     const currentUser = getCurrentUser()
 
     useEffect(() => {
-        const fetchSquads = async () => {
+        const fetchData = async () => {
             try {
-                const data = await groupApi.getMyGroups()
-                setSquads(data)
+                const [squadData, studentData, inviteData] = await Promise.all([
+                    groupApi.getMyGroups(),
+                    userApi.getAllStudents(),
+                    inviteApi.getMine()
+                ])
+                setSquads(squadData)
+                setAllStudents(studentData.data || [])
+
+                const allInvites = inviteData.data || []
+
+                // Track students invited by me (for filtering discovery)
+                const outgoingIds = allInvites
+                    .filter((inv: any) => {
+                        const inviterId = (inv.inviter?._id || inv.inviter)?.toString()
+                        return (inviterId === currentUser?._id || inviterId === currentUser?.id) && inv.status === "pending"
+                    })
+                    .map((inv: any) => (inv.invitee?._id || inv.invitee)?.toString())
+                setPendingInvites(new Set(outgoingIds))
+
+                // Received
+                setReceivedInvites(allInvites.filter((inv: any) => {
+                    const inviteeId = (inv.invitee?._id || inv.invitee)?.toString()
+                    return (inviteeId === currentUser?._id || inviteeId === currentUser?.id) && inv.status === "pending"
+                }))
+
+                // Sent
+                setSentInvites(allInvites.filter((inv: any) => {
+                    const inviterId = (inv.inviter?._id || inv.inviter)?.toString()
+                    return (inviterId === currentUser?._id || inviterId === currentUser?.id)
+                }))
             } catch (error) {
-                console.error("Failed to fetch squads:", error)
+                console.error("Failed to fetch collaboration data:", error)
             }
         }
-        fetchSquads()
+        fetchData()
 
-        if (currentUser?._id) {
-            const socket = initializeSocket(currentUser._id)
+        const curId = (currentUser?._id || currentUser?.id)?.toString()
+        if (curId) {
+            const socket = initializeSocket(curId)
             socketRef.current = socket
+
+            socket.on("new-invite", (data: any) => {
+                toast({
+                    title: "Incoming Request",
+                    description: `${data.senderName} has invited you to join a squad!`,
+                })
+            })
         }
 
         return () => {
-            // Socket cleanup handled in initializeSocket or globally
+            if (socketRef.current) {
+                socketRef.current.off("new-invite")
+            }
         }
-    }, [])
+    }, [currentUser?._id, currentUser?.id])
 
     const handleToggleLive = async (squad: any) => {
         if (!videoClient || !currentUser) return
@@ -175,11 +223,58 @@ export default function ClassSquad() {
         }
     }
 
+    const handleAskQuestion = async () => {
+        if (!selectedForum || !newQuestion.title.trim()) return
+        try {
+            const thread = await groupApi.createThread(selectedForum._id, newQuestion)
+            setThreads([thread.data, ...threads])
+            setIsAsking(false)
+            setNewQuestion({ title: "", content: "" })
+            toast({ title: "Question Relayed", description: "Your squad has been notified." })
+        } catch (error) { toast({ title: "Signal Lost", variant: "destructive" }) }
+    }
+
+    const handleReplyToThread = async (threadId: string, content: string) => {
+        try {
+            await groupApi.createPost(threadId, content)
+            const threadData = await groupApi.getThreads(selectedForum._id)
+            setThreads(threadData.data || [])
+            toast({ title: "Reply Broadcasted" })
+        } catch (error) { toast({ title: "Broadcast Failed", variant: "destructive" }) }
+    }
+
     const handleJoinSquadRoom = (squad: any) => {
         setSelectedSquad(squad)
         setIsLabsOpen(true)
         if (socketRef.current) {
             socketRef.current.emit("join-squad", squad._id)
+        }
+    }
+
+    const handleRespondToInvite = async (inviteId: string, status: 'accepted' | 'declined') => {
+        try {
+            await inviteApi.respond(inviteId, status)
+            // Refresh everything
+            const fetchData = async () => {
+                const [squadData, studentData, inviteData] = await Promise.all([
+                    groupApi.getMyGroups(),
+                    userApi.getAllStudents(),
+                    inviteApi.getMine()
+                ])
+                setSquads(squadData)
+                setAllStudents(studentData.data || [])
+                setReceivedInvites((inviteData.data || []).filter((inv: any) => {
+                    const inviteeId = (inv.invitee?._id || inv.invitee)?.toString()
+                    return (inviteeId === currentUser?._id || inviteeId === currentUser?.id) && inv.status === "pending"
+                }))
+            }
+            fetchData()
+            toast({
+                title: status === 'accepted' ? "Squad Joined" : "Invite Declined",
+                description: status === 'accepted' ? "You are now a member of the squad!" : "Transmission closed."
+            })
+        } catch (error) {
+            toast({ title: "Operation Failed", variant: "destructive" })
         }
     }
 
@@ -247,6 +342,83 @@ export default function ClassSquad() {
                 </div>
             </div>
 
+            {/* Invitations Hub Section */}
+            {(receivedInvites.length > 0 || sentInvites.length > 0) && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight flex items-center gap-3">
+                            <Send className="w-6 h-6 text-sky-500" /> Notifications <span className="text-sky-600">& Invites</span>
+                        </h3>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Received Invites */}
+                        <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50 space-y-6">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                Incoming Requests ({receivedInvites.length})
+                            </h4>
+                            {receivedInvites.length === 0 ? (
+                                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest text-center py-6">No incoming transmissions...</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {receivedInvites.map(invite => (
+                                        <div key={invite._id} className="p-4 rounded-2xl bg-amber-50/30 border border-amber-100 flex items-center justify-between gap-4 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center font-black text-amber-600 text-xs">
+                                                    {invite.inviter?.fullName?.[0] || "U"}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-black text-slate-900 italic truncate">{invite.inviter?.fullName}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase truncate">Invited you to {invite.targetId?.name || "Squad"}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 shrink-0">
+                                                <Button onClick={() => handleRespondToInvite(invite._id, 'accepted')} size="sm" className="h-8 rounded-lg bg-sky-600 hover:bg-sky-700 text-[10px] font-black uppercase text-white px-4">Accept</Button>
+                                                <Button onClick={() => handleRespondToInvite(invite._id, 'declined')} size="sm" variant="ghost" className="h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-[10px] font-black uppercase">Skip</Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sent Invites */}
+                        <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-2xl shadow-slate-200/50 space-y-6">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-sky-500" />
+                                Outgoing Invites ({sentInvites.length})
+                            </h4>
+                            {sentInvites.length === 0 ? (
+                                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest text-center py-6">No outgoing signals sent...</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {sentInvites.map(invite => (
+                                        <div key={invite._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center font-black text-slate-400 text-xs text-indigo-500 bg-indigo-50">
+                                                    {invite.invitee?.fullName?.[0] || "U"}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-black text-slate-900 italic truncate">{invite.invitee?.fullName || "Member"}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase truncate">Squad: {invite.targetId?.name || "Target"}</p>
+                                                </div>
+                                            </div>
+                                            <div className={cn(
+                                                "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest",
+                                                invite.status === 'pending' ? "bg-amber-100 text-amber-600" :
+                                                    invite.status === 'accepted' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                                            )}>
+                                                {invite.status}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* My Squads Section */}
             <div className="space-y-6">
                 <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight flex items-center gap-3">
@@ -268,7 +440,10 @@ export default function ClassSquad() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button
-                                        onClick={() => setIsInviteOpen(true)}
+                                        onClick={() => {
+                                            setSelectedSquad(squad)
+                                            setIsInviteOpen(true)
+                                        }}
                                         size="sm"
                                         variant="ghost"
                                         className="h-8 rounded-xl bg-slate-50 text-slate-400 hover:bg-sky-50 hover:text-sky-600 font-black text-[9px] uppercase tracking-widest"
@@ -486,36 +661,74 @@ export default function ClassSquad() {
                     <div className="py-8 space-y-6">
                         <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
-                            <Input placeholder="Search students by name or ID..." className="h-14 pl-12 rounded-2xl bg-slate-50 border-slate-100" />
+                            <Input
+                                placeholder="Search students by name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-14 pl-12 rounded-2xl bg-slate-50 border-slate-100"
+                            />
                         </div>
-                        <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:bg-white hover:shadow-lg transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-black text-xs">U{i}</div>
-                                        <div>
-                                            <p className="text-sm font-black text-slate-900">Student Name {i}</p>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active 2h ago • Grade 12</p>
+                        <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                            {allStudents
+                                .filter(s => {
+                                    const studentId = s._id || s.id;
+                                    const currentId = currentUser?._id || currentUser?.id;
+                                    return studentId !== currentId;
+                                })
+                                .filter(s => !selectedSquad?.members?.includes(s._id) && !selectedSquad?.members?.includes(s.id))
+                                .filter(s => !pendingInvites.has(s._id) && !pendingInvites.has(s.id))
+                                .filter(s => (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                                .map(student => {
+                                    const name = student.fullName || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Search Student";
+                                    return (
+                                        <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 group hover:bg-white hover:shadow-lg transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-black text-xs uppercase">
+                                                    {name[0] || "U"}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-900">{name}</p>
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-[9px]">{student.grade ? `Grade ${student.grade}` : "Active Student"}</p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={async () => {
+                                                    try {
+                                                        const res = await inviteApi.send({
+                                                            inviteeId: student._id,
+                                                            targetType: "StudyGroup",
+                                                            targetId: selectedSquad?._id || squads[0]?._id
+                                                        })
+
+                                                        // Update local state to remove from list immediately
+                                                        const updatedPending = new Set(pendingInvites)
+                                                        updatedPending.add(student._id)
+                                                        setPendingInvites(updatedPending)
+
+                                                        if (res.alreadyPending) {
+                                                            toast({ title: "Already Pending", description: "This invitation is already in the matrix." })
+                                                        } else {
+                                                            toast({ title: "Invite Sent", description: `Transmission sent to ${student.fullName}!` })
+                                                        }
+                                                    } catch (error: any) {
+                                                        console.error("Invite send error:", error)
+                                                        toast({ title: "Failed", description: "Signal lost. Try again.", variant: "destructive" })
+                                                    }
+                                                }}
+                                                variant="ghost" className="h-10 px-4 rounded-xl text-sky-600 font-black text-[10px] uppercase hover:bg-sky-50">
+                                                Invite
+                                            </Button>
                                         </div>
-                                    </div>
-                                    <Button
-                                        onClick={async () => {
-                                            try {
-                                                await inviteApi.send({
-                                                    inviteeId: i.toString(), // Mock ID for now
-                                                    targetType: "StudyGroup",
-                                                    targetId: squads[0]?.id // Current squad ID
-                                                })
-                                                toast({ title: "Invite Sent", description: "Your friend has been notified!" })
-                                            } catch (error) {
-                                                toast({ title: "Failed", description: "Could not send invite", variant: "destructive" })
-                                            }
-                                        }}
-                                        variant="ghost" className="h-10 px-4 rounded-xl text-sky-600 font-black text-[10px] uppercase hover:bg-sky-50">
-                                        Invite
-                                    </Button>
-                                </div>
-                            ))}
+                                    );
+                                })}
+                            {allStudents.filter(s => {
+                                const sid = s._id || s.id;
+                                const cid = currentUser?._id || currentUser?.id;
+                                return sid !== cid &&
+                                    !selectedSquad?.members?.includes(s._id) &&
+                                    !pendingInvites.has(s._id) &&
+                                    (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase());
+                            }).length === 0 && <p className="text-center text-slate-400 py-10 font-bold uppercase tracking-widest text-[9px]">No students found in the grid...</p>}
                         </div>
                     </div>
                 </DialogContent>
@@ -677,17 +890,39 @@ export default function ClassSquad() {
                                         <GroupQandATab squadId={selectedSquad?._id} />
                                     </TabsContent>
                                     <TabsContent value="live" className="animate-in fade-in slide-in-from-bottom-4 duration-500 m-0 h-[600px]">
-                                        <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-[48px] border border-white/10 space-y-8">
-                                            <div className="w-24 h-24 rounded-[32px] bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
-                                                <Video className="w-10 h-10 text-sky-400" />
+                                        {activeCall ? (
+                                            <LiveClassroom
+                                                call={activeCall}
+                                                onLeave={handleLeaveLive}
+                                                squadName={selectedSquad?.name || "Squad"}
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-[48px] border border-white/10 space-y-8">
+                                                <div className="w-24 h-24 rounded-[32px] bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                                                    <Video className="w-10 h-10 text-sky-400" />
+                                                </div>
+                                                <div className="text-center space-y-4">
+                                                    <h4 className="text-xl font-black text-white uppercase italic">Active <span className="text-sky-500">Laboratory</span></h4>
+                                                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest px-12 mb-4">
+                                                        {selectedSquad?.isLive
+                                                            ? "A live transmission is currently active in this squad."
+                                                            : "Initialize a high-bandwidth video session for collaborative study."}
+                                                    </p>
+                                                    <Button
+                                                        onClick={() => handleToggleLive(selectedSquad)}
+                                                        className={cn(
+                                                            "h-16 px-10 rounded-[24px] font-black text-xs uppercase tracking-widest gap-3 transition-all",
+                                                            selectedSquad?.isLive
+                                                                ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+                                                                : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20"
+                                                        )}
+                                                    >
+                                                        {selectedSquad?.isLive ? "Join Transmission" : "Initialize Live Lab"}
+                                                        <ArrowUpRight className="w-5 h-5" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="text-center space-y-2">
-                                                <h4 className="text-xl font-black text-white uppercase italic">Laboratory <span className="text-sky-500">Maintenance</span></h4>
-                                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest px-12 leading-relaxed">
-                                                    Real-time video modules are currently being synchronized. Please use the Whiteboard and Forum for collaboration.
-                                                </p>
-                                            </div>
-                                        </div>
+                                        )}
                                     </TabsContent>
                                 </div>
                             </Tabs>

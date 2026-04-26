@@ -35,6 +35,7 @@ export class AuthController {
                 success: true,
                 message: "Registration successful. Please verify your email.",
                 data: {
+                    _id: user._id,
                     id: user._id,
                     fullName: user.fullName,
                     email: user.email,

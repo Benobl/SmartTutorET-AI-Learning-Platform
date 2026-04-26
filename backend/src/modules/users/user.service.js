@@ -62,4 +62,18 @@ export class UserService {
             content
         });
     }
+
+    static async getStudents() {
+        return await User.find({ role: "student" }).select("fullName profilePic email grade");
+    }
+
+    static async getTutors() {
+        return await User.find({ role: "tutor" }).select("fullName profilePic email subject degree experience");
+    }
+
+    static async searchByEmail(email) {
+        const user = await User.findOne({ email: email.toLowerCase() }).select("fullName profilePic email role grade");
+        if (!user) throw new ApiError(404, "User not found");
+        return user;
+    }
 }

@@ -15,20 +15,21 @@ export function AuthGuard({ children, allowedRoles }: { children: React.ReactNod
 
     useEffect(() => {
         const user = getCurrentUser();
+        console.log("[AuthGuard] Checking authorization for path:", pathname, "User:", user?.email, "Role:", user?.role);
 
         if (!user) {
-            // Not logged in
+            console.log("[AuthGuard] No user found, redirecting to login");
             router.push(`/login?callbackUrl=${pathname}`);
             return;
         }
 
         if (allowedRoles && !allowedRoles.includes(user.role)) {
-            // Role not allowed for this section
-            // Redirect to their own dashboard
+            console.log("[AuthGuard] Role not allowed. Allowed:", allowedRoles, "User role:", user.role, "Redirecting to:", `/dashboard/${user.role}`);
             router.push(`/dashboard/${user.role}`);
             return;
         }
 
+        console.log("[AuthGuard] Authorized successfully");
         setIsAuthorized(true);
     }, [router, pathname, allowedRoles]);
 

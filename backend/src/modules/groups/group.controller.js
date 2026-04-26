@@ -73,4 +73,22 @@ export class GroupController {
             next(error);
         }
     }
+
+    static async createPost(req, res, next) {
+        try {
+            const post = await GroupService.createPost(req.params.threadId, req.user._id, req.body.content);
+            res.status(201).json({ success: true, data: post });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getPosts(req, res, next) {
+        try {
+            const posts = await GroupService.getThreadPosts(req.params.threadId);
+            res.json({ success: true, data: posts });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

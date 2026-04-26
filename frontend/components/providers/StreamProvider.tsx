@@ -36,34 +36,41 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!
 
         const initStream = async () => {
+            console.log("[StreamProvider] Initializing Stream for user:", user._id);
             try {
                 // 1. Get Token from backend
                 const { token } = await authApi.getStreamToken()
+                console.log("[StreamProvider] Received Stream token");
 
                 // 2. Initialize Chat Client
+                const userId = (user._id || user.id)?.toString();
+                if (!userId) throw new Error("User ID is missing from session");
+
                 const chat = StreamChat.getInstance(apiKey)
                 await chat.connectUser(
                     {
-                        id: user._id,
-                        name: user.fullName,
+                        id: userId,
+                        name: user.fullName || "User",
                         image: user.profilePic || "",
                     },
                     token
                 )
                 setChatClient(chat)
+                console.log("[StreamProvider] Chat client connected");
 
                 // 3. Initialize Video Client
                 const videoUser: StreamVideoUser = {
-                    id: user._id,
-                    name: user.fullName,
+                    id: userId,
+                    name: user.fullName || "User",
                     image: user.profilePic || "",
                 }
                 const video = new StreamVideoClient({ apiKey, user: videoUser, token })
                 setVideoClient(video)
+                console.log("[StreamProvider] Video client initialized");
 
                 setIsReady(true)
             } catch (error) {
-                console.error("Error initializing Stream:", error)
+                console.error("[StreamProvider] Error initializing Stream:", error)
             }
         }
 

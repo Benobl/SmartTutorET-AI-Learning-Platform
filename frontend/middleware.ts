@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/request';
+import { NextResponse, NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -13,6 +12,7 @@ export function middleware(request: NextRequest) {
 
     // 1. If trying to access dashboard without being logged in
     if (isDashboardRoute && !jwt?.value) {
+        console.log(`[Middleware] Unauthorized access to ${pathname}. Missing JWT. Redirecting to login.`);
         const url = new URL('/login', request.url);
         url.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(url);
@@ -34,6 +34,7 @@ export function middleware(request: NextRequest) {
             const dashboardType = segments[2]; // e.g. 'student', 'admin', 'tutor', 'manager'
 
             if (dashboardType && dashboardType !== userRole) {
+                console.log(`[Middleware] Role mismatch for ${pathname}. User role: ${userRole}. Redirecting to /dashboard/${userRole}`);
                 return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
             }
         }

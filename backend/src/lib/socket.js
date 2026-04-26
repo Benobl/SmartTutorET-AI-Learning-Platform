@@ -117,6 +117,11 @@ io.on("connection", (socket) => {
         io.to(`squad_${squadId}`).emit("new-squad-message", { ...message, senderId: userId });
     });
 
+    socket.on("squad-live-started", (data) => {
+        const { squadId } = data;
+        socket.to(`squad_${squadId}`).emit("squad-live-started", data);
+    });
+
     socket.on("disconnect", () => {
         console.log("User disconnected", socket.id);
         delete userSocketMap[userId];

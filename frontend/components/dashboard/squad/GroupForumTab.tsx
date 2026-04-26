@@ -5,7 +5,7 @@ import { MessageCircle, Heart, Plus, User, Clock, ArrowRight } from "lucide-reac
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { fetchWithAuth } from "@/lib/api"
+import { groupApi, fetchWithAuth } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
@@ -14,6 +14,7 @@ interface GroupForumTabProps {
 }
 
 export function GroupForumTab({ squadId }: GroupForumTabProps) {
+    const [forumId, setForumId] = useState<string | null>(null)
     const [threads, setThreads] = useState<any[]>([])
     const [isCreating, setIsCreating] = useState(false)
     const [newThread, setNewThread] = useState({ title: "", content: "" })
@@ -22,33 +23,36 @@ export function GroupForumTab({ squadId }: GroupForumTabProps) {
     const [reply, setReply] = useState("")
 
     useEffect(() => {
-        fetchThreads()
+        const initForum = async () => {
+            try {
+                const forumData = await groupApi.getForums(squadId)
+                if (forumData.data && forumData.data.length > 0) {
+                    setForumId(forumData.data[0]._id)
+                    fetchThreads(forumData.data[0]._id)
+                }
+            } catch (error) {
+                console.error("Failed to init forum:", error)
+            }
+        }
+        initForum()
     }, [squadId])
 
-    const fetchThreads = async () => {
+    const fetchThreads = async (fid: string) => {
         try {
-            // ForumId is assumed to be squadId for simplified mapping
-            const data = await fetchWithAuth(`/forums/threads/${squadId}`)
-            setThreads(data)
+            const data = await groupApi.getThreads(fid)
+            setThreads(data.data || [])
         } catch (error) {
             console.error("Failed to fetch threads:", error)
         }
     }
 
     const handleCreateThread = async () => {
-        if (!newThread.title || !newThread.content) return
+        if (!newThread.title || !newThread.content || !forumId) return
         try {
-            await fetchWithAuth("/forums/threads", {
-                method: "POST",
-                body: JSON.stringify({
-                    forumId: squadId,
-                    title: newThread.title,
-                    content: newThread.content
-                })
-            })
+            await groupApi.createThread(forumId, newThread)
             setIsCreating(false)
             setNewThread({ title: "", content: "" })
-            fetchThreads()
+            fetchThreads(forumId)
             toast({ title: "Observation Logged", description: "Your discussion has been planted." })
         } catch (error) {
             toast({ title: "Failed", description: "Discussion initialization failed.", variant: "destructive" })
@@ -58,24 +62,20 @@ export function GroupForumTab({ squadId }: GroupForumTabProps) {
     const selectThread = async (thread: any) => {
         setActiveThread(thread)
         try {
-            const data = await fetchWithAuth(`/forums/posts/${thread._id}`)
-            setPosts(data)
+            // Need a getPosts endpoint or similar. For now assume threads return posts if populated or fetch via threadId
+            // The service has getThreadPosts(threadId)
+            const data = await fetchWithAuth(`/groups/threads/${thread._id}/posts`) // Assuming this route exists or adding it
+            setPosts(data.data || [])
         } catch (error) {
             console.error("Failed to fetch posts:", error)
         }
     }
 
     const handleSendPost = async () => {
-        if (!reply.trim()) return
+        if (!reply.trim() || !activeThread) return
         try {
-            const newPost = await fetchWithAuth("/forums/posts", {
-                method: "POST",
-                body: JSON.stringify({
-                    threadId: activeThread._id,
-                    content: reply
-                })
-            })
-            setPosts([...posts, newPost])
+            const newPost = await groupApi.createPost(activeThread._id, reply)
+            setPosts([...posts, newPost.data])
             setReply("")
             toast({ title: "Contribution Noted" })
         } catch (error) {

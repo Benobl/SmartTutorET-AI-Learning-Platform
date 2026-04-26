@@ -6,11 +6,11 @@ import Invite from "./invite.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class GroupService {
-    static async createGroup(ownerId, groupData) {
+    static async createGroup(creatorId, groupData) {
         const group = await StudyGroup.create({
             ...groupData,
-            owner: ownerId,
-            members: [ownerId]
+            creator: creatorId,
+            members: [creatorId]
         });
 
         // Automatically create a default forum for the group
