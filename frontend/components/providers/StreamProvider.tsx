@@ -90,11 +90,15 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                 }
 
                 console.time("[StreamVideo] Client Init");
+                // @ts-ignore - axiosConfig exists on the underlying StreamClient but is sometimes hidden by SDK wrappers
                 const vClient = new StreamVideoClient({
                     apiKey,
                     user: videoUser,
                     token,
-                })
+                    options: {
+                        axiosConfig: { timeout: 30000 }
+                    }
+                } as any)
                 console.timeEnd("[StreamVideo] Client Init");
 
                 setVideoClient(vClient)

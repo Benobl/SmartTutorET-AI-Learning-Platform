@@ -423,7 +423,7 @@ export default function ClassSquad() {
                 // Categorical sub-retry for getOrCreate which is prone to 5s edge timeouts
                 let gocSuccess = false
                 let gocAttempt = 0
-                while (gocAttempt < 2 && !gocSuccess) {
+                while (gocAttempt < 3 && !gocSuccess) {
                     try {
                         gocAttempt++
                         console.time(`[Stream] getOrCreate attempt ${gocAttempt}`)
@@ -438,8 +438,9 @@ export default function ClassSquad() {
                     } catch (gocErr: any) {
                         console.timeEnd(`[Stream] getOrCreate attempt ${gocAttempt}`)
                         console.error(`[Stream] getOrCreate failed (Attempt ${gocAttempt}):`, gocErr)
-                        if (gocAttempt >= 2) throw gocErr
-                        await new Promise(r => setTimeout(r, 500)) // Tiny backoff
+                        if (gocAttempt >= 3) throw gocErr
+                        // Progressive backoff: 1s, 2s...
+                        await new Promise(r => setTimeout(r, 1000 * gocAttempt))
                     }
                 }
 
