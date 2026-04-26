@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef, useCallback } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import {
     Chat,
     Channel,
@@ -8,363 +8,236 @@ import {
     MessageInput,
     Window,
     useMessageInputContext,
-    MessageStatus,
 } from "stream-chat-react"
 import "stream-chat-react/dist/css/v2/index.css"
 import { useStream } from "@/components/providers/StreamProvider"
-import { Loader2, Hash, AlertCircle, Send, Check, CheckCheck, Circle, User } from "lucide-react"
+import { Loader2, Hash, AlertCircle, Send, Check, CheckCheck, User, Reply, X, Smile, MoreVertical } from "lucide-react"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
+import { chatApi } from "@/lib/api"
+import { DirectChat } from "../chat/DirectChat"
+import { toast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 
 interface GroupChatTabProps {
     squadId: string
+    members?: any[]
 }
 
-// ─── Custom Stream Send Button ───
-function StreamSendButton() {
-    const { handleSubmit } = useMessageInputContext()
-    return (
-        <button
-            type="button"
-            onClick={handleSubmit}
-            className="w-9 h-9 shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white flex items-center justify-center transition-all"
-            aria-label="Send"
-        >
-            <Send className="w-4 h-4" />
-        </button>
-    )
-}
-
-// ─── Stream Chat (if available) ───
-function StreamChatView({ squadId, chatClient, onFail }: { squadId: string; chatClient: any; onFail?: () => void }) {
-    const [channel, setChannel] = useState<any>(null)
-    const [error, setError] = useState<string | null>(null)
-    const currentUser = getCurrentUser()
-
-    useEffect(() => {
-        let mounted = true
-        if (!chatClient || !squadId || !currentUser) return
-
-        const channelId = `squad-${squadId}`
-
-        const setup = async () => {
-            try {
-                const userId = (currentUser._id || currentUser.id)?.toString()
-                const ch = chatClient.channel("messaging", channelId, {
-                    name: "Squad Chat",
-                    members: [userId],
-                })
-
-                await ch.watch()
-                if (mounted) {
-                    setChannel(ch)
-                    setError(null)
-                }
-            } catch (e: any) {
-                console.error("[StreamChatView] Error:", e)
-                if (mounted) {
-                    setError(e.message || "Failed to connect")
-                    // If rate limited or permission error, trigger fallback
-                    if (e.code === 9 || e.code === 17 || e.message?.includes("Too many requests")) {
-                        setTimeout(() => { if (mounted) onFail?.() }, 1000)
-                    }
-                }
-            }
-        }
-
-        setup()
-        return () => { mounted = false }
-    }, [chatClient, squadId, currentUser?.id || currentUser?._id])
-
-    if (error) {
-        return (
-            <div className="flex flex-col h-full items-center justify-center gap-3 bg-white px-6 text-center">
-                <AlertCircle className="w-10 h-10 text-rose-300" />
-                <p className="text-sm font-bold text-slate-600">Chat Connection Error</p>
-                <p className="text-xs text-slate-400 max-w-xs">{error}</p>
-                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[10px] text-slate-400">
-                    If this persists, the Stream app settings might need "user" ReadChannel permissions.
-                </div>
-            </div>
-        )
-    }
-
-    if (!channel) {
-        return (
-            <div className="flex flex-col h-full items-center justify-center gap-3 bg-white">
-                <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Connecting to chat...</p>
-            </div>
-        )
-    }
-
-    return (
-        <div className="stream-squad-chat flex flex-col h-full bg-white overflow-hidden">
-            <Chat client={chatClient} theme="str-chat__theme-light">
-                <Channel channel={channel} SendButton={StreamSendButton}>
-                    <Window>
-                        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-white shrink-0">
-                            <Hash className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-xs font-black text-slate-600 uppercase tracking-wide">squad-chat</span>
-                            <span className="ml-auto flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
-                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Live
-                            </span>
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto">
-                            <MessageList />
-                        </div>
-                        <div className="shrink-0 px-3 py-2 border-t border-slate-100 bg-white">
-                            <MessageInput focus />
-                        </div>
-                    </Window>
-                </Channel>
-            </Chat>
-
-            <style jsx global>{`
-                .stream-squad-chat .str-chat {
-                    height: 100%; display: flex; flex-direction: column;
-                    background: #f0f2f5 !important; border: none !important; font-family: inherit !important;
-                }
-                .stream-squad-chat .str-chat__container,
-                .stream-squad-chat .str-chat__main-panel {
-                    flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 !important;
-                }
-                .stream-squad-chat .str-chat__message-input {
-                    padding: 12px 16px !important;
-                    background: white !important; 
-                    box-shadow: 0 -4px 12px rgba(0,0,0,0.03) !important;
-                    position: sticky; bottom: 0; z-index: 10;
-                }
-                .stream-squad-chat .str-chat__message-input-inner {
-                    gap: 12px; align-items: flex-end; background: transparent !important;
-                    padding: 0 !important; border: none !important;
-                }
-                .stream-squad-chat .str-chat__textarea textarea {
-                    background: #f1f3f4 !important; border: 1px solid #e8eaed !important;
-                    border-radius: 20px !important; font-size: 15px !important;
-                    padding: 10px 18px !important; box-shadow: none !important;
-                    transition: all 0.2s ease;
-                    max-height: 150px !important;
-                    line-height: 1.5 !important;
-                }
-                .stream-squad-chat .str-chat__textarea textarea:focus {
-                    background: white !important; border-color: #0ea5e9 !important;
-                }
-                
-                .stream-squad-chat .str-chat__message-list {
-                    background: #e5e7eb/40 !important; 
-                    padding: 24px 20px !important;
-                    scrollbar-width: thin;
-                }
-                /* Bubble Fix: Prevent vertical text */
-                .stream-squad-chat .str-chat__message-bubble {
-                    border-radius: 18px 18px 18px 4px !important;
-                    font-size: 15px !important; 
-                    display: block !important;
-                    min-width: 80px !important;
-                    max-width: 85% !important;
-                    width: auto !important;
-                    border: none !important; 
-                    padding: 9px 13px !important;
-                    position: relative;
-                    word-wrap: break-word !important;
-                    white-space: normal !important;
-                }
-                .stream-squad-chat .str-chat__message--me .str-chat__message-bubble {
-                    background: #0ea5e9 !important; color: white !important;
-                    border-radius: 18px 18px 4px 18px !important;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
-                    margin-left: auto;
-                }
-                .stream-squad-chat .str-chat__message-text-inner {
-                    padding-bottom: 4px;
-                    display: inline-block !important;
-                    width: 100% !important;
-                }
-                .stream-squad-chat .str-chat__li--me { justify-content: flex-end; }
-                .stream-squad-chat .str-chat__avatar { border-radius: 50% !important; }
-                
-                /* Telegram style status inside bubble */
-                .stream-squad-chat .str-chat__message-simple-status { 
-                    float: right;
-                    margin-top: 2px;
-                    margin-left: 8px;
-                    font-size: 10px;
-                    opacity: 0.7;
-                }
-                
-                @media (max-width: 640px) {
-                    .stream-squad-chat .str-chat__message-bubble { max-width: 90% !important; }
-                }
-            `}</style>
-        </div>
-    )
-}
-
-// ─── Socket Chat Fallback ───
 interface ChatMessage {
     _id: string
     text: string
     senderId: string
     senderName: string
+    senderPic?: string
     createdAt: string
     status: 'sent' | 'delivered' | 'seen'
+    replyTo?: string
+    replyToData?: { text: string; senderName: string }
+    reactions?: { user: string; emoji: string; userName: string }[]
 }
 
+// ─── Stream Helper ───
+function StreamSendButton() {
+    const { handleSubmit } = useMessageInputContext()
+    return (
+        <button type="button" onClick={handleSubmit} className="w-9 h-9 shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white flex items-center justify-center transition-all mr-1">
+            <Send className="w-4 h-4" />
+        </button>
+    )
+}
+
+// ─── Pocket Telegram View ───
 function SocketChatView({ squadId }: { squadId: string }) {
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [text, setText] = useState("")
     const [onlineUsers, setOnlineUsers] = useState<string[]>([])
+    const [connectionStatus, setConnectionStatus] = useState<"connected" | "connecting" | "disconnected">("connecting")
+    const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
+
     const currentUser = getCurrentUser()
     const userId = (currentUser?._id || currentUser?.id || "") as string
     const userName = currentUser?.fullName || "You"
+
     const bottomRef = useRef<HTMLDivElement>(null)
     const socketRef = useRef<any>(null)
 
     useEffect(() => {
+        if (!userId) return
+        console.log(`[SocketChatView] Initializing for ${userName} (${userId})`);
         const socket = initializeSocket(userId)
         socketRef.current = socket
 
-        // Join the squad room
-        socket.emit("join-squad", squadId)
+        const join = () => {
+            socket.emit("join-squad", squadId)
+            setConnectionStatus("connected")
+        }
 
-        // Listen for messages
+        if (socket.connected) join()
+        socket.on("connect", join)
+        socket.on("disconnect", () => setConnectionStatus("disconnected"))
+
+        chatApi.getSquadHistory(squadId).then(res => { if (res.success) setMessages(res.data) })
+
         socket.on("new-squad-message", (msg: any) => {
-            setMessages(prev => [...prev, {
-                _id: msg._id || Date.now().toString(),
-                text: msg.text || msg.content,
-                senderId: msg.senderId,
-                senderName: msg.senderName || "Member",
-                createdAt: msg.createdAt || new Date().toISOString(),
-                status: 'delivered'
-            }])
-            // Send acknowledgement
-            socket.emit("message-seen", { senderId: msg.senderId })
+            setMessages(prev => prev.find(m => m._id === msg._id) ? prev : [...prev, msg])
+            if (msg.senderId !== userId) socket.emit("message-seen", { senderId: msg.senderId })
         })
 
-        socket.on("getOnlineUsers", (users: string[]) => {
-            setOnlineUsers(users)
-        })
-
-        socket.on("message-seen", (data: any) => {
-            setMessages(prev => prev.map(m => m.senderId === userId ? { ...m, status: 'seen' } : m))
+        socket.on("getOnlineUsers", (users: string[]) => setOnlineUsers(users))
+        socket.on("update-message", (updatedMsg: any) => {
+            setMessages(prev => prev.map(m => m._id === updatedMsg._id ? updatedMsg : m))
         })
 
         return () => {
+            socket.off("connect", join)
             socket.off("new-squad-message")
             socket.off("getOnlineUsers")
-            socket.off("message-seen")
+            socket.off("update-message")
         }
     }, [squadId, userId])
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [messages])
+    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
     const handleSend = () => {
         if (!text.trim() || !socketRef.current) return
-
-        const msgId = Date.now().toString()
-        const msg: ChatMessage = {
-            _id: msgId,
-            text: text.trim(),
-            senderId: userId,
-            senderName: userName,
-            createdAt: new Date().toISOString(),
-            status: 'sent'
-        }
-
-        // Emit to socket
         socketRef.current.emit("send-squad-message", {
             squadId,
-            message: { ...msg, text: msg.text }, // Use text for backward compatibility
+            message: text.trim(),
+            senderName: userName,
+            senderPic: currentUser?.profilePic || "",
+            replyTo: replyingTo?._id || null,
+            replyToData: replyingTo ? { text: replyingTo.text, senderName: replyingTo.senderName } : null
         })
+        setText(""); setReplyingTo(null)
+    }
 
-        // Add locally
-        setMessages(prev => [...prev, msg])
-        setText("")
-
-        // Simulate delivered after short delay
-        setTimeout(() => {
-            setMessages(prev => prev.map(m => m._id === msgId ? { ...m, status: 'delivered' } : m))
-        }, 800)
+    const handleReaction = (messageId: string, emoji: string) => {
+        socketRef.current?.emit("message-reaction", { messageId, emoji, squadId })
     }
 
     return (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-[#f4f7f9] relative overflow-hidden">
             {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+            <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-slate-100 shadow-sm z-30">
                 <div className="relative">
-                    <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
-                        <Hash className="w-4 h-4" />
+                    <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-inner", connectionStatus === "connected" ? "bg-sky-50 text-sky-600" : "bg-rose-50 text-rose-500")}>
+                        <Hash className="w-5 h-5" />
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
+                    <span className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm", connectionStatus === "connected" ? "bg-emerald-500" : "bg-rose-500 animate-pulse")} />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-[13px] font-bold text-slate-800 tracking-tight">Squad Chat</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{onlineUsers.length} active now</span>
+                    <span className="text-sm font-black text-slate-800 tracking-tight">Squad Learning Hub</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{onlineUsers.length} members active</span>
+                        {connectionStatus !== "connected" && <span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-ping" />}
+                    </div>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                        {onlineUsers.slice(0, 3).map((_, i) => (
-                            <div key={i} className="w-6 h-6 rounded-lg bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-slate-400 overflow-hidden shadow-sm">
-                                <User className="w-3 h-3" />
-                            </div>
-                        ))}
-                        {onlineUsers.length > 3 && (
-                            <div className="w-6 h-6 rounded-lg bg-sky-50 border-2 border-white flex items-center justify-center text-[9px] font-bold text-sky-600 shadow-sm">
-                                +{onlineUsers.length - 3}
-                            </div>
-                        )}
-                    </div>
+                    <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg text-slate-400"><MoreVertical className="w-4 h-4" /></Button>
                 </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-hide pattern-dots">
                 {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full gap-4 text-center opacity-50">
-                        <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center">
-                            <MessageBubbleIcon className="w-8 h-8 text-slate-300" />
+                    <div className="flex flex-col items-center justify-center h-full gap-4 text-center pb-20">
+                        <div className="w-20 h-20 rounded-[40px] bg-white shadow-xl shadow-slate-200/50 flex items-center justify-center text-slate-300">
+                            <Send className="w-8 h-8 -rotate-12 translate-x-1 -translate-y-1" />
                         </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-400">No signals found</p>
-                            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest mt-1">Start the transmission below</p>
-                        </div>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Start the group wisdom</p>
                     </div>
                 )}
+
                 {messages.map((msg, idx) => {
                     const isMe = msg.senderId === userId
-                    const showName = !isMe && (idx === 0 || messages[idx - 1].senderId !== msg.senderId)
 
                     return (
-                        <div key={msg._id} className={cn("flex flex-col mb-1", isMe ? "items-end" : "items-start")}>
-                            {showName && (
-                                <p className="text-[10px] font-black text-sky-600/80 mb-1 ml-1 uppercase tracking-wider">{msg.senderName}</p>
-                            )}
-                            <div className={cn(
-                                "relative group px-4 py-2.5 rounded-2xl transition-all duration-200 shadow-sm",
-                                isMe
-                                    ? "bg-sky-600 text-white rounded-tr-sm min-w-[100px] max-w-[85%]"
-                                    : "bg-slate-50 text-slate-700 rounded-tl-sm border border-slate-100 min-w-[100px] max-w-[85%]"
-                            )}>
-                                <p className="text-[14px] leading-relaxed font-medium">{msg.text}</p>
+                        <div key={msg._id} className={cn("flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300", isMe ? "flex-row-reverse" : "flex-row")}>
+                            {/* Avatar */}
+                            <div className="w-9 shrink-0">
+                                {!isMe && (
+                                    <div className="w-9 h-9 rounded-xl bg-white shadow-md flex items-center justify-center text-[10px] font-black text-sky-600 border border-slate-100 overflow-hidden ring-2 ring-white">
+                                        {msg.senderPic ? (
+                                            <img src={msg.senderPic} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="uppercase">{msg.senderName?.substring(0, 2) || "S"}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={cn("flex flex-col max-w-[80%] md:max-w-[70%]", isMe ? "items-end" : "items-start")}>
+                                {!isMe && (
+                                    <span className="text-[11px] font-black text-sky-600 mb-1 ml-1 uppercase tracking-wider flex items-center gap-2">
+                                        {msg.senderName || "Student"}
+                                        <span className={cn("w-1.5 h-1.5 rounded-full", connectionStatus === "connected" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : "bg-slate-200")} />
+                                    </span>
+                                )}
 
                                 <div className={cn(
-                                    "flex items-center gap-1.5 mt-1.5 justify-end",
-                                    isMe ? "text-white/60" : "text-slate-400"
+                                    "relative group px-4 py-3 rounded-2xl shadow-sm transition-all hover:shadow-md",
+                                    isMe
+                                        ? "bg-sky-600 text-white rounded-br-sm soft-shadow-sky"
+                                        : "bg-white text-slate-700 rounded-bl-sm border border-slate-100"
                                 )}>
-                                    <span className="text-[9px] font-bold">
-                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                    {isMe && (
-                                        <div className="flex">
-                                            {msg.status === 'sent' && <Check className="w-3 h-3" />}
-                                            {msg.status === 'delivered' && <CheckCheck className="w-3 h-3" />}
-                                            {msg.status === 'seen' && <CheckCheck className="w-3 h-3 text-emerald-300" />}
+                                    {/* Reply Thread */}
+                                    {msg.replyToData && (
+                                        <div className={cn(
+                                            "mb-2.5 p-2 rounded-xl text-[11px] border-l-[3px] transition-all",
+                                            isMe ? "bg-white/10 border-white/40 text-white/90" : "bg-slate-50 border-sky-400 text-slate-500"
+                                        )}>
+                                            <p className="font-black uppercase text-[8px] mb-0.5 tracking-tight">{msg.replyToData.senderName}</p>
+                                            <p className="truncate italic line-clamp-1">{msg.replyToData.text}</p>
                                         </div>
                                     )}
+
+                                    <p className="text-[15px] leading-relaxed font-medium whitespace-pre-wrap break-words">{msg.text}</p>
+
+                                    <div className={cn(
+                                        "flex items-center gap-1.5 mt-1.5 justify-end text-[9px] font-bold",
+                                        isMe ? "text-white/60" : "text-slate-400"
+                                    )}>
+                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {isMe && (msg.status === 'seen' ? <CheckCheck className="w-3 h-3 text-emerald-300" /> : <Check className="w-3 h-3" />)}
+                                    </div>
+
+                                    {/* Reactions */}
+                                    {msg.reactions && msg.reactions.length > 0 && (
+                                        <div className="absolute -bottom-3 left-2 flex flex-wrap gap-1 z-10">
+                                            {Array.from(new Set(msg.reactions.map(r => r.emoji))).map(emoji => {
+                                                const reactors = msg.reactions?.filter(r => r.emoji === emoji).map(r => r.userName).join(", ");
+                                                return (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={() => handleReaction(msg._id, emoji)}
+                                                        title={`Reacted by: ${reactors}`}
+                                                        className="bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-slate-100 shadow-sm text-[11px] hover:scale-110 transition-all active:scale-95 group/react flex items-center gap-1"
+                                                    >
+                                                        <span>{emoji}</span>
+                                                        <span className="text-[9px] font-black text-slate-500">{msg.reactions?.filter(r => r.emoji === emoji).length}</span>
+
+                                                        {/* Floating Reactor List on Hover */}
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/react:block bg-slate-900 text-white text-[9px] py-1 px-2 rounded-lg whitespace-nowrap z-50 shadow-xl">
+                                                            {reactors}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Actions Bar (Overlay on hover) */}
+                                    <div className={cn(
+                                        "absolute top-0 opacity-0 group-hover:opacity-100 transition-all flex items-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-100 p-0.5 ring-1 ring-black/5",
+                                        isMe ? "right-[102%]" : "left-[102%]"
+                                    )}>
+                                        <Button variant="ghost" size="icon" className="w-7 h-7 rounded-full text-slate-400 hover:text-sky-600" onClick={() => setReplyingTo(msg)}><Reply className="w-3.5 h-3.5" /></Button>
+                                        <button onClick={() => handleReaction(msg._id, "👍")} className="w-7 h-7 flex items-center justify-center text-xs hover:bg-slate-50 rounded-full">👍</button>
+                                        <button onClick={() => handleReaction(msg._id, "🔥")} className="w-7 h-7 flex items-center justify-center text-xs hover:bg-slate-50 rounded-full">🔥</button>
+                                        <button onClick={() => handleReaction(msg._id, "❤️")} className="w-7 h-7 flex items-center justify-center text-xs hover:bg-slate-50 rounded-full">❤️</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -373,54 +246,112 @@ function SocketChatView({ squadId }: { squadId: string }) {
                 <div ref={bottomRef} className="h-4" />
             </div>
 
-            {/* Input Overlay at bottom */}
-            <div className="shrink-0 pt-2 pb-4 px-4 bg-white border-t border-slate-100 sticky bottom-0 z-20">
-                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 focus-within:border-sky-300 focus-within:ring-4 focus-within:ring-sky-500/5 transition-all">
-                    <textarea
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-                        placeholder="Broadcast message..."
-                        className="flex-1 min-h-[36px] max-h-32 px-3 py-2 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none resize-none scrollbar-hide"
-                        rows={1}
-                        style={{ height: 'auto' }}
-                        onInput={(e) => {
-                            const target = e.target as HTMLTextAreaElement;
-                            target.style.height = 'auto';
-                            target.style.height = `${target.scrollHeight}px`;
-                        }}
-                    />
+            {/* Input Station */}
+            <div className="bg-white border-t border-slate-100 p-4 md:p-6 shadow-2xl relative z-40">
+                {replyingTo && (
+                    <div className="absolute bottom-full left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 p-3 flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-1 bg-sky-500 h-8 rounded-full" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-black text-sky-600 uppercase tracking-widest">Replying to {replyingTo.senderName}</p>
+                                <p className="text-xs text-slate-500 truncate">{replyingTo.text}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setReplyingTo(null)} className="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all"><X className="w-4 h-4" /></button>
+                    </div>
+                )}
+
+                <div className="max-w-4xl mx-auto flex items-end gap-3">
+                    <div className="flex-1 relative group">
+                        <textarea
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+                            placeholder="Type wisdom here..."
+                            className="w-full min-h-[44px] max-h-40 px-5 py-3 bg-slate-50 rounded-2xl text-[15px] text-slate-800 placeholder:text-slate-400 outline-none border border-slate-200 focus:bg-white focus:border-sky-300 focus:ring-4 focus:ring-sky-500/5 transition-all resize-none"
+                            rows={1}
+                            style={{ height: 'auto' }}
+                            onInput={(e) => {
+                                const t = e.target as HTMLTextAreaElement;
+                                t.style.height = 'auto';
+                                t.style.height = `${t.scrollHeight}px`;
+                            }}
+                        />
+                        <Smile className="absolute right-4 bottom-3 w-5 h-5 text-slate-300 hover:text-sky-500 cursor-pointer transition-colors" />
+                    </div>
                     <button
                         onClick={handleSend}
                         disabled={!text.trim()}
-                        className="w-10 h-10 shrink-0 rounded-2xl bg-sky-600 hover:bg-sky-700 disabled:bg-slate-200 disabled:text-slate-400 text-white flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-sky-600/20 mb-0.5"
+                        className="w-12 h-12 shrink-0 rounded-2xl bg-sky-600 hover:bg-sky-700 disabled:bg-slate-200 text-white flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-sky-600/30"
                     >
-                        <Send className="w-4 h-4" />
+                        <Send className="w-5 h-5" />
                     </button>
                 </div>
             </div>
+
+            <style jsx global>{`
+                .pattern-dots {
+                    background-image: radial-gradient(#e2e8f0 0.8px, transparent 0.8px);
+                    background-size: 24px 24px;
+                }
+                .soft-shadow-sky {
+                    box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.39);
+                }
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
         </div>
     )
 }
 
-function MessageBubbleIcon({ className }: { className?: string }) {
+export function GroupChatTab({ squadId, members = [] }: GroupChatTabProps) {
+    const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null)
+    const currentUser = getCurrentUser()
+
+    if (selectedUserForDM) return <DirectChat otherUser={selectedUserForDM} onBack={() => setSelectedUserForDM(null)} />
+
     return (
-        <svg className={className} viewBox="0 0 24 24" fill="none">
-            <path d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <div className="flex h-full overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 h-full">
+                <SocketChatView squadId={squadId} />
+            </div>
+
+            <div className="hidden lg:flex w-72 border-l border-slate-100 flex-col bg-white shrink-0">
+                <div className="p-5 border-b border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Squad Roster</h3>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{members.length} members enrolled</p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                    {members.map((member: any) => {
+                        const mid = (member._id || member.id || member) as string
+                        const isMe = mid === (currentUser?._id || currentUser?.id)
+                        const name = member.fullName || member.name || "Scholar"
+                        const pic = member.profilePic || ""
+
+                        return (
+                            <button
+                                key={mid}
+                                onClick={() => !isMe && setSelectedUserForDM(member)}
+                                className={cn(
+                                    "w-full flex items-center gap-3 p-3 rounded-2xl transition-all group relative",
+                                    isMe ? "cursor-default" : "hover:bg-slate-50"
+                                )}
+                            >
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-sky-600 font-black overflow-hidden group-hover:scale-105 transition-transform">
+                                        {pic ? <img src={pic} className="w-full h-full object-cover" /> : name[0]}
+                                    </div>
+                                    <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
+                                </div>
+                                <div className="flex flex-col items-start min-w-0">
+                                    <span className="text-[13px] font-bold text-slate-700 truncate w-full">{name} {isMe && "✨"}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{isMe ? "You (Owner)" : "Student"}</span>
+                                </div>
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+        </div>
     )
-}
-
-// ─── Main Component ───
-export function GroupChatTab({ squadId }: GroupChatTabProps) {
-    const { chatClient, isReady } = useStream()
-    const [useFallback, setUseFallback] = useState(false)
-
-    // If Stream Chat client is available & connected, and no fallback triggered, use it
-    if (chatClient && isReady && !useFallback) {
-        return <StreamChatView squadId={squadId} chatClient={chatClient} onFail={() => setUseFallback(true)} />
-    }
-
-    // Fallback to socket-based chat
-    return <SocketChatView squadId={squadId} />
 }

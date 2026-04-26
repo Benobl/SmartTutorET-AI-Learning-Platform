@@ -9,12 +9,16 @@ import { groupApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { getCurrentUser } from "@/lib/auth-utils"
+import { initializeSocket } from "@/lib/socket"
 
 interface GroupForumTabProps {
     squadId: string
 }
 
 export function GroupForumTab({ squadId }: GroupForumTabProps) {
+    const currentUser = getCurrentUser()
+    const userId = currentUser?._id || currentUser?.id || ""
+    const socket = initializeSocket(userId)
     const [forumId, setForumId] = useState<string | null>(null)
     const [threads, setThreads] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -24,7 +28,6 @@ export function GroupForumTab({ squadId }: GroupForumTabProps) {
     const [posts, setPosts] = useState<any[]>([])
     const [reply, setReply] = useState("")
     const [replying, setReplying] = useState(false)
-    const currentUser = getCurrentUser()
 
     useEffect(() => {
         let mounted = true
@@ -57,6 +60,27 @@ export function GroupForumTab({ squadId }: GroupForumTabProps) {
         } catch (e) { console.error(e) }
     }
 
+    // Real-time synchronization
+    useEffect(() => {
+        if (!socket || !squadId) return
+
+        const join = () => socket.emit("join-squad", squadId)
+        if (socket.connected) join()
+        socket.on("connect", join)
+
+        socket.on("forum-thread-created", (newThread: any) => {
+            setThreads(prev => {
+                if (prev.find(t => t._id === newThread._id)) return prev
+                return [newThread, ...prev]
+            })
+        })
+
+        return () => {
+            socket.off("connect", join)
+            socket.off("forum-thread-created")
+        }
+    }, [socket, squadId])
+
     const handleCreate = async () => {
         const titleTrimmed = newThread.title.trim()
         if (!titleTrimmed || !forumId) {
@@ -73,6 +97,12 @@ export function GroupForumTab({ squadId }: GroupForumTabProps) {
             const res = await groupApi.createThread(forumId, { ...newThread, title: titleTrimmed })
             const created = res.data || res
             setThreads(prev => [created, ...prev])
+
+            // Broadcast to squad
+            if (socket) {
+                socket.emit("new-forum-thread", { squadId, thread: created })
+            }
+
             setNewThread({ title: "", content: "" })
             toast({ title: "Discussion started!" })
         } catch (e) {

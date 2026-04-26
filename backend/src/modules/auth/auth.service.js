@@ -5,6 +5,7 @@ import User from "../users/user.model.js";
 import { upsertStreamUser } from "../../lib/stream.js";
 import { sendEmail, sendPasswordResetEmail } from "../../lib/email.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
+import logger from "../../config/logger.js";
 
 export class AuthService {
     static async signup(userData) {

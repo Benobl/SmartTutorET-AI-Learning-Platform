@@ -25,6 +25,7 @@ import paymentRoutes from "./src/modules/payments/payment.route.js";
 import adminRoutes from "./src/modules/admin/admin.route.js";
 import questionRoutes from "./src/modules/questions/question.route.js";
 import inviteRoutes from "./src/modules/invites/invite.route.js";
+import chatRoutes from "./src/modules/chat/chat.route.js";
 
 const PORT = process.env.PORT || 5001;
 
@@ -79,6 +80,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/invites", inviteRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {

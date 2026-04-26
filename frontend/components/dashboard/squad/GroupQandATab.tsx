@@ -8,12 +8,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { questionApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { initializeSocket } from "@/lib/socket"
+import { getCurrentUser } from "@/lib/auth-utils"
 
 interface GroupQandATabProps {
     squadId: string
 }
 
 export function GroupQandATab({ squadId }: GroupQandATabProps) {
+    const currentUser = getCurrentUser()
+    const userId = currentUser?._id || currentUser?.id || ""
+    const socket = initializeSocket(userId)
     const [questions, setQuestions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [askOpen, setAskOpen] = useState(false)
@@ -27,6 +32,27 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
     useEffect(() => {
         fetchQuestions()
     }, [squadId])
+
+    // Real-time synchronization
+    useEffect(() => {
+        if (!socket || !squadId) return
+
+        const join = () => socket.emit("join-squad", squadId)
+        if (socket.connected) join()
+        socket.on("connect", join)
+
+        socket.on("question-created", (newQuestion: any) => {
+            setQuestions(prev => {
+                if (prev.find(q => q._id === newQuestion._id)) return prev
+                return [newQuestion, ...prev]
+            })
+        })
+
+        return () => {
+            socket.off("connect", join)
+            socket.off("question-created")
+        }
+    }, [socket, squadId])
 
     const fetchQuestions = async () => {
         try {
@@ -59,6 +85,12 @@ export function GroupQandATab({ squadId }: GroupQandATabProps) {
             const created = res.data || res
             setAskOpen(false)
             setNewQ({ title: "", content: "", tags: "" })
+
+            // Broadcast to squad
+            if (socket) {
+                socket.emit("new-question", { squadId, question: created })
+            }
+
             fetchQuestions()
             toast({ title: "Question posted to squad!" })
         } catch (e) {

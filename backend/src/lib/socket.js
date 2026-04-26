@@ -1,13 +1,16 @@
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
+import { ChatService } from "../modules/chat/chat.service.js";
+import User from "../modules/users/user.model.js";
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000"],
+        origin: ["http://localhost:3000", "http://localhost:3001"],
+        methods: ["GET", "POST"]
     },
 });
 
@@ -28,11 +31,21 @@ io.on("connection", (socket) => {
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
     // --- Chat ---
-    socket.on("sendMessage", (data) => {
-        const { receiverId, message } = data;
+    socket.on("sendMessage", async (data) => {
+        const { receiverId, message, senderName } = data;
+
+        // Persist DM
+        await ChatService.saveMessage({
+            senderId: userId,
+            senderName,
+            text: message,
+            receiverId,
+            status: "sent"
+        });
+
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
-            io.to(receiverSocketId).emit("newMessage", message);
+            io.to(receiverSocketId).emit("newMessage", { ...data, senderId: userId });
         }
     });
 
@@ -108,13 +121,76 @@ io.on("connection", (socket) => {
 
     // --- Room Support (for Squads) ---
     socket.on("join-squad", (squadId) => {
-        socket.join(`squad_${squadId}`);
-        console.log(`User ${userId} joined squad room: squad_${squadId}`);
+        const room = `squad_${squadId}`;
+        socket.join(room);
+        console.log(`[Socket] User ${userId} joined room: ${room}`);
+
+        // Debug: list rooms for this socket
+        console.log(`[Socket] ${socket.id} rooms:`, Array.from(socket.rooms));
     });
 
-    socket.on("send-squad-message", (data) => {
-        const { squadId, message } = data;
-        io.to(`squad_${squadId}`).emit("new-squad-message", { ...message, senderId: userId });
+    socket.on("send-squad-message", async (data) => {
+        try {
+            const { squadId, message } = data;
+
+            // Resolve Sender from DB to ensure correct Name/Pic
+            const sender = await User.findById(userId);
+            const senderName = sender?.fullName || "Scholar";
+            const senderPic = sender?.profilePic || "";
+
+            // Persist Squad Message
+            const savedMsg = await ChatService.saveMessage({
+                senderId: userId,
+                senderName,
+                senderPic,
+                text: message,
+                squadId,
+                status: "sent",
+                replyTo: data.replyTo || null
+            });
+
+            console.log(`[Socket] Broadcasting verified msg from ${senderName} to squad_${squadId}`);
+            io.to(`squad_${squadId}`).emit("new-squad-message", {
+                ...savedMsg.toObject(),
+                _id: savedMsg._id.toString(),
+                replyTo: data.replyToData || null
+            });
+        } catch (err) {
+            console.error("[Socket] send-squad-message error:", err);
+        }
+    });
+
+    // --- Reactions ---
+    socket.on("message-reaction", async (data) => {
+        const { messageId, emoji, squadId } = data;
+        try {
+            const reactor = await User.findById(userId);
+            const userName = reactor?.fullName || "Scholar";
+
+            // Update in DB
+            const updatedMsg = await ChatService.addReaction(messageId, {
+                user: userId,
+                emoji,
+                userName
+            });
+
+            if (updatedMsg) {
+                io.to(`squad_${squadId}`).emit("update-message", updatedMsg);
+            }
+        } catch (err) {
+            console.error("[Socket] message-reaction error:", err);
+        }
+    });
+
+    // --- Forum & Q&A Sync ---
+    socket.on("new-forum-thread", (data) => {
+        const { squadId, thread } = data;
+        socket.to(`squad_${squadId}`).emit("forum-thread-created", thread);
+    });
+
+    socket.on("new-question", (data) => {
+        const { squadId, question } = data;
+        socket.to(`squad_${squadId}`).emit("question-created", question);
     });
 
     // Squad live session broadcast — send to each specific member

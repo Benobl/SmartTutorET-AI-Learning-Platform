@@ -14,8 +14,9 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [isDrawing, setIsDrawing] = useState(false)
     const [color, setColor] = useState("#0ea5e9") // sky-500
-    const [brushSize, setBrushSize] = useState(3)
+    const [brushSize, setBrushSize] = useState(5)
     const [mode, setMode] = useState<"pencil" | "eraser">("pencil")
+    const [points, setPoints] = useState<{ x: number, y: number }[]>([])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -25,8 +26,13 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         if (!ctx) return
 
         // Join room explicitly
+        const join = () => {
+            if (socket) socket.emit("join-squad", squadId)
+        }
+
         if (socket) {
-            socket.emit("join-squad", squadId)
+            if (socket.connected) join()
+            socket.on("connect", join)
         }
 
         // Set canvas size to parent container size
@@ -69,12 +75,24 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         }
     }, [socket])
 
-    const drawOnCanvas = (ctx: CanvasRenderingContext2D, x: number, y: number, prevX: number, prevY: number, color: string, size: number) => {
+    const drawOnCanvas = (ctx: CanvasRenderingContext2D, x: number, y: number, prevX: number, prevY: number, color: string, size: number, isSmooth = false) => {
         ctx.beginPath()
         ctx.strokeStyle = color
         ctx.lineWidth = size
-        ctx.moveTo(prevX, prevY)
-        ctx.lineTo(x, y)
+        ctx.lineCap = "round"
+        ctx.lineJoin = "round"
+
+        if (isSmooth) {
+            // Quadratic curve for smoother lines
+            ctx.moveTo(prevX, prevY)
+            const midX = (prevX + x) / 2
+            const midY = (prevY + y) / 2
+            ctx.quadraticCurveTo(prevX, prevY, midX, midY)
+        } else {
+            ctx.moveTo(prevX, prevY)
+            ctx.lineTo(x, y)
+        }
+
         ctx.stroke()
         ctx.closePath()
     }
@@ -115,7 +133,8 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
         const { x, y } = getCoordinates(e)
         const drawColor = mode === "eraser" ? "#ffffff" : color
 
-        drawOnCanvas(ctx, x, y, lastPos.current.x, lastPos.current.y, drawColor, brushSize)
+        // Standard draw for real-time feedback
+        drawOnCanvas(ctx, x, y, lastPos.current.x, lastPos.current.y, drawColor, brushSize, true)
 
         // Emit to socket
         if (socket) {
@@ -146,31 +165,49 @@ export function GroupWhiteboardTab({ squadId, socket }: GroupWhiteboardTabProps)
     return (
         <div className="flex flex-col h-[500px] bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 relative">
             {/* Toolbar */}
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 p-2 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-slate-100">
+            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 ring-1 ring-black/5">
                 <Button
                     size="icon"
                     variant={mode === "pencil" ? "default" : "ghost"}
                     onClick={() => setMode("pencil")}
-                    className={cn("w-10 h-10 rounded-xl", mode === "pencil" && "bg-sky-600 shadow-lg shadow-sky-600/20")}
+                    className={cn("w-10 h-10 rounded-xl transition-all", mode === "pencil" ? "bg-sky-600 shadow-lg shadow-sky-600/20 text-white" : "text-slate-500")}
                 >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-5 h-5" />
                 </Button>
                 <Button
                     size="icon"
                     variant={mode === "eraser" ? "default" : "ghost"}
                     onClick={() => setMode("eraser")}
-                    className={cn("w-10 h-10 rounded-xl", mode === "eraser" && "bg-slate-900 shadow-lg shadow-slate-900/20")}
+                    className={cn("w-10 h-10 rounded-xl transition-all", mode === "eraser" ? "bg-slate-900 shadow-lg shadow-slate-900/20 text-white" : "text-slate-500")}
                 >
-                    <Eraser className="w-4 h-4" />
+                    <Eraser className="w-5 h-5" />
                 </Button>
-                <div className="h-px bg-slate-100 mx-2" />
+                <div className="h-px bg-slate-100 mx-1.5 my-1" />
+
+                {/* Brush Sizes */}
+                <div className="flex flex-col gap-1 items-center py-1">
+                    {[3, 8, 15, 30].map(s => (
+                        <button
+                            key={s}
+                            onClick={() => setBrushSize(s)}
+                            className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                                brushSize === s ? "bg-sky-50 text-sky-600 border border-sky-100" : "text-slate-400 hover:bg-slate-50"
+                            )}
+                        >
+                            <div className="bg-current rounded-full" style={{ width: Math.max(2, s / 3), height: Math.max(2, s / 3) }} />
+                        </button>
+                    ))}
+                </div>
+
+                <div className="h-px bg-slate-100 mx-1.5 my-1" />
                 <Button
                     size="icon"
                     variant="ghost"
                     onClick={clearCanvas}
-                    className="w-10 h-10 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                    className="w-10 h-10 rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                 >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                 </Button>
             </div>
 

@@ -133,3 +133,12 @@ export const authApi = {
     getMe: () => fetchWithAuth("/auth/me"),
     getStreamToken: () => fetchWithAuth("/auth/stream-token"),
 };
+
+export const chatApi = {
+    getSquadHistory: (squadId: string) => fetchWithAuth(`/chat/squad/${squadId}`),
+    getDirectHistory: (otherUserId: string) => fetchWithAuth(`/chat/direct/${otherUserId}`),
+    markSeen: (messageIds: string[]) => fetchWithAuth("/chat/mark-seen", {
+        method: "POST",
+        body: JSON.stringify({ messageIds })
+    }),
+};

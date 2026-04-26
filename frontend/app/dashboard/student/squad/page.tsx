@@ -771,7 +771,7 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
             {/* Tab Content */}
             <div className="flex-1 min-h-0 overflow-hidden">
                 <div className={cn("h-full", activeTab !== "chat" && "hidden")}>
-                    <GroupChatTab squadId={squad._id} />
+                    <GroupChatTab squadId={squad._id} members={squad.members} />
                 </div>
                 <div className={cn("h-full overflow-y-auto", activeTab !== "forum" && "hidden")}>
                     <GroupForumTab squadId={squad._id} />
