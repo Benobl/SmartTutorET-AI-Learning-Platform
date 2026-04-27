@@ -212,17 +212,11 @@ export default function ClassSquad() {
     const [sentInvites, setSentInvites] = useState<any[]>([])
     const [pendingInviteIds, setPendingInviteIds] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(true)
-
-    // Pending invite button states per-student
     const [invitingSids, setInvitingSids] = useState<Set<string>>(new Set())
-
-    // Active workspace
     const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [activeSquad, setActiveSquad] = useState<any>(null)
     const [isJoining, setIsJoining] = useState(false)
     const [liveAlert, setLiveAlert] = useState<{ callId: string; squadName: string; hostName: string; squadId: string } | null>(null)
-
-    // Dialogs
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [isInviteOpen, setIsInviteOpen] = useState(false)
     const [inviteTarget, setInviteTarget] = useState<any | null>(null)
@@ -231,130 +225,61 @@ export default function ClassSquad() {
     const [squadSearch, setSquadSearch] = useState("")
     const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
-
     const socketRef = useRef<any>(null)
     const { videoClient, isReady: isStreamReady } = useStream()
     const currentUser = getCurrentUser()
     const currentUserId = (currentUser?._id || currentUser?.id || "") as string
 
-    // ─────────── Data Fetching ───────────
-
     const fetchAll = async () => {
-        // Fetch squads (response is array or { data: [] })
         try {
             const squadRes = await groupApi.getMyGroups()
             const squadsArr = Array.isArray(squadRes) ? squadRes : (squadRes?.data || [])
             setSquads(squadsArr)
-
-            // Initial check for any squad that is already live
             const liveSquad = squadsArr.find((s: any) => s.isLive)
             if (liveSquad && liveSquad.sessionData?.callId) {
-                setLiveAlert({
-                    callId: liveSquad.sessionData.callId,
-                    squadName: liveSquad.name,
-                    squadId: liveSquad._id,
-                    hostName: "A squad member", // Or specific host if stored
-                })
+                setLiveAlert({ callId: liveSquad.sessionData.callId, squadName: liveSquad.name, squadId: liveSquad._id, hostName: "A squad member" })
             }
-        } catch (e) {
-            console.warn("[Squad] Failed to fetch squads:", e)
-        }
-
-        // Fetch students
+        } catch (e) { console.warn("[Squad] Failed squads:", e) }
         try {
             const studentRes = await userApi.getAllStudents()
-            const studentsArr = Array.isArray(studentRes) ? studentRes : (studentRes?.data || [])
-            setAllStudents(studentsArr)
-        } catch (e) {
-            console.warn("[Squad] Failed to fetch students:", e)
-        }
-
-        // Fetch invites
+            setAllStudents(Array.isArray(studentRes) ? studentRes : (studentRes?.data || []))
+        } catch (e) { console.warn("[Squad] Failed students:", e) }
         try {
             const inviteRes = await inviteApi.getMine()
             const all = Array.isArray(inviteRes) ? inviteRes : (inviteRes?.data || [])
-            const received = all.filter((inv: any) => {
-                const inviteeId = (inv.invitee?._id || inv.invitee)?.toString()
-                return inviteeId === currentUserId && inv.status === "pending"
-            })
-            const sent = all.filter((inv: any) => {
-                const inviterId = (inv.inviter?._id || inv.inviter)?.toString()
-                return inviterId === currentUserId
-            })
-            setReceivedInvites(received)
-            setSentInvites(sent)
-            setPendingInviteIds(new Set(
-                all.filter((inv: any) => {
-                    const inviterId = (inv.inviter?._id || inv.inviter)?.toString()
-                    return inviterId === currentUserId && inv.status === "pending"
-                }).map((inv: any) => (inv.invitee?._id || inv.invitee)?.toString())
-            ))
-        } catch (e) {
-            console.warn("[Squad] Failed to fetch invites:", e)
-        }
-
+            setReceivedInvites(all.filter((inv: any) => (inv.invitee?._id || inv.invitee)?.toString() === currentUserId && inv.status === "pending"))
+            setSentInvites(all.filter((inv: any) => (inv.inviter?._id || inv.inviter)?.toString() === currentUserId))
+            setPendingInviteIds(new Set(all.filter((inv: any) => (inv.inviter?._id || inv.inviter)?.toString() === currentUserId && inv.status === "pending").map((inv: any) => (inv.invitee?._id || inv.invitee)?.toString())))
+        } catch (e) { console.warn("[Squad] Failed invites:", e) }
         setLoading(false)
     }
-
-
-    // ─────────── Socket Setup ───────────
 
     useEffect(() => {
         fetchAll()
         if (!currentUserId) return
-
         const socket = initializeSocket(currentUserId)
         socketRef.current = socket
-
-        // New squad invite
-        socket.on("new-invite", (data: any) => {
-            setReceivedInvites(prev => [data, ...prev])
-            toast({ title: "🏆 New Squad Invite!", description: `${data.inviter?.fullName || "Someone"} invited you to ${data.targetId?.name || "a squad"}` })
-        })
-
-        // Squad member started a live session → show join alert and update indicator
+        socket.on("new-invite", (data: any) => { setReceivedInvites(prev => [data, ...prev]); toast({ title: "🏆 New Squad Invite!" }) })
         socket.on("squad-live-started", (data: any) => {
             const { callId, squadName, hostName, squadId } = data
             if (data.hostId === currentUserId) return
-
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: true, sessionData: { callId } } : s))
             setLiveAlert({ callId, squadName, hostName, squadId })
         })
-
         socket.on("squad-live-ended", (data: any) => {
             const { squadId } = data
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: false, sessionData: null } : s))
             setLiveAlert(prev => prev?.squadId === squadId ? null : prev)
         })
-
-        // Direct video call invite
-        socket.on("direct-live-invited", (data: any) => {
-            const { callId, hostName } = data
-            setLiveAlert({ callId, squadName: "Direct Session", hostName, squadId: "direct" })
-        })
-
-        return () => {
-            socket.off("new-invite")
-            socket.off("squad-live-started")
-            socket.off("direct-live-invited")
-        }
+        return () => { socket.off("new-invite"); socket.off("squad-live-started"); socket.off("squad-live-ended") }
     }, [currentUserId])
-
-    // ─────────── Handlers ───────────
 
     const handleRespond = async (inviteId: string, status: "accepted" | "declined") => {
         try {
             await inviteApi.respond(inviteId, status)
             setReceivedInvites(prev => prev.filter(inv => inv._id !== inviteId))
-            if (status === "accepted") {
-                await fetchAll()
-                toast({ title: "✅ Squad Joined!", description: "You can now chat and collaborate." })
-            } else {
-                toast({ title: "Invite declined." })
-            }
-        } catch (e) {
-            toast({ title: "Error", variant: "destructive" })
-        }
+            if (status === "accepted") { await fetchAll(); toast({ title: "✅ Squad Joined!" }) }
+        } catch (e) { toast({ title: "Error", variant: "destructive" }) }
     }
 
     const handleCreateSquad = async () => {
@@ -362,15 +287,9 @@ export default function ClassSquad() {
         setCreating(true)
         try {
             const squad = await groupApi.create({ name: newSquad.name, topic: newSquad.topic || "General", avatar: newSquad.avatar })
-            setSquads(prev => [squad, ...prev])
-            setIsCreateOpen(false)
-            setNewSquad({ name: "", topic: "", avatar: "🧬" })
-            toast({ title: "Squad Created!", description: `Welcome to ${squad.name}` })
-        } catch (e: any) {
-            toast({ title: "Failed", description: e.message, variant: "destructive" })
-        } finally {
-            setCreating(false)
-        }
+            setSquads(prev => [squad, ...prev]); setIsCreateOpen(false); setNewSquad({ name: "", topic: "", avatar: "🧬" })
+            toast({ title: "Squad Created!" })
+        } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setCreating(false) }
     }
 
     const handleSendInvite = async (student: any) => {
@@ -378,208 +297,65 @@ export default function ClassSquad() {
         const sid = (student._id || student.id) as string
         setInvitingSids(prev => new Set([...prev, sid]))
         try {
-            const res = await inviteApi.send({
-                inviteeId: sid,
-                targetType: "StudyGroup",
-                targetId: inviteTarget._id
-            })
+            await inviteApi.send({ inviteeId: sid, targetType: "StudyGroup", targetId: inviteTarget._id })
             setPendingInviteIds(prev => new Set([...prev, sid]))
-            if (!res.alreadyPending) {
-                toast({ title: "Invite Sent!", description: `${student.fullName} was invited.` })
-            } else {
-                toast({ title: "Already Pending", description: "This invite is already sent." })
-            }
-        } catch (e: any) {
-            toast({ title: "Failed", description: e.message, variant: "destructive" })
-        } finally {
-            setInvitingSids(prev => { const s = new Set(prev); s.delete(sid); return s })
-        }
+            toast({ title: "Invite Sent!" })
+        } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setInvitingSids(prev => { const s = new Set(prev); s.delete(sid); return s }) }
     }
 
-    // ─────────── Video Call Handlers ───────────
-
-    const handleJoinLive = async (squad: any, existingCallId?: string) => {
-        if (!videoClient || !isStreamReady || isJoining) {
-            if (isJoining) toast({ title: "Joining session...", description: "Please wait, connection in progress." })
-            return
-        }
+    const startLaboratory = async (squad: any, existingCallId?: string) => {
+        if (!currentUser || !videoClient) return
+        const currentUserId = currentUser?._id || currentUser?.id
         setIsJoining(true)
-        const callId = existingCallId || `squad-${squad._id}`
-        const call = videoClient.call("default", callId)
-
-        toast({ title: "⚡ Connecting...", description: "Establishing secure link to the laboratory." })
-
-        const maxRetries = 3
-        let attempt = 0
-        let success = false
-
-        while (attempt < maxRetries && !success) {
-            try {
-                attempt++
-                console.log(`[Video Join] Attempt ${attempt} for ${callId}`)
-
-                const memberIds = squad.members?.map((m: any) => m._id || m) || []
-
-                // Categorical sub-retry for getOrCreate which is prone to 5s edge timeouts
-                let gocSuccess = false
-                let gocAttempt = 0
-                while (gocAttempt < 3 && !gocSuccess) {
-                    try {
-                        gocAttempt++
-                        console.time(`[Stream] getOrCreate attempt ${gocAttempt}`)
-                        await call.getOrCreate({
-                            data: {
-                                members: memberIds.map((id: string) => ({ user_id: id, role: 'admin' })),
-                                custom: { squadName: squad.name, squadId: squad._id }
-                            }
-                        })
-                        console.timeEnd(`[Stream] getOrCreate attempt ${gocAttempt}`)
-                        gocSuccess = true
-                    } catch (gocErr: any) {
-                        console.timeEnd(`[Stream] getOrCreate attempt ${gocAttempt}`)
-                        console.error(`[Stream] getOrCreate failed (Attempt ${gocAttempt}):`, gocErr)
-                        if (gocAttempt >= 3) throw gocErr
-                        // Progressive backoff: 1s, 2s...
-                        await new Promise(r => setTimeout(r, 1000 * gocAttempt))
-                    }
-                }
-
-                console.log(`[Video Join] Entering join phase for ${callId} (40s timeout)`)
-                const joinPromise = call.join({ create: true, maxJoinRetries: 5 })
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Join phase timed out (40s)")), 40000)
-                )
-
-                await Promise.race([joinPromise, timeoutPromise])
-                console.log(`[Video Join] Successfully joined ${callId}`)
-                success = true
-            } catch (e: any) {
-                console.error(`[Video Join Error] Attempt ${attempt} failed:`, e)
-                if (attempt >= maxRetries) {
-                    setIsJoining(false)
-                    if (e.name === "NotAllowedError" || e.message?.includes("Permission denied") || e.message?.includes("not granted")) {
-                        setIsPermissionModalOpen(true)
-                        toast({
-                            title: "Camera/Mic Permission Denied",
-                            description: "Please follow the instructions in the popup to allow hardware access.",
-                            variant: "destructive"
-                        })
-                    } else if (e.message?.includes("timeout") || e.code === "ECONNABORTED") {
-                        toast({
-                            title: "Connection Timeout",
-                            description: "The connection is taking too long. Please try again.",
-                            variant: "destructive"
-                        })
-                    } else {
-                        toast({ title: "Video Error", description: "Connection failed. Please refresh.", variant: "destructive" })
-                    }
-                    return
-                }
-                await new Promise(resolve => setTimeout(resolve, 1500 * attempt))
-            }
-        }
-
+        const callId = existingCallId || `squad-${squad._id}-${Date.now()}`
+        const call = videoClient.call('default', callId)
         try {
+            await call.getOrCreate({ data: { members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })), custom: { squadName: squad.name, squadId: squad._id } } })
             if (!existingCallId && socketRef.current) {
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
-
-                socketRef.current.emit("squad-live-start", {
-                    callId,
-                    squadId: squad._id,
-                    squadName: squad.name,
-                    hostId: currentUserId,
-                    hostName: currentUser?.fullName || "Someone",
-                    memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [],
-                })
+                socketRef.current.emit("squad-live-start", { callId, squadId: squad._id, squadName: squad.name, hostId: currentUserId, hostName: currentUser?.fullName || "Someone", memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [] })
             }
-
-            setActiveCall(call)
-            setActiveSquad(squad)
-        } catch (e: any) {
-            console.error("[Post-Join Error]", e)
-            setActiveCall(call)
-            setActiveSquad(squad)
-        } finally {
-            setIsJoining(false)
-        }
+            setActiveCall(call); setActiveSquad(squad)
+        } catch (e: any) { console.error("[Lab Failed]", e); toast({ title: "Hardware Alert", variant: "destructive" }) } finally { setIsJoining(false) }
     }
+
+    const handleJoinLive = async (squad: any, callId?: string) => { await startLaboratory(squad, callId) }
 
     const handleLeaveLive = async () => {
         if (!activeCall || !activeSquad) return
-
-        const callToLeave = activeCall
-        const squadToLeave = activeSquad
-
-        // Wipe local state immediately to close classroom UI
-        setActiveCall(null)
-        setActiveSquad(null)
-
+        const callToLeave = activeCall; const squadToLeave = activeSquad
+        setActiveCall(null); setActiveSquad(null)
         try {
-            // Check state to avoid "already left" error
             const s = callToLeave.state.callingState
-            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
-                await callToLeave.leave()
-            }
-
-            const isHost = callToLeave.state.createdBy?.id === currentUserId
+            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) await callToLeave.leave()
+            const isHost = callToLeave.state.createdBy?.id === (currentUser?._id || currentUser?.id)
             if (isHost && socketRef.current) {
-                // Reset live status in backend
                 await groupApi.toggleLive(squadToLeave._id, { isLive: false })
-                // Notify members
-                socketRef.current.emit("squad-live-stop", {
-                    squadId: squadToLeave._id,
-                    memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [],
-                })
+                socketRef.current.emit("squad-live-stop", { squadId: squadToLeave._id, memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== (currentUser?._id || currentUser?.id)) || [] })
             }
-        } catch (e) {
-            console.error("Error leaving call", e)
-        }
+        } catch (e) { console.error("Error leaving", e) }
     }
-
 
     const handleJoinFromAlert = async () => {
         if (!liveAlert) return
-        const squad = squads.find(s => s._id === liveAlert.squadId) || { _id: liveAlert.squadId, name: liveAlert.squadName }
-        await handleJoinLive(squad, liveAlert.callId)
-        setLiveAlert(null)
+        const sq = squads.find(s => s._id === liveAlert.squadId) || { _id: liveAlert.squadId, name: liveAlert.squadName }
+        await handleJoinLive(sq, liveAlert.callId); setLiveAlert(null)
     }
 
-    // ─────────── Routing ───────────
-
-    // Full-screen live classroom
     if (activeCall && activeSquad) {
         return (
             <div className="fixed inset-0 z-50 bg-slate-950">
-                <LiveClassroom
-                    call={activeCall}
-                    squadName={activeSquad.name}
-                    squadId={activeSquad._id}
-                    socket={socketRef.current}
-                    onLeave={handleLeaveLive}
-                />
+                <LiveClassroom call={activeCall!} squadName={activeSquad.name} squadId={activeSquad._id} socket={socketRef.current} onLeave={handleLeaveLive} />
                 <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
             </div>
         )
     }
 
-    // Squad workspace
     if (activeSquad) {
         return (
             <>
-                <SquadWorkspace
-                    squad={activeSquad}
-                    onBack={() => setActiveSquad(null)}
-                    onStartLive={() => handleJoinLive(activeSquad)}
-                    onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }}
-                    isStreamReady={isStreamReady}
-                    socket={socketRef.current}
-                    isPermissionModalOpen={isPermissionModalOpen}
-                    setIsPermissionModalOpen={setIsPermissionModalOpen}
-                />
-                {liveAlert && (
-                    <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />
-                )}
-                <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
+                <SquadWorkspace squad={activeSquad} onBack={() => setActiveSquad(null)} onStartLive={() => handleJoinLive(activeSquad)} onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }} isStreamReady={isStreamReady} socket={socketRef.current} isPermissionModalOpen={isPermissionModalOpen} setIsPermissionModalOpen={setIsPermissionModalOpen} />
+                {liveAlert && <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />}
             </>
         )
     }
@@ -588,14 +364,9 @@ export default function ClassSquad() {
 
     return (
         <>
-            {/* Live alert overlay (even on overview) */}
-            {liveAlert && (
-                <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />
-            )}
-
+            {liveAlert && <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />}
             <div className="min-h-screen bg-slate-50 pb-10">
-                {/* Header */}
-                <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4">
+                <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Squad Hub <span className="text-sky-500">⚡</span></h1>
@@ -604,232 +375,44 @@ export default function ClassSquad() {
                         <div className="flex gap-2">
                             <div className="relative flex-1 sm:flex-none sm:w-56">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <Input
-                                    value={squadSearch}
-                                    onChange={e => setSquadSearch(e.target.value)}
-                                    placeholder="Search squads..."
-                                    className="pl-9 h-10 rounded-xl bg-slate-50 border-slate-200 text-sm"
-                                />
+                                <Input value={squadSearch} onChange={e => setSquadSearch(e.target.value)} placeholder="Search squads..." className="pl-9 h-10 rounded-xl bg-slate-50 border-slate-200 text-sm" />
                             </div>
-                            <Button
-                                onClick={() => setIsCreateOpen(true)}
-                                className="h-10 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shrink-0 shadow-md shadow-sky-600/20"
-                            >
+                            <Button onClick={() => setIsCreateOpen(true)} className="h-10 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shrink-0 shadow-md">
                                 <Plus className="w-4 h-4 mr-1.5" /> New Squad
                             </Button>
                         </div>
                     </div>
                 </div>
-
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-                    {/* Incoming Invitations */}
                     {receivedInvites.length > 0 && (
-                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-amber-500/20">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Bell className="w-5 h-5 animate-bounce" />
-                                <h2 className="font-black text-base uppercase tracking-tight">
-                                    {receivedInvites.length} Pending Invite{receivedInvites.length > 1 ? "s" : ""}
-                                </h2>
-                            </div>
+                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white shadow-xl">
+                            <h2 className="font-black text-base uppercase tracking-tight flex items-center gap-2 mb-4"><Bell className="w-5 h-5" /> {receivedInvites.length} Pending Invites</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {receivedInvites.map(invite => (
-                                    <InviteCard
-                                        key={invite._id}
-                                        invite={invite}
-                                        onAccept={() => handleRespond(invite._id, "accepted")}
-                                        onDecline={() => handleRespond(invite._id, "declined")}
-                                    />
-                                ))}
+                                {receivedInvites.map(invite => <InviteCard key={invite._id} invite={invite} onAccept={() => handleRespond(invite._id, "accepted")} onDecline={() => handleRespond(invite._id, "declined")} />)}
                             </div>
                         </div>
                     )}
-
-                    {/* My Squads */}
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">
-                                My Squads ({filteredSquads.length})
-                            </h2>
-                        </div>
-
-                        {loading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-52 bg-white rounded-3xl border border-slate-100 animate-pulse" />
-                                ))}
-                            </div>
-                        ) : filteredSquads.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-24 gap-4">
-                                <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center text-3xl">🧬</div>
-                                <div className="text-center">
-                                    <p className="font-black text-slate-700 text-lg">No Squads Yet</p>
-                                    <p className="text-slate-400 text-sm mt-1">Create your first squad or accept an invite to collaborate.</p>
-                                </div>
-                                <Button
-                                    onClick={() => setIsCreateOpen(true)}
-                                    className="h-10 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-md shadow-sky-600/20"
-                                >
-                                    <Plus className="w-4 h-4 mr-2" /> Create Squad
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {filteredSquads.map(squad => (
-                                    <SquadCard
-                                        key={squad._id}
-                                        squad={squad}
-                                        currentUserId={currentUserId}
-                                        onOpen={s => setActiveSquad(s)}
-                                        onInvite={s => { setInviteTarget(s); setIsInviteOpen(true) }}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">My Squads ({filteredSquads.length})</h2>
+                        {loading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[1, 2, 3].map(i => <div key={i} className="h-52 bg-white rounded-3xl border animate-pulse" />)}</div> :
+                            filteredSquads.length === 0 ? <div className="flex flex-col items-center justify-center py-24 gap-4"><div className="text-3xl">🧬</div><p className="font-black text-slate-700 text-lg">No Squads Yet</p><Button onClick={() => setIsCreateOpen(true)} className="bg-sky-600 text-white">Create Squad</Button></div> :
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredSquads.map(s => <SquadCard key={s._id} squad={s} currentUserId={currentUserId} onOpen={setActiveSquad} onInvite={s => { setInviteTarget(s); setIsInviteOpen(true) }} />)}</div>}
                     </div>
-
-                    {/* Sent Invites Tracker */}
-                    {sentInvites.length > 0 && (
-                        <div>
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Sent Invitations</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                {sentInvites.map(inv => {
-                                    const name = inv.invitee?.fullName || "Member"
-                                    return (
-                                        <div key={inv._id} className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                                            <Avatar name={name} color="indigo" size="sm" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-black text-slate-900 truncate">{name}</p>
-                                                <p className="text-[10px] text-slate-400 truncate">{inv.targetId?.name || "Squad"}</p>
-                                            </div>
-                                            <span className={cn(
-                                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0",
-                                                inv.status === "pending" ? "bg-amber-100 text-amber-600" :
-                                                    inv.status === "accepted" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
-                                            )}>
-                                                {inv.status === "pending" ? <Clock className="w-2.5 h-2.5 inline mr-0.5" /> : null}
-                                                {inv.status}
-                                            </span>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
-
-            {/* Create Squad Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="max-w-md rounded-3xl p-6 sm:p-8">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black">Create a Squad</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="flex gap-2 flex-wrap">
-                            {AVATARS.map(a => (
-                                <button
-                                    key={a}
-                                    onClick={() => setNewSquad(p => ({ ...p, avatar: a }))}
-                                    className={cn(
-                                        "w-10 h-10 text-xl rounded-xl border-2 transition-all",
-                                        newSquad.avatar === a ? "border-sky-500 bg-sky-50 scale-110" : "border-slate-100 hover:border-slate-200"
-                                    )}
-                                >
-                                    {a}
-                                </button>
-                            ))}
-                        </div>
-                        <Input
-                            value={newSquad.name}
-                            onChange={e => setNewSquad(p => ({ ...p, name: e.target.value }))}
-                            placeholder="Squad name..."
-                            className="h-12 rounded-xl text-sm"
-                        />
-                        <Input
-                            value={newSquad.topic}
-                            onChange={e => setNewSquad(p => ({ ...p, topic: e.target.value }))}
-                            placeholder="Topic (Physics, Math, etc.)..."
-                            className="h-12 rounded-xl text-sm"
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-xl">Cancel</Button>
-                        <Button
-                            disabled={!newSquad.name.trim() || creating}
-                            onClick={handleCreateSquad}
-                            className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-md shadow-sky-600/20"
-                        >
-                            {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            Create Squad
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
+                <DialogContent className="max-w-md rounded-3xl p-8"><DialogHeader><DialogTitle>Create a Squad</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-4"><div className="flex gap-2">{AVATARS.map(a => <button key={a} onClick={() => setNewSquad(p => ({ ...p, avatar: a }))} className={cn("w-10 h-10 rounded-xl border-2", newSquad.avatar === a ? "border-sky-500 bg-sky-50" : "border-slate-100")}>{a}</button>)}</div>
+                        <Input value={newSquad.name} onChange={e => setNewSquad(p => ({ ...p, name: e.target.value }))} placeholder="Squad name..." /><Input value={newSquad.topic} onChange={e => setNewSquad(p => ({ ...p, topic: e.target.value }))} placeholder="Topic..." /></div>
+                    <DialogFooter><Button onClick={handleCreateSquad} disabled={!newSquad.name.trim() || creating}>{creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}</Button></DialogFooter></DialogContent>
             </Dialog>
-
-            {/* Invite Dialog */}
-            <Dialog open={isInviteOpen} onOpenChange={open => { setIsInviteOpen(open); if (!open) setInviteSearch("") }}>
-                <DialogContent className="max-w-md rounded-3xl p-6 sm:p-8">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black flex items-center gap-2">
-                            <UserPlus className="w-5 h-5 text-sky-500" />
-                            Invite to {inviteTarget?.name}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="py-2 space-y-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <Input
-                                value={inviteSearch}
-                                onChange={e => setInviteSearch(e.target.value)}
-                                placeholder="Search by name..."
-                                className="pl-9 h-11 rounded-xl text-sm"
-                                autoFocus
-                            />
-                        </div>
-                        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                            {allStudents
-                                .filter(s => (s._id || s.id) !== currentUserId)
-                                .filter(s => {
-                                    const isMember = inviteTarget?.members?.some((m: any) => (m._id || m)?.toString() === (s._id || s.id)?.toString())
-                                    return !isMember
-                                })
-                                .filter(s => (s.fullName || `${s.firstName || ""} ${s.lastName || ""}`.trim() || "").toLowerCase().includes(inviteSearch.toLowerCase()))
-                                .map(student => {
-                                    const name = student.fullName || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student"
-                                    const sid = (student._id || student.id) as string
-                                    const isPending = pendingInviteIds.has(sid)
-                                    const isInviting = invitingSids.has(sid)
-
-                                    return (
-                                        <div key={sid} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                            <Avatar name={name} size="sm" color="sky" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-slate-900 truncate">{name}</p>
-                                                <p className="text-[10px] text-slate-400">{student.grade ? `Grade ${student.grade}` : "Student"}</p>
-                                            </div>
-                                            {isPending ? (
-                                                <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase bg-amber-50 text-amber-600 border border-amber-100">
-                                                    <Clock className="w-3 h-3" /> Pending
-                                                </span>
-                                            ) : (
-                                                <Button
-                                                    size="sm"
-                                                    disabled={isInviting}
-                                                    onClick={() => handleSendInvite(student)}
-                                                    className="h-8 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-black uppercase"
-                                                >
-                                                    {isInviting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Invite"}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )
-                                })
-                            }
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsInviteOpen(false)} className="rounded-xl">Done</Button>
-                    </DialogFooter>
+            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                <DialogContent className="max-w-md rounded-3xl p-8"><DialogHeader><DialogTitle>Invite to {inviteTarget?.name}</DialogTitle></DialogHeader>
+                    <div className="py-2 space-y-3"><Input value={inviteSearch} onChange={e => setInviteSearch(e.target.value)} placeholder="Search..." /><div className="space-y-2 max-h-72 overflow-y-auto">
+                        {allStudents.filter(s => (s._id || s.id) !== currentUserId && !inviteTarget?.members?.some((m: any) => (m._id || m)?.toString() === (s._id || s.id)?.toString()) && (s.fullName || "").toLowerCase().includes(inviteSearch.toLowerCase())).map(student => (
+                            <div key={student._id || student.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border"><span>{student.fullName}</span><Button size="sm" onClick={() => handleSendInvite(student)}>{invitingSids.has(student._id || student.id) ? "..." : "Invite"}</Button></div>
+                        ))}</div></div>
+                    <DialogFooter><Button variant="ghost" onClick={() => setIsInviteOpen(false)} className="rounded-xl">Done</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
         </>

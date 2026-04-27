@@ -90,17 +90,18 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                 }
 
                 console.time("[StreamVideo] Client Init");
-                // @ts-ignore - axiosConfig exists on the underlying StreamClient but is sometimes hidden by SDK wrappers
+                console.log("[StreamVideo] Handshake Probe:", {
+                    userId,
+                    tokenPreview: token.slice(0, 10) + "...",
+                    apiKeyPreview: apiKey.slice(0, 6) + "..."
+                });
+
                 const vClient = new StreamVideoClient({
                     apiKey,
                     user: videoUser,
                     token,
-                    options: {
-                        axiosConfig: { timeout: 30000 }
-                    }
-                } as any)
+                })
                 console.timeEnd("[StreamVideo] Client Init");
-
                 setVideoClient(vClient)
                 setIsReady(true)
                 console.log("[StreamProvider] Stream Ready");
