@@ -11,7 +11,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     };
 
     try {
-        console.log(`[API Request] ${API_BASE_URL}${endpoint}`, options.method || "GET");
+        console.log(`[API Request] to: ${API_BASE_URL}${endpoint}`);
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,

@@ -13,6 +13,7 @@ import logger from "./src/config/logger.js";
 import { errorHandler } from "./src/middleware/error.middleware.js";
 import { requestLogger } from "./src/middleware/logger.middleware.js";
 import { csrfProtection } from "./src/middleware/csrf.middleware.js";
+const VERSION = "1.0.4-cors-fix";
 
 // Routes
 import authRoutes from "./src/modules/auth/auth.route.js";
@@ -29,48 +30,25 @@ import chatRoutes from "./src/modules/chat/chat.route.js";
 
 const PORT = process.env.PORT || 5001;
 
-// --- Security Middlewares ---
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false, // Deployment might need this relaxed for now
-}));
-app.use(mongoSanitize());
-
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3001",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3002",
-  "http://127.0.0.1:3002",
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
+// --- Standard Middlewares ---
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) !== -1 ||
-      origin.endsWith(".vercel.app") ||
-      origin.includes("smart-tutor-et")) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: (origin, callback) => callback(null, true), // Fail-safe: allow and reflect any origin
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF"]
 }));
 
-// Preflight debug
-app.options("*", (req, res) => {
-  logger.debug(`[Preflight] OPTIONS ${req.path} from ${req.headers.origin}`);
-  res.sendStatus(204);
-});
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false,
+}));
+app.use(mongoSanitize());
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(cookieParser());
+app.use(morgan("dev"));
+app.use(requestLogger);
+app.use(csrfProtection);
 
 // Global Rate Limiter
 const globalLimiter = rateLimit({
@@ -79,14 +57,6 @@ const globalLimiter = rateLimit({
   message: "Too many requests from this IP, please try again after 15 minutes"
 });
 app.use("/api", globalLimiter);
-
-// --- Standard Middlewares ---
-app.use(express.json({ limit: "10kb" })); // Body limit to prevent DDoS
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cookieParser());
-app.use(morgan("dev"));
-app.use(requestLogger);
-app.use(csrfProtection); // Apply CSRF protection
 
 // Module Routes
 app.use("/api/auth", authRoutes);
@@ -107,13 +77,14 @@ app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     status: "Running",
+    version: VERSION,
     database: dbStatus,
     timestamp: new Date()
   });
 });
 
 app.get("/", (req, res) => {
-  res.json({ success: true, message: "SmartTutorET Modular API Running" });
+  res.json({ success: true, message: "SmartTutorET Modular API Running", version: VERSION });
 });
 
 // Centralized Error Handling
