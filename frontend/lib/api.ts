@@ -11,11 +11,12 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     };
 
     try {
-        console.log(`[API Request] to: ${API_BASE_URL}${endpoint}`);
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const fullUrl = `${API_BASE_URL}${endpoint}`;
+        console.log(`[API Request] ${options.method || "GET"} to: ${fullUrl}`);
+        const response = await fetch(fullUrl, {
             ...options,
             headers,
-            credentials: "include", // Required for sending/receiving cookies
+            credentials: "include",
         });
 
         console.log(`[API Response] ${endpoint} Status:`, response.status);
@@ -30,7 +31,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         console.log(`[API Success] ${endpoint} Data received`);
         return data;
     } catch (error: any) {
-        console.error(`[API FETCH ERROR] ${API_BASE_URL}${endpoint}:`, error);
+        console.error(`[API FETCH ERROR] ${API_BASE_URL}${endpoint}:`, error.message || error);
         throw error;
     }
 }

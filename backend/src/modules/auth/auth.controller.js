@@ -13,21 +13,21 @@ export class AuthController {
             res.cookie("jwt", accessToken, {
                 maxAge: 15 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("refreshToken", refreshToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("user_role", user.role, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: false,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
@@ -64,21 +64,21 @@ export class AuthController {
             res.cookie("jwt", accessToken, {
                 maxAge: 15 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("refreshToken", refreshToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "lax",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("user_role", user.role, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: false,
-                sameSite: "lax",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
@@ -105,21 +105,21 @@ export class AuthController {
             res.cookie("jwt", newAccessToken, {
                 maxAge: 15 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("refreshToken", newRefreshToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("user_role", user.role, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: false, // Middleware needs to read this
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
@@ -141,21 +141,21 @@ export class AuthController {
             res.cookie("jwt", accessToken, {
                 maxAge: 15 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("refreshToken", refreshToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("user_role", user.role, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: false,
-                sameSite: "strict",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
@@ -166,7 +166,14 @@ export class AuthController {
     }
 
     static logout(req, res) {
-        res.clearCookie("jwt");
+        const cookieOptions = {
+            httpOnly: true,
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            secure: process.env.NODE_ENV === "production",
+        };
+        res.clearCookie("jwt", cookieOptions);
+        res.clearCookie("refreshToken", cookieOptions);
+        res.clearCookie("user_role", { ...cookieOptions, httpOnly: false });
         res.status(200).json({ success: true, message: "Logout successful" });
     }
 

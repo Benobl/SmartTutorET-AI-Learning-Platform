@@ -32,15 +32,16 @@ const PORT = process.env.PORT || 5001;
 
 // --- Standard Middlewares ---
 app.use(cors({
-  origin: (origin, callback) => callback(null, true), // Fail-safe: allow and reflect any origin
+  origin: (origin, callback) => callback(null, true),
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF", "Accept", "Origin"]
 }));
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
 app.use(mongoSanitize());
 app.use(express.json({ limit: "10kb" }));
