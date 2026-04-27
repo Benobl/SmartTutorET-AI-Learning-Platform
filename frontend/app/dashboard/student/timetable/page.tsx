@@ -21,6 +21,17 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    StreamCall,
+    StreamVideo,
+    Call,
+    CallingState,
+    StreamTheme
+} from "@stream-io/video-react-sdk"
+import { useStream } from "@/components/providers/StreamProvider"
+import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+import { PermissionRecoveryModal } from "@/components/dashboard/stream/PermissionRecoveryModal"
+import { getCurrentUser } from "@/lib/auth-utils"
 
 
 
@@ -43,7 +54,9 @@ const colorMap: Record<string, { bg: string; border: string; text: string; dot: 
     indigo: { bg: "bg-indigo-50", border: "border-indigo-100", text: "text-indigo-600", dot: "bg-indigo-500", glow: "shadow-indigo-500/20" },
 }
 
-function SlotCard({ slot, isStudy = false, onDelete }: { slot: TimetableSlot; isStudy?: boolean; onDelete?: () => void }) {
+function SlotCard({ slot, isStudy = false, onJoin, onDelete }: {
+    slot: TimetableSlot; isStudy?: boolean; onJoin?: () => void; onDelete?: () => void
+}) {
     const colors = colorMap[slot.color] || colorMap.sky
 
     // Category icons for study sessions
@@ -135,6 +148,7 @@ function SlotCard({ slot, isStudy = false, onDelete }: { slot: TimetableSlot; is
                 <div className="mt-5 pt-5 border-t border-white/40 flex justify-end relative z-10">
                     <Button
                         size="sm"
+                        onClick={(e) => { e.stopPropagation(); onJoin?.() }}
                         className="h-9 px-5 rounded-xl bg-white text-slate-900 border border-slate-100 hover:bg-slate-900 hover:text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-sm transition-all"
                     >
                         <Video className="w-4 h-4" /> Join Live
@@ -156,6 +170,13 @@ export default function StudentTimetable() {
     const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
     const [pendingStudy, setPendingStudy] = useState<{ day: string; time: string } | null>(null)
     const [studyDetails, setStudyDetails] = useState({ title: "", category: "Reading", startTime: "", endTime: "" })
+
+    const [activeCall, setActiveCall] = useState<Call | null>(null)
+    const [activeSlot, setActiveSlot] = useState<TimetableSlot | null>(null)
+    const [isJoining, setIsJoining] = useState(false)
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false)
+    const { videoClient, isReady: isStreamReady } = useStream()
+    const currentUser = getCurrentUser()
 
 
 
@@ -222,6 +243,57 @@ export default function StudentTimetable() {
             title: "Session Removed",
             description: "Study block has been cleared."
         })
+    }
+
+    const handleJoinClass = async (slot: TimetableSlot) => {
+        if (!currentUser || !videoClient) return
+        setIsJoining(true)
+        // Stable ID for the class so all students land in the same room
+        const callId = `class-${slot.code.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+        const call = videoClient.call('default', callId)
+        try {
+            await call.getOrCreate({
+                data: {
+                    members: [{ user_id: currentUser._id || currentUser.id || "guest", role: 'admin' }],
+                    custom: { courseName: slot.course, tutorName: slot.tutor }
+                }
+            })
+            setActiveCall(call)
+            setActiveSlot(slot)
+        } catch (e) {
+            console.error("Failed to join class:", e)
+            toast({ title: "Class Unavailable", variant: "destructive" })
+        } finally {
+            setIsJoining(false)
+        }
+    }
+
+    const handleLeaveClass = async () => {
+        if (!activeCall) return
+        const callToLeave = activeCall
+        setActiveCall(null)
+        setActiveSlot(null)
+        try {
+            const s = callToLeave.state.callingState
+            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
+                await callToLeave.leave()
+            }
+        } catch (e) { console.error("Error leaving class:", e) }
+    }
+
+
+    if (activeCall && activeSlot) {
+        return (
+            <div className="fixed inset-0 z-50 bg-slate-950">
+                <LiveClassroom
+                    call={activeCall}
+                    squadName={activeSlot.course}
+                    squadId={activeSlot.id}
+                    onLeave={handleLeaveClass}
+                />
+                <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
+            </div>
+        )
     }
 
 
@@ -334,6 +406,7 @@ export default function StudentTimetable() {
                                         <SlotCard
                                             slot={slot}
                                             isStudy={isStudy}
+                                            onJoin={() => handleJoinClass(slot)}
                                             onDelete={() => handleDeleteStudy(slot.id.toString())}
                                         />
                                     ) : viewMode === "study" && (
@@ -357,7 +430,15 @@ export default function StudentTimetable() {
                     const day = selectedDay || currentDay
                     const daySlots = byDay[day] || []
                     return daySlots.length > 0 ? (
-                        daySlots.map(s => <SlotCard key={s.id} slot={s} isStudy={s.id.toString().startsWith("study")} onDelete={() => handleDeleteStudy(s.id.toString())} />)
+                        daySlots.map(s => (
+                            <SlotCard
+                                key={s.id}
+                                slot={s}
+                                isStudy={s.id.toString().startsWith("study")}
+                                onJoin={() => handleJoinClass(s)}
+                                onDelete={() => handleDeleteStudy(s.id.toString())}
+                            />
+                        ))
                     ) : (
                         <div className="py-24 text-center bg-white rounded-[56px] border border-dashed border-slate-200 shadow-sm">
                             <LayoutPanelLeft className="w-16 h-16 text-slate-100 mx-auto mb-6" />
