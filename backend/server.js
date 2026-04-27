@@ -13,7 +13,7 @@ import logger from "./src/config/logger.js";
 import { errorHandler } from "./src/middleware/error.middleware.js";
 import { requestLogger } from "./src/middleware/logger.middleware.js";
 import { csrfProtection } from "./src/middleware/csrf.middleware.js";
-const VERSION = "1.0.4-cors-fix";
+const VERSION = "1.0.5-cors-reg-fix";
 
 // Routes
 import authRoutes from "./src/modules/auth/auth.route.js";
@@ -30,12 +30,21 @@ import chatRoutes from "./src/modules/chat/chat.route.js";
 
 const PORT = process.env.PORT || 5001;
 
-// --- Standard Middlewares ---
+// --- CORS MUST BE FIRST ---
 app.use(cors({
   origin: (origin, callback) => callback(null, true),
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF", "Accept", "Origin"]
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "X-ST-CSRF",
+    "X-CSRF-Token"
+  ],
+  exposedHeaders: ["set-cookie"]
 }));
 
 app.use(helmet({
@@ -44,8 +53,8 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(mongoSanitize());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.use(requestLogger);
