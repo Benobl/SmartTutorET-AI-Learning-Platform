@@ -42,6 +42,7 @@ app.use(cors({
     "http://127.0.0.1:5173",
     "http://localhost:3002",
     "http://127.0.0.1:3002",
+    "https://smart-tutor-et-ai-learning-platform-p1j5lkyle.vercel.app",
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
