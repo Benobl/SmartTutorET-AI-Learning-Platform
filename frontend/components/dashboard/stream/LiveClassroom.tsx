@@ -201,7 +201,13 @@ const LiveSessionContent = ({
                                     <div className="w-full h-full flex flex-col md:flex-row gap-4 p-4">
                                         <div className="flex-[3] relative rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-black">
                                             <ParticipantView
-                                                participant={targetParticipant || call.state.localParticipant || { isLocalParticipant: true } as any}
+                                                participant={targetParticipant || call.state.localParticipant || {
+                                                    user_id: currentUser?._id || 'local',
+                                                    isLocalParticipant: true,
+                                                    publishedTracks: [],
+                                                    roles: [],
+                                                    tags: []
+                                                } as any}
                                                 className="w-full h-full object-contain"
                                                 trackType="screenShareTrack"
                                             />
@@ -211,7 +217,13 @@ const LiveSessionContent = ({
                                         </div>
                                         <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-slate-900 aspect-video md:aspect-auto">
                                             <ParticipantView
-                                                participant={targetParticipant || call.state.localParticipant || { isLocalParticipant: true } as any}
+                                                participant={targetParticipant || call.state.localParticipant || {
+                                                    user_id: currentUser?._id || 'local',
+                                                    isLocalParticipant: true,
+                                                    publishedTracks: [],
+                                                    roles: [],
+                                                    tags: []
+                                                } as any}
                                                 className="w-full h-full object-cover"
                                                 mirror={true}
                                             />
@@ -227,6 +239,9 @@ const LiveSessionContent = ({
                                             user_id: currentUser?._id || 'local',
                                             user: currentUser ? { id: currentUser._id, name: currentUser.fullName } : { id: 'local' },
                                             isLocalParticipant: true,
+                                            publishedTracks: [],
+                                            roles: [],
+                                            tags: []
                                         } as any}
                                         className="w-full h-full object-cover"
                                         mirror={true}
