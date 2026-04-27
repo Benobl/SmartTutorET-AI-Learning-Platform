@@ -183,7 +183,11 @@ const LiveSessionContent = ({
 
                     {/* Aspect Ratio Controlled Content Wrapper */}
                     <div className="relative w-full h-full max-h-[80vh] aspect-video flex items-center justify-center overflow-hidden rounded-3xl bg-slate-900 shadow-inner">
-                        {!isJoined || (isSolo && !targetParticipant && !camEnabled) ? (
+                        {/* 
+                           Bypass loader if Joined OR if Camera is active during JOINED/JOINING.
+                           This ensures the user sees themselves immediately.
+                        */}
+                        {(!isJoined && !camEnabled) || (isSolo && !targetParticipant && !camEnabled) ? (
                             <div className="flex flex-col items-center gap-4">
                                 <div className="w-16 h-16 rounded-full border-4 border-sky-500/20 border-t-sky-500 animate-spin" />
                                 <p className="text-xs font-black text-sky-500 uppercase tracking-[0.2em] animate-pulse">
@@ -191,15 +195,44 @@ const LiveSessionContent = ({
                                 </p>
                             </div>
                         ) : isSolo ? (
-                            <ParticipantView
-                                participant={targetParticipant || call.state.localParticipant || {
-                                    user_id: currentUser?._id || 'local',
-                                    user: currentUser ? { id: currentUser._id, name: currentUser.fullName } : { id: 'local' },
-                                    isLocalParticipant: true,
-                                } as any}
-                                className="w-full h-full object-cover"
-                                mirror={true}
-                            />
+                            <div className="w-full h-full relative group/solo">
+                                {screenShareEnabled ? (
+                                    /* Split View: Screen Share Primary, Camera Secondary Overlay */
+                                    <div className="w-full h-full flex flex-col md:flex-row gap-4 p-4">
+                                        <div className="flex-[3] relative rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-black">
+                                            <ParticipantView
+                                                participant={targetParticipant || call.state.localParticipant || { isLocalParticipant: true } as any}
+                                                className="w-full h-full object-contain"
+                                                trackType="screenShareTrack"
+                                            />
+                                            <div className="absolute top-4 left-4 px-3 py-1 bg-indigo-600/80 backdrop-blur-md rounded-lg text-[10px] font-black text-white uppercase tracking-widest">
+                                                Screen Stream active
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-slate-900 aspect-video md:aspect-auto">
+                                            <ParticipantView
+                                                participant={targetParticipant || call.state.localParticipant || { isLocalParticipant: true } as any}
+                                                className="w-full h-full object-cover"
+                                                mirror={true}
+                                            />
+                                            <div className="absolute top-4 left-4 px-3 py-1 bg-emerald-500/80 backdrop-blur-md rounded-lg text-[10px] font-black text-white uppercase tracking-widest">
+                                                Cam Active
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Full View Camera */
+                                    <ParticipantView
+                                        participant={targetParticipant || call.state.localParticipant || {
+                                            user_id: currentUser?._id || 'local',
+                                            user: currentUser ? { id: currentUser._id, name: currentUser.fullName } : { id: 'local' },
+                                            isLocalParticipant: true,
+                                        } as any}
+                                        className="w-full h-full object-cover"
+                                        mirror={true}
+                                    />
+                                )}
+                            </div>
                         ) : (
                             <SpeakerLayout />
                         )}
