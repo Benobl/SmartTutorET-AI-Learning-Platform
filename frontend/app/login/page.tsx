@@ -68,8 +68,13 @@ export default function LoginPage() {
       } else {
         setError("Invalid email or password. Please check your credentials.")
       }
-    } catch (err) {
-      setError("An error occurred during login. Please try again.")
+    } catch (err: any) {
+      console.error("[Login Error]", err);
+      if (err.message === "Failed to fetch") {
+        setError("Network error: Unable to reach the server. This may be a CORS issue or the backend might be starting up. Please wait 1 minute and try again.");
+      } else {
+        setError(err.message || "An error occurred during login. Please try again.");
+      }
     } finally {
       setIsLoading(false)
     }
