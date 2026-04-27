@@ -30,21 +30,37 @@ import chatRoutes from "./src/modules/chat/chat.route.js";
 const PORT = process.env.PORT || 5001;
 
 // --- Security Middlewares ---
-app.use(helmet()); // Secure HTTP headers
-app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false, // Deployment might need this relaxed for now
+}));
+app.use(mongoSanitize());
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3002",
+  "http://127.0.0.1:3002",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3002",
-    "http://127.0.0.1:3002",
-    "https://smart-tutor-et-ai-learning-platform-p1j5lkyle.vercel.app",
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1 ||
+      origin.endsWith(".vercel.app") ||
+      origin.includes("smart-tutor-et")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token", "X-ST-CSRF"]
