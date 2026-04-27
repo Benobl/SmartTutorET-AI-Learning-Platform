@@ -64,21 +64,21 @@ export class AuthController {
             res.cookie("jwt", accessToken, {
                 maxAge: 15 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("refreshToken", refreshToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 
             res.cookie("user_role", user.role, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
                 httpOnly: false,
-                sameSite: "strict",
+                sameSite: "lax",
                 secure: process.env.NODE_ENV === "production",
             });
 

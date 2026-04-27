@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import {
   Activity,
   AlertCircle,
@@ -77,28 +78,28 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState(initialApplications);
   const [flags, setFlags] = useState(initialFlags);
 
-  const handleApprove = (id: number) => {
+  const handleApprove = (id: string | number) => {
     setApplications((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "approved" as const } : a))
+      prev.map((a) => ((a.id as any) === id ? { ...a, status: "approved" as any } : a))
     );
   };
 
-  const handleReject = (id: number) => {
+  const handleReject = (id: string | number) => {
     setApplications((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "rejected" as const } : a))
+      prev.map((a) => ((a.id as any) === id ? { ...a, status: "rejected" as any } : a))
     );
   };
 
-  const handleResolve = (id: number) => {
+  const handleResolve = (id: string | number) => {
     setFlags((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "resolved" as const } : f))
+      prev.map((f) => ((f.id as any) === id ? { ...f, status: "resolved" as any } : f))
     );
   };
 
-  const handleInvestigate = (id: number) => {
+  const handleInvestigate = (id: string | number) => {
     setFlags((prev) =>
       prev.map((f) =>
-        f.id === id ? { ...f, status: "investigating" as const } : f
+        (f.id as any) === id ? { ...f, status: "investigating" as any } : f
       )
     );
   };
@@ -106,43 +107,39 @@ export default function AdminDashboard() {
   const pendingApps = applications.filter((a) => a.status === "pending");
   const pendingFlags = flags.filter((f) => f.status === "pending");
 
-  /* ─── Stat Cards Config ─── */
+  /* ─── Stat Cards Config (Minimalist) ─── */
   const statCards = [
     {
       icon: Users,
       label: "Total Users",
       value: fmt(adminStats.totalUsers),
       change: "+15.2%",
-      gradient: "from-blue-500 to-blue-600",
-      bg: "bg-blue-50",
-      iconColor: "text-blue-600",
+      color: "text-sky-500",
+      bg: "bg-sky-50/50",
     },
     {
       icon: BookOpen,
       label: "Active Courses",
       value: String(adminStats.activeCourses),
       change: "+8 courses",
-      gradient: "from-emerald-500 to-emerald-600",
-      bg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
+      color: "text-indigo-500",
+      bg: "bg-indigo-50/50",
     },
     {
       icon: DollarSign,
       label: "Platform Revenue",
       value: usd(adminStats.platformRevenue),
       change: "+22.5%",
-      gradient: "from-violet-500 to-violet-600",
-      bg: "bg-violet-50",
-      iconColor: "text-violet-600",
+      color: "text-emerald-500",
+      bg: "bg-emerald-50/50",
     },
     {
       icon: AlertCircle,
       label: "Pending Actions",
       value: String(pendingApps.length + pendingFlags.length),
       change: `${pendingFlags.filter((f) => f.severity === "high").length} high priority`,
-      gradient: "from-amber-500 to-amber-600",
-      bg: "bg-amber-50",
-      iconColor: "text-amber-600",
+      color: "text-rose-500",
+      bg: "bg-rose-50/50",
     },
   ];
 
@@ -156,19 +153,16 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-2">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-              Admin Dashboard
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">
+              Overview
             </h1>
-            <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 font-bold px-3 py-1">
-              <Shield className="w-3.5 h-3.5 mr-1.5" />
-              Admin
-            </Badge>
+            <div className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse mt-1" />
           </div>
-          <p className="text-slate-500 font-medium">
-            Monitor performance, manage users, and track system health
+          <p className="text-slate-400 text-sm font-medium tracking-wide">
+            PLATFORM MONITORING & SYSTEM STATUS
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -190,80 +184,74 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Date Range Filter ── */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm font-bold">Filter:</span>
-        </div>
-        <div className="flex gap-2">
-          {["day", "week", "month", "year"].map((range) => (
-            <Button
-              key={range}
-              variant={dateRange === range ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDateRange(range)}
-              className={`capitalize rounded-lg font-bold ${dateRange === range
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 shadow-md shadow-blue-500/20"
-                  : ""
-                }`}
-            >
-              {range}
-            </Button>
-          ))}
-        </div>
+      {/* ── Minimalist Toggle ── */}
+      <div className="flex gap-2">
+        {["day", "week", "month", "year"].map((range) => (
+          <button
+            key={range}
+            onClick={() => setDateRange(range)}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+              dateRange === range
+                ? "bg-slate-900 text-white shadow-lg shadow-slate-900/10"
+                : "bg-white text-slate-400 hover:text-slate-600 border border-slate-100"
+            )}
+          >
+            {range}
+          </button>
+        ))}
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((m, i) => (
           <Card
             key={i}
-            className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl group"
+            className="overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all duration-300 rounded-[32px] group"
           >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-5">
+            <CardContent className="p-8">
+              <div className="flex items-start justify-between mb-6">
                 <div
-                  className={`p-3 rounded-xl ${m.bg} ${m.iconColor} group-hover:scale-110 transition-transform`}
+                  className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110",
+                    m.bg, m.color
+                  )}
                 >
                   <m.icon className="w-6 h-6" />
                 </div>
                 <Badge
-                  variant="secondary"
-                  className="text-xs font-bold rounded-lg"
+                  variant="outline"
+                  className="text-[10px] font-black uppercase tracking-widest border-slate-100 text-slate-400 rounded-lg px-2"
                 >
                   {m.change}
                 </Badge>
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1.5">
                 {m.label}
               </p>
-              <p className="text-3xl font-black text-slate-900">{m.value}</p>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">{m.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* ── Tab Navigation ── */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
+      {/* ── Tab Navigation (Simplified) ── */}
+      <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-2">
         {ADMIN_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20"
-                : "text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-              }`}
+            className={cn(
+              "px-5 py-3 font-black text-[10px] uppercase tracking-widest transition-all relative",
+              activeTab === tab.id
+                ? "text-slate-900 border-b-2 border-sky-500"
+                : "text-slate-400 hover:text-slate-600"
+            )}
           >
-            <span>{tab.icon}</span>
             {tab.label}
             {tab.id === "tutors" && pendingApps.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black">
+              <span className="ml-2 px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-500 text-[10px] font-black border border-rose-100">
                 {pendingApps.length}
-              </span>
-            )}
-            {tab.id === "moderation" && pendingFlags.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black">
-                {pendingFlags.length}
               </span>
             )}
           </button>
@@ -277,32 +265,36 @@ export default function AdminDashboard() {
         <div className="space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
             {/* User Growth Chart */}
-            <Card className="border-0 shadow-lg rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
+            <Card className="border border-slate-100 shadow-sm rounded-[32px] overflow-hidden bg-white">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-900 text-sm font-black uppercase tracking-widest">
+                  <TrendingUp className="w-4 h-4 text-sky-500" />
                   User Growth
                 </CardTitle>
-                <CardDescription>Monthly platform growth</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-8">
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={userGrowthData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                      <defs>
+                        <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.1} />
+                          <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "12px",
-                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                          fontWeight: 600,
+                          border: "1px solid #f1f5f9",
+                          borderRadius: "16px",
+                          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)",
+                          fontSize: "10px",
+                          fontWeight: 900,
+                          textTransform: "uppercase"
                         }}
                       />
-                      <Area type="monotone" dataKey="students" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.15} strokeWidth={2.5} />
-                      <Area type="monotone" dataKey="tutors" stroke="#10B981" fill="#10B981" fillOpacity={0.1} strokeWidth={2} />
+                      <Area type="monotone" dataKey="students" stroke="#0ea5e9" fill="url(#colorStudents)" strokeWidth={3} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -310,15 +302,15 @@ export default function AdminDashboard() {
             </Card>
 
             {/* User Distribution */}
-            <Card className="border-0 shadow-lg rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Users className="w-5 h-5 text-violet-500" />
-                  User Distribution
+            {/* User Distribution (Simplified) */}
+            <Card className="border border-slate-100 shadow-sm rounded-[32px] overflow-hidden bg-white">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-900 text-sm font-black uppercase tracking-widest">
+                  <Users className="w-4 h-4 text-indigo-500" />
+                  Demographics
                 </CardTitle>
-                <CardDescription>Platform user breakdown</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-8">
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -326,25 +318,23 @@ export default function AdminDashboard() {
                         data={userDistributionData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={({ type, percentage }) => `${type}: ${percentage}%`}
-                        outerRadius={95}
-                        innerRadius={55}
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
                         dataKey="count"
-                        strokeWidth={2}
-                        stroke="#fff"
                       >
                         {userDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) => [`${value} users`, "Count"]}
                         contentStyle={{
                           backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
+                          border: "1px solid #f1f5f9",
                           borderRadius: "12px",
-                          fontWeight: 600,
+                          fontSize: "10px",
+                          fontWeight: 900,
+                          textTransform: "uppercase"
                         }}
                       />
                     </PieChart>
@@ -355,19 +345,20 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid md:grid-cols-4 gap-4">
+          {/* Quick Stats (Refined) */}
+          <div className="grid md:grid-cols-4 gap-6">
             {quickStats.map((stat, idx) => (
-              <Card key={idx} className="border-0 shadow-md hover:shadow-lg transition-all rounded-2xl">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-slate-100 text-slate-600">
+              <Card key={idx} className="border border-slate-100 shadow-sm rounded-3xl bg-white hover:border-slate-200 transition-all">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
                       <stat.icon className="w-4 h-4" />
                     </div>
-                    <Badge variant="outline" className="text-xs font-bold rounded-md">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase">
                       {stat.change}
-                    </Badge>
+                    </span>
                   </div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                   <p className="text-2xl font-black text-slate-900">{stat.value}</p>
                 </CardContent>
               </Card>
@@ -375,40 +366,36 @@ export default function AdminDashboard() {
           </div>
 
           {/* Recent Activity */}
-          <Card className="border-0 shadow-lg rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900">
-                <Activity className="w-5 h-5 text-emerald-500" />
-                Recent Activity
+          {/* Recent Activity (Clean) */}
+          <Card className="border border-slate-100 shadow-sm rounded-[32px] overflow-hidden bg-white">
+            <CardHeader className="border-b border-slate-50 pb-4">
+              <CardTitle className="flex items-center gap-2 text-slate-900 text-sm font-black uppercase tracking-widest">
+                <Activity className="w-4 h-4 text-emerald-500" />
+                Live Log
               </CardTitle>
-              <CardDescription>Latest admin events</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50">
                 {recentActivityLog.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div
-                        className={`w-2 h-2 rounded-full ${item.type === "approval"
-                            ? "bg-emerald-400"
-                            : item.type === "moderation"
-                              ? "bg-rose-400"
-                              : item.type === "system"
-                                ? "bg-violet-400"
-                                : item.type === "revenue"
-                                  ? "bg-amber-400"
-                                  : "bg-blue-400"
-                          }`}
+                        className={cn(
+                          "w-2 h-2 rounded-full",
+                          item.type === "approval" ? "bg-emerald-400" :
+                            item.type === "moderation" ? "bg-rose-400" :
+                              item.type === "system" ? "bg-sky-400" : "bg-slate-300"
+                        )}
                       />
                       <div>
-                        <p className="text-sm font-bold text-slate-700">{item.action}</p>
-                        <p className="text-xs text-slate-400 font-medium">{item.user}</p>
+                        <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{item.action}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{item.user}</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-400">{item.time}</span>
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{item.time}</span>
                   </div>
                 ))}
               </div>
@@ -530,10 +517,10 @@ export default function AdminDashboard() {
                   <div
                     key={app.id}
                     className={`p-4 rounded-xl border transition-all duration-300 ${app.status === "approved"
-                        ? "border-emerald-200 bg-emerald-50/50"
-                        : app.status === "rejected"
-                          ? "border-red-200 bg-red-50/50"
-                          : "border-slate-200 hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md"
+                      ? "border-emerald-200 bg-emerald-50/50"
+                      : app.status === "rejected"
+                        ? "border-red-200 bg-red-50/50"
+                        : "border-slate-200 hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md"
                       }`}
                   >
                     <div className="flex items-start justify-between">
@@ -542,14 +529,14 @@ export default function AdminDashboard() {
                           <h4 className="font-bold text-slate-900">{app.name}</h4>
                           <Badge
                             className={`text-[10px] font-bold rounded-md ${app.status === "approved"
-                                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                                : app.status === "rejected"
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : app.status === "rejected"
+                                ? "bg-red-100 text-red-700 border-red-200"
+                                : app.priority === "high"
                                   ? "bg-red-100 text-red-700 border-red-200"
-                                  : app.priority === "high"
-                                    ? "bg-red-100 text-red-700 border-red-200"
-                                    : app.priority === "medium"
-                                      ? "bg-amber-100 text-amber-700 border-amber-200"
-                                      : "bg-blue-100 text-blue-700 border-blue-200"
+                                  : app.priority === "medium"
+                                    ? "bg-amber-100 text-amber-700 border-amber-200"
+                                    : "bg-blue-100 text-blue-700 border-blue-200"
                               }`}
                           >
                             {app.status === "pending" ? app.priority : app.status}
@@ -588,8 +575,8 @@ export default function AdminDashboard() {
                       {app.status !== "pending" && (
                         <Badge
                           className={`text-xs font-bold rounded-lg ${app.status === "approved"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-red-100 text-red-700"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700"
                             }`}
                         >
                           {app.status === "approved" ? "✓ Approved" : "✗ Rejected"}
@@ -653,10 +640,10 @@ export default function AdminDashboard() {
                         <td className="py-3 px-4">
                           <Badge
                             className={`text-[10px] font-bold rounded-md ${flag.severity === "high"
-                                ? "bg-red-100 text-red-700 border-red-200"
-                                : flag.severity === "medium"
-                                  ? "bg-amber-100 text-amber-700 border-amber-200"
-                                  : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : flag.severity === "medium"
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-emerald-100 text-emerald-700 border-emerald-200"
                               }`}
                           >
                             {flag.severity}
@@ -665,10 +652,10 @@ export default function AdminDashboard() {
                         <td className="py-3 px-4">
                           <Badge
                             className={`text-[10px] font-bold rounded-md ${flag.status === "pending"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : flag.status === "resolved"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-violet-50 text-violet-700 border-violet-200"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : flag.status === "resolved"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-violet-50 text-violet-700 border-violet-200"
                               }`}
                           >
                             {flag.status}
@@ -810,10 +797,10 @@ export default function AdminDashboard() {
                       </div>
                       <Badge
                         className={`text-[10px] font-bold rounded-md ${item.status === "healthy"
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                            : item.status === "warning"
-                              ? "bg-amber-100 text-amber-700 border-amber-200"
-                              : "bg-red-100 text-red-700 border-red-200"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : item.status === "warning"
+                            ? "bg-amber-100 text-amber-700 border-amber-200"
+                            : "bg-red-100 text-red-700 border-red-200"
                           }`}
                       >
                         {item.value}
@@ -855,8 +842,8 @@ export default function AdminDashboard() {
                     key={idx}
                     variant={action.variant}
                     className={`w-full justify-start rounded-xl font-bold ${action.variant === "default"
-                        ? "bg-gradient-to-r from-blue-500 to-blue-600 shadow-md shadow-blue-500/20"
-                        : ""
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 shadow-md shadow-blue-500/20"
+                      : ""
                       }`}
                   >
                     <action.icon className="w-4 h-4 mr-2" />

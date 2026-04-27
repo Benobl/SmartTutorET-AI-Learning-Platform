@@ -373,7 +373,8 @@ export function DashboardSidebar() {
                         <SidebarMenu className="space-y-1">
                             {navigationItems.map((item) => {
                                 const isExactMatch = pathname === item.url
-                                const isSubPathMatch = pathname.startsWith(item.url) && item.url !== "/dashboard/admin" && item.url !== "/dashboard/manager"
+                                const isRootDash = item.url === "/dashboard/student" || item.url === "/dashboard/tutor" || item.url === "/dashboard/admin" || item.url === "/dashboard/manager"
+                                const isSubPathMatch = pathname.startsWith(item.url) && !isRootDash
                                 const isActive = isExactMatch || isSubPathMatch
                                 const isExpanded = expandedItem === item.title
 
