@@ -192,7 +192,8 @@ const LiveSessionContent = ({
                             </div>
                         ) : isSolo ? (
                             <ParticipantView
-                                participant={targetParticipant || {
+                                participant={targetParticipant || call.state.localParticipant || {
+                                    user_id: currentUser?._id || 'local',
                                     user: currentUser ? { id: currentUser._id, name: currentUser.fullName } : { id: 'local' },
                                     isLocalParticipant: true,
                                 } as any}
@@ -326,11 +327,6 @@ const LiveSessionContent = ({
                                         try {
                                             if (camEnabled) {
                                                 await call.camera.disable()
-                                                // Robust Hardware Kill: Release tracks manually after a brief delay to ensure SDK cleanup
-                                                setTimeout(async () => {
-                                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null)
-                                                    if (stream) stream.getTracks().forEach(t => t.stop())
-                                                }, 500)
                                                 toast({ title: "Camera Off" })
                                             } else {
                                                 await call.camera.enable()
