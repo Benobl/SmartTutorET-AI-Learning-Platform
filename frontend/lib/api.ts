@@ -11,7 +11,10 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     };
 
     try {
-        const fullUrl = `${API_BASE_URL}${endpoint}`;
+        const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
+        const cleanEndpoint = endpoint.replace(/^\//, "");
+        const fullUrl = `${cleanBaseUrl}/${cleanEndpoint}`;
+
         console.log(`[API Request] ${options.method || "GET"} to: ${fullUrl}`);
         const response = await fetch(fullUrl, {
             ...options,
@@ -31,16 +34,16 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         console.log(`[API Success] ${endpoint} Data received`);
         return data;
     } catch (error: any) {
-        console.error(`[API FETCH ERROR] ${API_BASE_URL}${endpoint}:`, error.message || error);
+        console.error(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
         throw error;
     }
 }
 
 export const courseApi = {
-    getAll: () => fetchWithAuth("/course"),
-    getMyCourses: () => fetchWithAuth("/course/my-courses"),
-    getById: (courseId: string) => fetchWithAuth(`/course/${courseId}`),
-    enroll: (courseId: string, data: any = {}) => fetchWithAuth(`/course/enroll/${courseId}`, {
+    getAll: () => fetchWithAuth("/courses"),
+    getMyCourses: () => fetchWithAuth("/courses/my-courses"),
+    getById: (courseId: string) => fetchWithAuth(`/courses/${courseId}`),
+    enroll: (courseId: string, data: any = {}) => fetchWithAuth(`/courses/enroll/${courseId}`, {
         method: "POST",
         body: JSON.stringify(data)
     }),
