@@ -259,19 +259,32 @@ export default function ClassSquad() {
         if (!currentUserId) return
         const socket = initializeSocket(currentUserId)
         socketRef.current = socket
-        socket.on("new-invite", (data: any) => { setReceivedInvites(prev => [data, ...prev]); toast({ title: "🏆 New Squad Invite!" }) })
+
+        socket.on("new-invite", (data: any) => {
+            setReceivedInvites(prev => [data, ...prev])
+            toast({ title: "🏆 New Squad Invite!" })
+        })
+
         socket.on("squad-live-started", (data: any) => {
-            const { callId, squadName, hostName, squadId } = data
-            if (data.hostId === currentUserId) return
+            const { callId, squadName, hostName, squadId, hostId } = data
+            if (hostId === currentUserId) return
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: true, sessionData: { callId } } : s))
             setLiveAlert({ callId, squadName, hostName, squadId })
+            toast({ title: "Live Now!", description: `${hostName} is teaching in ${squadName}` })
         })
+
         socket.on("squad-live-ended", (data: any) => {
             const { squadId } = data
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: false, sessionData: null } : s))
             setLiveAlert(prev => prev?.squadId === squadId ? null : prev)
         })
-        return () => { socket.off("new-invite"); socket.off("squad-live-started"); socket.off("squad-live-ended") }
+
+        return () => {
+            socket.off("new-invite")
+            socket.off("squad-live-started")
+            socket.off("squad-live-ended")
+            socket.disconnect()
+        }
     }, [currentUserId])
 
     const handleRespond = async (inviteId: string, status: "accepted" | "declined") => {
@@ -322,18 +335,40 @@ export default function ClassSquad() {
     const handleJoinLive = async (squad: any, callId?: string) => { await startLaboratory(squad, callId) }
 
     const handleLeaveLive = async () => {
-        if (!activeCall || !activeSquad) return
+        if (!activeCall || !activeSquad) {
+            setIsJoining(false)
+            return
+        }
         const callToLeave = activeCall; const squadToLeave = activeSquad
-        setActiveCall(null); setActiveSquad(null)
+
+        // 1. Immediate UI Reset
+        setActiveCall(null)
+        setActiveSquad(null)
+        setIsJoining(false)
+
         try {
             const s = callToLeave.state.callingState
-            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) await callToLeave.leave()
-            const isHost = callToLeave.state.createdBy?.id === (currentUser?._id || currentUser?.id)
-            if (isHost && socketRef.current) {
-                await groupApi.toggleLive(squadToLeave._id, { isLive: false })
-                socketRef.current.emit("squad-live-stop", { squadId: squadToLeave._id, memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== (currentUser?._id || currentUser?.id)) || [] })
+            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
+                await callToLeave.leave().catch(e => console.warn("Error leaving call:", e))
             }
-        } catch (e) { console.error("Error leaving", e) }
+
+            const isHost = callToLeave.state.createdBy?.id === (currentUser?._id || currentUser?.id)
+            if (isHost) {
+                try {
+                    await groupApi.toggleLive(squadToLeave._id, { isLive: false })
+                    if (socketRef.current) {
+                        socketRef.current.emit("squad-live-stop", {
+                            squadId: squadToLeave._id,
+                            memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== (currentUser?._id || currentUser?.id)) || []
+                        })
+                    }
+                } catch (signalingErr) {
+                    console.error("Signaling friction (Non-critical):", signalingErr)
+                }
+            }
+        } catch (e) {
+            console.error("General error in handleLeaveLive:", e)
+        }
     }
 
     const handleJoinFromAlert = async () => {

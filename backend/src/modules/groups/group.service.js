@@ -5,6 +5,7 @@ import Post from "./post.model.js";
 import Invite from "./invite.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 import { addStreamChannelMember } from "../../lib/stream.js";
+import { io } from "../../lib/socket.js";
 
 export class GroupService {
     static async createGroup(creatorId, groupData) {
@@ -123,6 +124,20 @@ export class GroupService {
             group.isLive = !!isLive;
             group.sessionData = isLive ? sessionData : null;
             await group.save();
+
+            // Defensive Broadcast to squad room
+            if (typeof io !== 'undefined' && io) {
+                try {
+                    io.to(`squad_${groupId.toString()}`).emit("squad-live-started", {
+                        squadId: groupId.toString(),
+                        callId: sessionData?.callId || sessionData?.id,
+                        hostId: userId.toString(),
+                        isLive: !!isLive
+                    });
+                } catch (socketErr) {
+                    console.error(`[GroupService] Socket broadcast failed:`, socketErr);
+                }
+            }
 
             console.log(`[GroupService] Successfully toggled live for ${groupId}`);
             return group;

@@ -58,53 +58,85 @@ const LiveSessionContent = ({
     const { isEnabled: micEnabled } = useMicrophoneState()
     const { isEnabled: camEnabled } = useCameraState()
     const { isEnabled: screenShareEnabled } = useScreenShareState()
-    const isRecording = call.state.recording // Using direct observable for stability
+    const isRecording = call.state.recording
 
-    const localParticipant = useLocalParticipant() || call.state.localParticipant // Direct state fallback
+    const localParticipant = useLocalParticipant() || call.state.localParticipant
     const participants = useParticipants()
     const callingState = useCallCallingState()
 
-    // Robust detection: Bridge the gap between camera active and participant list sync
-    const targetParticipant = localParticipant || participants[0]
-    const isSolo = participants.length <= 1
-    const isJoined = callingState === CallingState.JOINED
-    const hasMedia = camEnabled || micEnabled
-    const isCamActive = camEnabled || !!targetParticipant?.videoStream
+    const [activeReactions, setActiveReactions] = React.useState<{ id: number; type: string }[]>([])
 
     React.useEffect(() => {
-        // Cleanup call on unmount to prevent WebRTC stale connections
-        return () => {
-            if (call && call.state.callingState !== CallingState.LEFT) {
-                call.leave().catch(err => console.error("Error leaving call:", err))
-            }
-        }
+        const unsubscribe = call.on('call.reaction_new', (event: any) => {
+            const type = event.reaction?.type || '👍'
+            setActiveReactions(prev => [...prev, { id: Date.now(), type }])
+            setTimeout(() => {
+                setActiveReactions(prev => prev.filter(r => r.id !== (prev[0]?.id)))
+            }, 3000)
+        })
+        return () => unsubscribe()
     }, [call])
 
-    // Zero-Click Auto-Activation Logic
+    const toggleMic = async () => {
+        try {
+            if (!call.microphone) return
+            if (micEnabled) {
+                await call.microphone.disable()
+            } else {
+                await call.microphone.enable()
+                toast({ title: "Voice Open", description: "Your microphone is now active." })
+            }
+        } catch (e: any) {
+            console.error("Mic toggle failed", e)
+            if (e.name === "NotAllowedError") setIsPermissionOpen(true)
+        }
+    }
+
+    const toggleCam = async () => {
+        try {
+            if (!call.camera) return
+            if (camEnabled) {
+                await call.camera.disable()
+            } else {
+                await call.camera.enable()
+                toast({ title: "Video Open", description: "Your camera is now active." })
+            }
+        } catch (e: any) {
+            console.error("Cam toggle failed", e)
+            if (e.name === "NotAllowedError") setIsPermissionOpen(true)
+        }
+    }
+
+    const handleReaction = async (type: string) => {
+        try { await call.sendReaction({ type }) } catch (e) { }
+    }
+
+    const toggleRecording = async () => {
+        try {
+            if (isRecording) await call.stopRecording()
+            else await call.startRecording()
+        } catch (e: any) {
+            toast({ title: "Recording Error", description: e.message, variant: "destructive" })
+        }
+    }
+
     React.useEffect(() => {
         const autoEnable = async () => {
             try {
-                // Short wait to ensure SDK context is definitely ready
-                await new Promise(resolve => setTimeout(resolve, 800))
-
-                if (call.microphone && !micEnabled) {
-                    await call.microphone.enable().catch(console.warn)
-                }
-                if (call.camera && !camEnabled) {
-                    await call.camera.enable().catch(console.warn)
-                }
-
-                toast({ title: "Laboratory Active", description: "Hardware synchronized automatically." })
-            } catch (e: any) {
-                console.warn("[Auto-Media Warning]", e)
-                if (e.name === "NotAllowedError" || e.message?.toLowerCase().includes("denied")) {
-                    setIsPermissionOpen(true)
-                }
-            }
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                if (call.microphone && !micEnabled) await call.microphone.enable().catch(() => { })
+                if (call.camera && !camEnabled) await call.camera.enable().catch(() => { })
+            } catch (e: any) { if (e.name === "NotAllowedError") setIsPermissionOpen(true) }
         }
         autoEnable()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    const handleJoin = async () => {
+        try {
+            await call.join({ create: true })
+            toast({ title: "Classroom Ready", description: "You are now live in the squad hub." })
+        } catch (err: any) { toast({ title: "Join Failed", description: err.message, variant: "destructive" }) }
+    }
 
     React.useEffect(() => {
         if (isInviteOpen) {
@@ -127,77 +159,47 @@ const LiveSessionContent = ({
         toast({ title: "Invite Sent!", description: `Notified ${student.fullName} about this session.` })
     }
 
-    // Join Trigger
-    const handleJoin = async () => {
-        try {
-            await call.join({ create: true })
-            toast({ title: "Connected!", description: "You have joined the laboratory." })
-        } catch (err: any) {
-            console.error("Join Failed:", err)
-            toast({ title: "Connection Failed", description: err.message, variant: "destructive" })
-        }
-    }
-
-    // --- Phase 1: Pre-join Staging Area (Google Meet Style) ---
     if (callingState === CallingState.IDLE || callingState === CallingState.JOINING) {
         return (
             <div className="h-full w-full flex flex-col bg-[#0f172a] text-white">
                 <div className="flex-1 flex flex-col md:flex-row items-center justify-center p-8 lg:p-20 gap-16 overflow-y-auto">
-                    {/* Left: Media Preview */}
                     <div className="w-full max-w-2xl aspect-video rounded-3xl bg-slate-900 border-4 border-slate-800 shadow-2xl relative overflow-hidden group">
                         <ParticipantView
                             participant={localParticipant || { user_id: currentUser?._id || 'local', isLocalParticipant: true, publishedTracks: [], roles: [], tags: [] } as any}
                             className="w-full h-full object-cover"
                             mirror={true}
                         />
+                        <div className="absolute inset-x-0 top-8 flex justify-center px-4">
+                            {(!micEnabled && !camEnabled) && (
+                                <div className="px-6 py-3 bg-rose-500/90 backdrop-blur-xl rounded-2xl border border-rose-400 text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl animate-pulse">
+                                    <VideoOff className="w-5 h-5" /> Permissions Required: Hardware Blocked
+                                </div>
+                            )}
+                        </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-6">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => micEnabled ? call.microphone.disable() : call.microphone.enable()}
-                                className={cn("w-14 h-14 rounded-full transition-all border-2", micEnabled ? "bg-white/10 border-white/20 text-white" : "bg-rose-500 border-rose-400 text-white")}
-                            >
+                            <Button variant="ghost" size="icon" onClick={toggleMic} className={cn("w-14 h-14 rounded-full border-2", micEnabled ? "bg-white/10 border-white/20 text-white" : "bg-rose-500 border-rose-400 text-white")}>
                                 {micEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
                             </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => camEnabled ? call.camera.disable() : call.camera.enable()}
-                                className={cn("w-14 h-14 rounded-full transition-all border-2", camEnabled ? "bg-white/10 border-white/20 text-white" : "bg-rose-500 border-rose-400 text-white")}
-                            >
+                            <Button variant="ghost" size="icon" onClick={toggleCam} className={cn("w-14 h-14 rounded-full border-2", camEnabled ? "bg-white/10 border-white/20 text-white" : "bg-rose-500 border-rose-400 text-white")}>
                                 {camEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
                             </Button>
                         </div>
                     </div>
-
-                    {/* Right: Join Details */}
                     <div className="flex flex-col items-center md:items-start max-w-sm text-center md:text-left gap-8">
                         <div className="space-y-4">
-                            <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-white">Ready to join?</h1>
-                            <p className="text-slate-400 font-medium">Review your hardware settings before entering the laboratory theater.</p>
+                            <h1 className="text-4xl lg:text-5xl font-black text-white">Ready to join?</h1>
+                            <p className="text-slate-400 font-medium">Verify your audio and video settings before the class begins.</p>
                         </div>
-
                         <div className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-3xl border border-slate-700 w-full">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center font-bold">
-                                {currentUser?.fullName?.[0] || "U"}
-                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center font-bold">{currentUser?.fullName?.[0] || "U"}</div>
                             <div className="flex flex-col">
                                 <span className="text-sm font-black text-white">{currentUser?.fullName}</span>
-                                <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Participating in {squadName}</span>
+                                <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">Classroom: {squadName}</span>
                             </div>
                         </div>
-
-                        <Button
-                            onClick={handleJoin}
-                            disabled={callingState === CallingState.JOINING}
-                            className="w-full h-16 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white text-base font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all"
-                        >
-                            {callingState === CallingState.JOINING ? (
-                                <> <Loader2 className="w-6 h-6 mr-3 animate-spin" /> ESTABLISHING LINK... </>
-                            ) : (
-                                "Ask to join"
-                            )}
+                        <Button onClick={handleJoin} disabled={callingState === CallingState.JOINING} className="w-full h-16 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white text-base font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/20 transition-all active:scale-95">
+                            {callingState === CallingState.JOINING ? <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> JOINING...</> : "Join Now"}
                         </Button>
                     </div>
                 </div>
@@ -205,118 +207,103 @@ const LiveSessionContent = ({
         )
     }
 
-    // --- Phase 2: Live Laboratory Theater (Google Meet Style) ---
     return (
-        <StreamTheme className="h-full w-full flex flex-col bg-[#0f172a]">
-            {/* Header / Top Bar Area (Floating Style) */}
-            <div className="absolute top-8 left-8 z-30 pointer-events-none">
-                <div className="px-6 py-3 bg-black/40 backdrop-blur-3xl rounded-[2rem] border border-white/10 flex items-center gap-4 shadow-2xl pointer-events-auto">
-                    <Video className="w-5 h-5 text-sky-400" />
-                    <span className="text-xs font-black text-white uppercase tracking-widest">{squadName} Laboratory</span>
-                    <div className="w-[1px] h-4 bg-white/10" />
-                    <span className="text-[10px] font-black text-emerald-400 whitespace-nowrap">{participants.length} Active Participants</span>
+        <StreamTheme className="h-full w-full flex flex-col bg-[#0f172a] selection:bg-indigo-500/30">
+            {/* Header Area */}
+            <div className="absolute top-6 left-6 z-30 flex items-center gap-4 pointer-events-none">
+                <div className="px-5 py-2.5 bg-black/40 backdrop-blur-2xl rounded-2xl border border-white/5 flex items-center gap-3 shadow-2xl pointer-events-auto">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{squadName} • Live</span>
                 </div>
             </div>
 
-            {/* Main Content: Theater Focus + Right Sidebar Gallery */}
-            <div className="flex-1 flex gap-6 p-6 min-h-0 overflow-hidden">
-                {/* 1. Main Theater Focus */}
-                <div className="flex-[4] relative rounded-[3rem] overflow-hidden bg-black border-4 border-slate-900 flex items-center justify-center shadow-inner group/theater">
+            {/* Main Stage & Gallery */}
+            <div className="flex-1 flex gap-4 p-4 min-h-0 overflow-hidden relative">
+                {/* 1. Theater Main Area (Left) */}
+                <div className="flex-[4] relative rounded-[2.5rem] overflow-hidden bg-black border border-white/5 flex items-center justify-center shadow-3xl group/theater">
                     {screenShareEnabled ? (
-                        <div className="w-full h-full p-4">
+                        <div className="w-full h-full p-2">
                             <ParticipantView
-                                participant={localParticipant || participants.find(p => p.screenShareStream) || { user_id: 'screen', isLocalParticipant: true } as any}
+                                participant={localParticipant && localParticipant.screenShareStream ? localParticipant : (participants.find(p => p.screenShareStream) || { user_id: 'screen' } as any)}
                                 className="w-full h-full object-contain"
                                 trackType="screenShareTrack"
                             />
                         </div>
-                    ) : participants.length === 1 ? (
-                        <ParticipantView
-                            participant={localParticipant || { user_id: 'local', isLocalParticipant: true, publishedTracks: [], roles: [], tags: [] } as any}
-                            className="w-full h-full object-cover"
-                            mirror={true}
-                        />
                     ) : (
                         <SpeakerLayout />
                     )}
 
-                    {/* Rec State Overlay */}
+                    {/* Reaction Floating Overlays */}
+                    <div className="absolute inset-x-0 bottom-24 flex justify-center pointer-events-none z-50">
+                        <div className="relative w-full max-w-xl h-64">
+                            {activeReactions.map(r => (
+                                <div key={r.id} className="absolute bottom-0 left-1/2 -translate-x-1/2 text-5xl animate-bounce-up select-none">
+                                    {r.type}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {isRecording && (
-                        <div className="absolute top-8 right-8 px-5 py-2.5 bg-rose-500/80 backdrop-blur-2xl rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 border border-rose-400/40 shadow-2xl animate-pulse">
-                            <Radio className="w-4 h-4" /> RECORDING HUB
+                        <div className="absolute top-6 right-6 px-4 py-2 bg-rose-500/90 backdrop-blur-xl rounded-xl text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-2 border border-rose-400/20 animate-pulse">
+                            <div className="w-2 h-2 rounded-full bg-white animate-ping" /> REC
                         </div>
                     )}
                 </div>
 
-                {/* 2. Side Gallery (Participant Miniatures) */}
-                <div className="flex-1 hidden xl:flex flex-col gap-4 max-w-[320px] h-full">
-                    <div className="flex-1 overflow-y-auto scrollbar-premium space-y-4 pr-2">
+                {/* 2. Side Gallery (Right) */}
+                <div className="flex-1 hidden md:flex flex-col gap-3 min-w-[280px] max-w-[320px] h-full">
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-premium">
                         {participants.map(p => (
-                            <div key={p.sessionId} className="relative aspect-video rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 group/gallery hover:border-sky-500/50 transition-all shadow-xl">
-                                <ParticipantView
-                                    participant={p}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[9px] font-black text-white uppercase tracking-wider">
-                                    {p.name || p.userId || "Member"}
+                            <div key={p.sessionId} className={cn(
+                                "relative aspect-video rounded-2xl overflow-hidden border-2 bg-slate-900 shadow-xl transition-all",
+                                p.isLocalParticipant ? "border-indigo-500/50" : "border-slate-800 hover:border-white/20"
+                            )}>
+                                <ParticipantView participant={p} className="w-full h-full object-cover" />
+                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded-lg text-[8px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                    {p.isLocalParticipant && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                                    {p.name || p.userId || "Participant"}
                                 </div>
                             </div>
                         ))}
+                        <Button onClick={() => setIsInviteOpen(true)} className="w-full h-20 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all gap-3">
+                            <UserPlus className="w-4 h-4 text-sky-400" /> Invite Partner
+                        </Button>
                     </div>
-
-                    {/* Invite Shortcut */}
-                    <Button
-                        onClick={() => setIsInviteOpen(true)}
-                        className="h-16 rounded-[2rem] bg-white/5 border-2 border-white/10 hover:bg-white/10 text-white font-black text-[11px] uppercase tracking-widest transition-all"
-                    >
-                        <UserPlus className="w-5 h-5 mr-3 text-sky-400" />
-                        Add Partner
-                    </Button>
                 </div>
             </div>
 
-            {/* Bottom Control Bar */}
-            <div className="shrink-0 h-32 flex items-center justify-center bg-gradient-to-t from-black/40 to-transparent p-8">
-                <div className="px-10 py-5 bg-slate-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/5 flex items-center gap-10 shadow-2xl">
-                    <div className="flex items-center gap-6">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => micEnabled ? call.microphone.disable() : call.microphone.enable()}
-                            className={cn("w-14 h-14 rounded-2xl transition-all border shadow-lg",
-                                micEnabled ? "bg-slate-800 border-white/5 text-white" : "bg-rose-500 border-rose-400 text-white")}
-                        >
-                            {micEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+            {/* Bottom Floating Control Bar */}
+            <div className="shrink-0 pb-8 flex justify-center px-4">
+                <div className="px-8 py-4 bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 flex items-center gap-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={toggleMic} className={cn("w-12 h-12 rounded-2xl border shadow-xl transition-all active:scale-90", micEnabled ? "bg-slate-800 border-white/5 text-white" : "bg-rose-500 border-rose-400 text-white")}>
+                            {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => camEnabled ? call.camera.disable() : call.camera.enable()}
-                            className={cn("w-14 h-14 rounded-2xl transition-all border shadow-lg",
-                                camEnabled ? "bg-slate-800 border-white/5 text-white" : "bg-rose-500 border-rose-400 text-white")}
-                        >
-                            {camEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                        <Button variant="ghost" size="icon" onClick={toggleCam} className={cn("w-12 h-12 rounded-2xl border shadow-xl transition-all active:scale-90", camEnabled ? "bg-slate-800 border-white/5 text-white" : "bg-rose-500 border-rose-400 text-white")}>
+                            {camEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => call.screenShare.toggle()}
-                            className={cn("w-14 h-14 rounded-2xl transition-all border shadow-lg",
-                                screenShareEnabled ? "bg-indigo-500 border-indigo-400 text-white animate-pulse" : "bg-slate-800 border-white/5 text-white")}
-                        >
-                            <Monitor className="w-6 h-6" />
+                        <Button variant="ghost" size="icon" onClick={() => call.screenShare.toggle()} className={cn("w-12 h-12 rounded-2xl border shadow-xl transition-all active:scale-90", screenShareEnabled ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-800 border-white/5 text-white")}>
+                            <Monitor className="w-5 h-5" />
                         </Button>
                     </div>
 
-                    <div className="w-[1px] h-10 bg-white/5 mx-2" />
+                    <div className="w-[1px] h-8 bg-white/10" />
 
-                    <Button
-                        variant="destructive"
-                        onClick={onLeave}
-                        className="h-14 w-14 rounded-2xl shadow-rose-900/20 shadow-2xl transition-all hover:rotate-90 active:scale-95"
-                    >
-                        <X className="w-7 h-7" />
-                    </Button>
+                    <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl">
+                        {[{ e: '❤️', t: 'heart' }, { e: '👍', t: 'like' }, { e: '🎉', t: 'party' }, { e: '✋', t: 'raise-hand' }].map(r => (
+                            <button key={r.t} onClick={() => handleReaction(r.e)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 transition-all text-xl active:scale-125">{r.e}</button>
+                        ))}
+                    </div>
+
+                    <div className="w-[1px] h-8 bg-white/10" />
+
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={toggleRecording} className={cn("w-12 h-12 rounded-2xl border shadow-xl transition-all active:scale-90", isRecording ? "bg-rose-500 border-rose-400 text-white animate-pulse" : "bg-slate-800 border-white/5 text-slate-500 hover:text-white")}>
+                            <Radio className="w-5 h-5" />
+                        </Button>
+                        <Button variant="destructive" onClick={onLeave} className="w-14 h-14 rounded-2xl shadow-rose-900/40 shadow-2xl transition-all hover:rotate-90 active:scale-90"><X className="w-7 h-7" /></Button>
+                    </div>
                 </div>
             </div>
 
@@ -324,45 +311,28 @@ const LiveSessionContent = ({
                 .str-video__speaker-layout { background: transparent !important; }
                 .scrollbar-premium::-webkit-scrollbar { width: 4px; }
                 .scrollbar-premium::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                @keyframes bounce-up { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translateY(-20px) scale(1.2); } 100% { transform: translateY(-400px) scale(1); opacity: 0; } }
+                .animate-bounce-up { animation: bounce-up 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
             `}</style>
 
-            {/* Invite Dialog */}
             <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                <DialogContent className="bg-slate-900/95 backdrop-blur-3xl border border-white/10 text-white rounded-[3rem] max-w-sm p-8 shadow-3xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black uppercase tracking-tight">Invite <span className="text-sky-400">Partners</span></DialogTitle>
-                    </DialogHeader>
-                    <div className="py-6 space-y-4">
-                        <Input
-                            placeholder="Search partners..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            className="bg-slate-800/50 border-slate-700 text-white h-12 rounded-2xl text-xs font-semibold"
-                        />
-                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1 scrollbar-hide">
-                            {students
-                                .filter(s => (s._id || s.id) !== (currentUser?._id || currentUser?.id))
-                                .filter(student => student.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .map(student => (
-                                    <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-3xl bg-slate-800/40 border border-white/5 hover:bg-slate-800 transition-all">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center font-black">
-                                                {student.fullName[0]}
-                                            </div>
-                                            <span className="text-sm font-black text-slate-100">{student.fullName}</span>
-                                        </div>
-                                        <Button size="sm" onClick={() => sendInvite(student)} className="h-9 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-[10px] uppercase font-black tracking-widest">
-                                            Invite
-                                        </Button>
-                                    </div>
-                                ))
-                            }
+                <DialogContent className="max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem] p-8">
+                    <DialogHeader><DialogTitle className="text-xl font-black">Invite Partners</DialogTitle></DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <Input placeholder="Search partners..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-white/5 border-white/10 h-12 rounded-xl" />
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-premium">
+                            {students.filter(s => (s._id || s.id) !== (currentUser?._id || currentUser?.id) && (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())).map(student => (
+                                <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                                    <span className="text-sm font-bold">{student.fullName}</span>
+                                    <Button size="sm" onClick={() => sendInvite(student)} className="bg-sky-600 hover:bg-sky-700 rounded-xl px-4">Invite</Button>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
             <PermissionRecoveryModal open={isPermissionOpen} onOpenChange={setIsPermissionOpen} />
-        </StreamTheme >
+        </StreamTheme>
     )
 }
 
