@@ -13,7 +13,7 @@ import logger from "./src/config/logger.js";
 import { errorHandler } from "./src/middleware/error.middleware.js";
 import { requestLogger } from "./src/middleware/logger.middleware.js";
 import { csrfProtection } from "./src/middleware/csrf.middleware.js";
-const VERSION = "1.0.6-cors-reflect";
+const VERSION = "1.0.7-manual-cors";
 
 // Routes
 import authRoutes from "./src/modules/auth/auth.route.js";
@@ -31,21 +31,32 @@ import chatRoutes from "./src/modules/chat/chat.route.js";
 const PORT = process.env.PORT || 5001;
 
 // --- CORS MUST BE FIRST ---
-app.use(cors({
-  origin: true,  // reflect origin back — required for credentials: true
+// Manually inject ACAO header for every request to ensure it survives Cloudflare/CDN stripping
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin,X-ST-CSRF,X-CSRF-Token");
+    res.setHeader("Access-Control-Max-Age", "86400");
+    return res.status(204).end();
+  }
+  next();
+});
+
+const corsOptions = {
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "Accept",
-    "Origin",
-    "X-ST-CSRF",
-    "X-CSRF-Token"
-  ],
-  exposedHeaders: ["set-cookie"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-ST-CSRF", "X-CSRF-Token"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
