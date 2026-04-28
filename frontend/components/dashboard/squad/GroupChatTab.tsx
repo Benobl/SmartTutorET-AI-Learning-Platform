@@ -347,17 +347,6 @@ function SocketChatView({ squadId }: { squadId: string }) {
                 </div>
             </div>
 
-            <style jsx global>{`
-                .pattern-dots {
-                    background-image: radial-gradient(#e2e8f0 0.8px, transparent 0.8px);
-                    background-size: 24px 24px;
-                }
-                .soft-shadow-sky {
-                    box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.39);
-                }
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
         </div>
     )
 }

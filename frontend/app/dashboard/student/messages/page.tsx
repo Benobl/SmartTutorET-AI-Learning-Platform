@@ -324,59 +324,6 @@ export default function StudentMessages() {
         </DialogContent>
       </Dialog>
 
-      <style jsx global>{`
-        .pattern-dots {
-          background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-          background-size: 32px 32px;
-        }
-        .stream-chat-advanced .str-chat {
-          --str-chat__primary-color: #0ea5e9;
-          --str-chat__active-primary-color: #0284c7;
-          --str-chat__surface-color: transparent;
-          --str-chat__secondary-surface-color: #f1f5f9;
-          --str-chat__font-family: 'Inter', sans-serif;
-        }
-        .stream-chat-advanced .str-chat__message-list {
-          padding: 24px !important;
-        }
-        .stream-chat-advanced .str-chat__message-simple {
-          padding: 4px 12px !important;
-        }
-        .stream-chat-advanced .str-chat__message-bubble {
-          border-radius: 20px !important;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-          border: 1px solid #f1f5f9 !important;
-        }
-        .stream-chat-advanced .str-chat__message-simple--me .str-chat__message-bubble {
-          background-color: #0ea5e9 !important;
-          color: white !important;
-          border-bottom-right-radius: 4px !important;
-          border: none !important;
-        }
-        .stream-chat-advanced .str-chat__message-simple:not(.str-chat__message-simple--me) .str-chat__message-bubble {
-          background-color: white !important;
-          border-bottom-left-radius: 4px !important;
-        }
-        .stream-chat-advanced .str-chat__message-input {
-          padding: 24px !important;
-          background: white !important;
-          border-top: 1px solid #f1f5f9 !important;
-        }
-        .stream-chat-advanced .str-chat__message-input textarea {
-          background: #f8fafc !important;
-          border-radius: 20px !important;
-          border: 1px solid #f1f5f9 !important;
-          padding: 12px 16px !important;
-          font-size: 14px !important;
-        }
-        .stream-chat-advanced .str-chat__send-button {
-          background: #0ea5e9 !important;
-          border-radius: 16px !important;
-          width: 44px !important;
-          height: 44px !important;
-          margin-left: 12px !important;
-        }
-      `}</style>
     </div>
   )
 }

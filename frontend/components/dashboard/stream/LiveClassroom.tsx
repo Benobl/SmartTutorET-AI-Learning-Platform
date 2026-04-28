@@ -307,13 +307,6 @@ const LiveSessionContent = ({
                 </div>
             </div>
 
-            <style jsx global>{`
-                .str-video__speaker-layout { background: transparent !important; }
-                .scrollbar-premium::-webkit-scrollbar { width: 4px; }
-                .scrollbar-premium::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-                @keyframes bounce-up { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translateY(-20px) scale(1.2); } 100% { transform: translateY(-400px) scale(1); opacity: 0; } }
-                .animate-bounce-up { animation: bounce-up 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-            `}</style>
 
             <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
                 <DialogContent className="max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem] p-8">

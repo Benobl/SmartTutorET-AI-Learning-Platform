@@ -37,6 +37,7 @@ export function CollaborationModals({ isOpen, onOpenChange, type }: Collaboratio
     const [callId, setCallId] = useState("")
     const [invitedIds, setInvitedIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
 
     const handleCreate = async () => {
         if (!videoClient || !isReady) {
