@@ -57,4 +57,32 @@ export class ChatService {
             { new: true }
         );
     }
+
+    /**
+     * Edit a message's text (only by the sender)
+     */
+    static async editMessage(messageId, senderId, newText) {
+        const msg = await ChatMessage.findById(messageId);
+        if (!msg) throw new ApiError(404, "Message not found");
+        if (msg.senderId.toString() !== senderId.toString()) throw new ApiError(403, "Not authorized to edit this message");
+        return await ChatMessage.findByIdAndUpdate(
+            messageId,
+            { text: newText, isEdited: true },
+            { new: true }
+        );
+    }
+
+    /**
+     * Soft-delete a message (only by the sender)
+     */
+    static async deleteMessage(messageId, senderId) {
+        const msg = await ChatMessage.findById(messageId);
+        if (!msg) throw new ApiError(404, "Message not found");
+        if (msg.senderId.toString() !== senderId.toString()) throw new ApiError(403, "Not authorized to delete this message");
+        return await ChatMessage.findByIdAndUpdate(
+            messageId,
+            { text: "This message was deleted", isDeleted: true },
+            { new: true }
+        );
+    }
 }

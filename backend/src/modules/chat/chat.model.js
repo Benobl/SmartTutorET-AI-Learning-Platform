@@ -46,6 +46,8 @@ const chatMessageSchema = new mongoose.Schema(
                 userName: String,
             },
         ],
+        isEdited: { type: Boolean, default: false },
+        isDeleted: { type: Boolean, default: false },
     },
     {
         timestamps: true,

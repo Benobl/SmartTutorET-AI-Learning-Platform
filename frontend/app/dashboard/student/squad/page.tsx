@@ -226,7 +226,7 @@ export default function ClassSquad() {
     const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const socketRef = useRef<any>(null)
-    const { videoClient, isReady: isStreamReady } = useStream()
+    const { videoClient, isReady: isStreamReady, initError: streamError, retryInit } = useStream()
     const currentUser = getCurrentUser()
     const currentUserId = (currentUser?._id || currentUser?.id || "") as string
 
@@ -299,10 +299,15 @@ export default function ClassSquad() {
         if (!newSquad.name.trim()) return
         setCreating(true)
         try {
-            const squad = await groupApi.create({ name: newSquad.name, topic: newSquad.topic || "General", avatar: newSquad.avatar })
-            setSquads(prev => [squad, ...prev]); setIsCreateOpen(false); setNewSquad({ name: "", topic: "", avatar: "🧬" })
-            toast({ title: "Squad Created!" })
-        } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setCreating(false) }
+            const res = await groupApi.create({ name: newSquad.name, topic: newSquad.topic || "General", avatar: newSquad.avatar })
+            // API may return { success: true, data: squadObj } or the squad directly
+            const squad = res?.data || res
+            if (!squad || !squad._id) throw new Error("Invalid response from server")
+            setSquads(prev => [squad, ...prev])
+            setIsCreateOpen(false)
+            setNewSquad({ name: "", topic: "", avatar: "🧬" })
+            toast({ title: "✅ Squad Created!", description: `"${squad.name}" is ready.` })
+        } catch (e: any) { toast({ title: "Failed to Create Squad", description: e.message, variant: "destructive" }) } finally { setCreating(false) }
     }
 
     const handleSendInvite = async (student: any) => {
@@ -317,7 +322,15 @@ export default function ClassSquad() {
     }
 
     const startLaboratory = async (squad: any, existingCallId?: string) => {
-        if (!currentUser || !videoClient) return
+        if (!currentUser) return
+        if (!videoClient) {
+            if (streamError) {
+                toast({ title: "Stream Not Ready", description: streamError, variant: "destructive" })
+            } else {
+                toast({ title: "Stream Initializing", description: "Please wait a moment then try again.", variant: "destructive" })
+            }
+            return
+        }
         const currentUserId = currentUser?._id || currentUser?.id
         setIsJoining(true)
         const callId = existingCallId || `squad-${squad._id}-${Date.now()}`
@@ -329,7 +342,7 @@ export default function ClassSquad() {
                 socketRef.current.emit("squad-live-start", { callId, squadId: squad._id, squadName: squad.name, hostId: currentUserId, hostName: currentUser?.fullName || "Someone", memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [] })
             }
             setActiveCall(call); setActiveSquad(squad)
-        } catch (e: any) { console.error("[Lab Failed]", e); toast({ title: "Hardware Alert", variant: "destructive" }) } finally { setIsJoining(false) }
+        } catch (e: any) { console.error("[Lab Failed]", e); toast({ title: "Failed to join video", description: e.message, variant: "destructive" }) } finally { setIsJoining(false) }
     }
 
     const handleJoinLive = async (squad: any, callId?: string) => { await startLaboratory(squad, callId) }
@@ -389,7 +402,7 @@ export default function ClassSquad() {
     if (activeSquad) {
         return (
             <>
-                <SquadWorkspace squad={activeSquad} onBack={() => setActiveSquad(null)} onStartLive={() => handleJoinLive(activeSquad)} onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }} isStreamReady={isStreamReady} socket={socketRef.current} isPermissionModalOpen={isPermissionModalOpen} setIsPermissionModalOpen={setIsPermissionModalOpen} />
+                <SquadWorkspace squad={activeSquad} onBack={() => setActiveSquad(null)} onStartLive={() => handleJoinLive(activeSquad)} onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }} isStreamReady={isStreamReady} streamError={streamError} retryInit={retryInit} socket={socketRef.current} isPermissionModalOpen={isPermissionModalOpen} setIsPermissionModalOpen={setIsPermissionModalOpen} />
                 {liveAlert && <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />}
             </>
         )
@@ -463,12 +476,14 @@ const TABS = [
     { id: "qa", label: "Q&A", Icon: HelpCircle },
 ]
 
-function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, socket, isPermissionModalOpen, setIsPermissionModalOpen }: {
+function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, streamError, retryInit, socket, isPermissionModalOpen, setIsPermissionModalOpen }: {
     squad: any;
     onBack: () => void;
     onStartLive: () => void;
     onInvite: () => void;
     isStreamReady: boolean;
+    streamError: string | null;
+    retryInit: () => void;
     socket: any;
     isPermissionModalOpen: boolean;
     setIsPermissionModalOpen: (open: boolean) => void;
@@ -503,24 +518,44 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                     >
                         <UserPlus className="w-3.5 h-3.5 text-indigo-500" /> Invite
                     </Button>
-                    <Button
-                        size="sm"
-                        onClick={onStartLive}
-                        disabled={!isStreamReady}
-                        className={cn(
-                            "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
-                            isStreamReady
-                                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
-                                : "bg-slate-300"
-                        )}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                        <div className="relative flex items-center gap-2">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                            <Video className="w-4 h-4" />
-                            <span className="hidden sm:inline">Initialize Live</span>
-                        </div>
-                    </Button>
+                    {streamError ? (
+                        <Button
+                            size="sm"
+                            onClick={retryInit}
+                            className="h-10 px-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg"
+                        >
+                            <Radio className="w-4 h-4" />
+                            <span className="hidden sm:inline">Retry Stream</span>
+                        </Button>
+                    ) : (
+                        <Button
+                            size="sm"
+                            onClick={onStartLive}
+                            disabled={!isStreamReady}
+                            className={cn(
+                                "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
+                                isStreamReady
+                                    ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
+                                    : "bg-slate-300 cursor-wait"
+                            )}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                            <div className="relative flex items-center gap-2">
+                                {isStreamReady ? (
+                                    <>
+                                        <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                                        <Video className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Initialize Live</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span className="hidden sm:inline">Connecting...</span>
+                                    </>
+                                )}
+                            </div>
+                        </Button>
+                    )}
                 </div>
             </div>
 

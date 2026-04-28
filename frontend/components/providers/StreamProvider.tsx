@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { StreamChat } from "stream-chat"
 import {
     StreamVideoClient,
@@ -14,12 +14,16 @@ interface StreamContextType {
     chatClient: StreamChat | null
     videoClient: StreamVideoClient | null
     isReady: boolean
+    initError: string | null
+    retryInit: () => void
 }
 
 const StreamContext = createContext<StreamContextType>({
     chatClient: null,
     videoClient: null,
     isReady: false,
+    initError: null,
+    retryInit: () => {},
 })
 
 export const useStream = () => useContext(StreamContext)
@@ -28,7 +32,9 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
     const [chatClient, setChatClient] = useState<StreamChat | null>(null)
     const [videoClient, setVideoClient] = useState<StreamVideoClient | null>(null)
     const [isReady, setIsReady] = useState(false)
+    const [initError, setInitError] = useState<string | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
+    const [retryTrigger, setRetryTrigger] = useState(0)
 
     // Watch for session changes
     useEffect(() => {
@@ -40,9 +46,15 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         updateUserId()
-        const interval = setInterval(updateUserId, 2000) // Polling fallback for logout/login
+        const interval = setInterval(updateUserId, 2000)
         return () => clearInterval(interval)
     }, [userId])
+
+    const retryInit = useCallback(() => {
+        setInitError(null)
+        setIsReady(false)
+        setRetryTrigger(t => t + 1)
+    }, [])
 
     useEffect(() => {
         if (!userId) {
@@ -53,22 +65,30 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         const user = getCurrentUser()
         if (!user) return
 
-        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!
+        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY
+
+        if (!apiKey) {
+            console.warn("[StreamProvider] NEXT_PUBLIC_STREAM_API_KEY is not configured.")
+            setInitError("Stream API key not configured. Live video is unavailable.")
+            return
+        }
 
         const initStream = async () => {
-            console.log("[StreamProvider] Initializing Stream for:", userId);
+            console.log("[StreamProvider] Initializing Stream for:", userId)
+            setInitError(null)
             try {
                 // 1. Get Token
-                const { token } = await authApi.getStreamToken()
-                if (!token) throw new Error("Failed to retrieve valid stream token")
+                const tokenRes = await authApi.getStreamToken()
+                const token = tokenRes?.token
+                if (!token) throw new Error("Failed to retrieve stream token from server")
 
                 // 2. Chat Client Singleton
                 const chat = StreamChat.getInstance(apiKey)
 
-                // Aggressive Disconnect on Identity Change
+                // Disconnect on identity change
                 if (chat.userID && chat.userID !== userId) {
-                    console.log(`[StreamProvider] Purging session for ${chat.userID}`);
-                    await chat.disconnectUser();
+                    console.log(`[StreamProvider] Purging session for ${chat.userID}`)
+                    await chat.disconnectUser()
                 }
 
                 if (!chat.userID) {
@@ -89,32 +109,23 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                     image: user.profilePic || ""
                 }
 
-                console.time("[StreamVideo] Client Init");
-                console.log("[StreamVideo] Handshake Probe:", {
-                    userId,
-                    tokenPreview: token.slice(0, 10) + "...",
-                    apiKeyPreview: apiKey.slice(0, 6) + "..."
-                });
-
-                const vClient = new StreamVideoClient({
-                    apiKey,
-                    user: videoUser,
-                    token,
-                })
-                console.timeEnd("[StreamVideo] Client Init");
+                const vClient = new StreamVideoClient({ apiKey, user: videoUser, token })
                 setVideoClient(vClient)
                 setIsReady(true)
-                console.log("[StreamProvider] Stream Ready");
-            } catch (error) {
-                console.error("[StreamProvider] Init Failed:", error)
+                console.log("[StreamProvider] Stream Ready")
+            } catch (error: any) {
+                const msg = error?.message || "Failed to initialize live stream"
+                console.error("[StreamProvider] Init Failed:", msg)
+                setInitError(msg)
+                setIsReady(false)
             }
         }
 
         initStream()
-    }, [userId])
+    }, [userId, retryTrigger])
 
     return (
-        <StreamContext.Provider value={{ chatClient, videoClient, isReady }}>
+        <StreamContext.Provider value={{ chatClient, videoClient, isReady, initError, retryInit }}>
             {videoClient ? (
                 <StreamVideo client={videoClient}>
                     {children}

@@ -189,6 +189,32 @@ io.on("connection", (socket) => {
         }
     });
 
+    // --- Edit Message ---
+    socket.on("edit-squad-message", async (data) => {
+        const { messageId, newText, squadId } = data;
+        try {
+            const updatedMsg = await ChatService.editMessage(messageId, userId, newText);
+            if (updatedMsg) {
+                io.to(`squad_${squadId}`).emit("update-message", updatedMsg.toObject ? updatedMsg.toObject() : updatedMsg);
+            }
+        } catch (err) {
+            console.error("[Socket] edit-squad-message error:", err.message);
+        }
+    });
+
+    // --- Delete Message ---
+    socket.on("delete-squad-message", async (data) => {
+        const { messageId, squadId } = data;
+        try {
+            const updatedMsg = await ChatService.deleteMessage(messageId, userId);
+            if (updatedMsg) {
+                io.to(`squad_${squadId}`).emit("update-message", updatedMsg.toObject ? updatedMsg.toObject() : updatedMsg);
+            }
+        } catch (err) {
+            console.error("[Socket] delete-squad-message error:", err.message);
+        }
+    });
+
     // --- Forum & Q&A Sync ---
     socket.on("new-forum-thread", (data) => {
         const { squadId, thread } = data;
