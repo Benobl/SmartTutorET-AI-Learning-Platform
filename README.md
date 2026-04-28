@@ -28,3 +28,5 @@ To run the full project locally:
    cd frontend
    npm run dev
    ```
+
+Core Architecture: Controller → Service → Model → Route

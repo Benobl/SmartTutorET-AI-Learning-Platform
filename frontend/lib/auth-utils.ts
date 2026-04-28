@@ -24,6 +24,32 @@ export interface User {
 }
 
 /**
+ * Helper to set authentication cookies for Next.js middleware
+ */
+export const setAuthCookies = (token: string, role: string) => {
+    if (typeof window === 'undefined') return;
+    
+    // Set cookie for 7 days
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000));
+    const expiresStr = expires.toUTCString();
+    
+    // We set cookies with Path=/ so they are available across the whole site
+    // SameSite=Lax is used for security while allowing navigation
+    document.cookie = `jwt=${token}; expires=${expiresStr}; path=/; SameSite=Lax; Secure`;
+    document.cookie = `user_role=${role}; expires=${expiresStr}; path=/; SameSite=Lax; Secure`;
+};
+
+/**
+ * Helper to clear authentication cookies
+ */
+export const clearAuthCookies = () => {
+    if (typeof window === 'undefined') return;
+    document.cookie = "jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax; Secure";
+    document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax; Secure";
+};
+
+/**
  * Real authentication function for frontend
  */
 export const loginUser = async (email: string, password: string): Promise<User | { error: string }> => {
@@ -45,6 +71,8 @@ export const loginUser = async (email: string, password: string): Promise<User |
                 // Store JWT token for API authorization
                 if (response.token) {
                     localStorage.setItem('token', response.token);
+                    // Also set cookies for middleware
+                    setAuthCookies(response.token, user.role);
                 }
             }
             return user;
@@ -77,6 +105,8 @@ export const registerUser = async (userData: any): Promise<User | { error: strin
             // Store JWT token for API authorization
             if (typeof window !== 'undefined' && response.token) {
                 localStorage.setItem('token', response.token);
+                // Also set cookies for middleware
+                setAuthCookies(response.token, user.role);
             }
             return user;
         }
@@ -115,6 +145,7 @@ export const logoutUser = async () => {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('smarttutor_user');
             localStorage.removeItem('token'); // Also clean up token if stored
+            clearAuthCookies(); // Clear cookies for middleware
         }
     }
 };
