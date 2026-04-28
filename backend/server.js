@@ -13,7 +13,7 @@ import logger from "./src/config/logger.js";
 import { errorHandler } from "./src/middleware/error.middleware.js";
 import { requestLogger } from "./src/middleware/logger.middleware.js";
 import { csrfProtection } from "./src/middleware/csrf.middleware.js";
-const VERSION = "1.0.5-cors-reg-fix";
+const VERSION = "1.0.6-cors-reflect";
 
 // Routes
 import authRoutes from "./src/modules/auth/auth.route.js";
@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 5001;
 
 // --- CORS MUST BE FIRST ---
 app.use(cors({
-  origin: (origin, callback) => callback(null, true),
+  origin: true,  // reflect origin back — required for credentials: true
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
