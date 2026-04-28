@@ -49,20 +49,20 @@ export default function LoginPage() {
 
       if (user && !('error' in user)) {
         setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
+        
+        const redirectPath = 
+          user.role === "admin" ? "/dashboard/admin" :
+          user.role === "tutor" ? "/dashboard/tutor" :
+          user.role === "manager" ? "/dashboard/manager" :
+          "/dashboard/student";
 
-        if (user.role === "admin") {
-          console.log("[LoginPage] Redirecting to /dashboard/admin");
-          router.push("/dashboard/admin")
-        } else if (user.role === "tutor") {
-          console.log("[LoginPage] Redirecting to /dashboard/tutor");
-          router.push("/dashboard/tutor")
-        } else if (user.role === "manager") {
-          console.log("[LoginPage] Redirecting to /dashboard/manager");
-          router.push("/dashboard/manager")
-        } else {
-          console.log("[LoginPage] Redirecting to /dashboard/student");
-          router.push("/dashboard/student")
-        }
+        console.log(`[LoginPage] Success! Redirecting to ${redirectPath} via window.location`);
+        
+        // Use a hard redirect to ensure cookies are fresh and middleware catches them
+        // Also bypasses any client-side routing hangs
+        setTimeout(() => {
+          window.location.href = redirectPath;
+        }, 800);
       } else if (user && 'error' in user) {
         setError(user.error)
       } else {
@@ -105,19 +105,17 @@ export default function LoginPage() {
                 }
                 setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
 
-                if (user.role === "admin") {
-                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/admin");
-                  router.push("/dashboard/admin");
-                } else if (user.role === "tutor") {
-                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/tutor");
-                  router.push("/dashboard/tutor");
-                } else if (user.role === "manager") {
-                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/manager");
-                  router.push("/dashboard/manager");
-                } else {
-                  console.log("[LoginPage] Google Login: Redirecting to /dashboard/student");
-                  router.push("/dashboard/student");
-                }
+                const redirectPath = 
+                  user.role === "admin" ? "/dashboard/admin" :
+                  user.role === "tutor" ? "/dashboard/tutor" :
+                  user.role === "manager" ? "/dashboard/manager" :
+                  "/dashboard/student";
+
+                console.log(`[Google Login] Success! Redirecting to ${redirectPath}`);
+                
+                setTimeout(() => {
+                  window.location.href = redirectPath;
+                }, 800);
               } else {
                 setError(res.message || "Google authentication failed");
               }

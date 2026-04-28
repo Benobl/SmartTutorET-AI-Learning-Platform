@@ -29,15 +29,25 @@ export interface User {
 export const setAuthCookies = (token: string, role: string) => {
     if (typeof window === 'undefined') return;
     
+    console.log("[AuthUtils] Setting cookies for middleware:", { role });
+    
     // Set cookie for 7 days
     const expires = new Date();
     expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000));
     const expiresStr = expires.toUTCString();
     
-    // We set cookies with Path=/ so they are available across the whole site
-    // SameSite=Lax is used for security while allowing navigation
-    document.cookie = `jwt=${token}; expires=${expiresStr}; path=/; SameSite=Lax; Secure`;
-    document.cookie = `user_role=${role}; expires=${expiresStr}; path=/; SameSite=Lax; Secure`;
+    // Use a more robust cookie string
+    // We specify the domain only if we are not on localhost to avoid issues
+    const isLocalhost = window.location.hostname === "localhost";
+    const cookieSuffix = `; expires=${expiresStr}; path=/; SameSite=Lax${isLocalhost ? "" : "; Secure"}`;
+    
+    try {
+        document.cookie = `jwt=${token}${cookieSuffix}`;
+        document.cookie = `user_role=${role}${cookieSuffix}`;
+        console.log("[AuthUtils] Cookies set successfully");
+    } catch (e) {
+        console.error("[AuthUtils] Failed to set cookies:", e);
+    }
 };
 
 /**
