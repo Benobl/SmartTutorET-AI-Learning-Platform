@@ -7,11 +7,20 @@ import { getCurrentUser } from "@/lib/auth-utils";
 /**
  * AuthGuard Component
  * Enforces client-side role-based access control and ensures user session is valid.
+ * Uses a synchronous initial check to avoid a full-screen spinner flash on navigation.
  */
 export function AuthGuard({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
     const router = useRouter();
     const pathname = usePathname();
-    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    // Synchronously check localStorage on first render to avoid the spinner flash
+    const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
+        if (typeof window === "undefined") return false;
+        const user = getCurrentUser();
+        if (!user) return false;
+        if (allowedRoles && !allowedRoles.includes(user.role)) return false;
+        return true;
+    });
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -24,7 +33,7 @@ export function AuthGuard({ children, allowedRoles }: { children: React.ReactNod
         }
 
         if (allowedRoles && !allowedRoles.includes(user.role)) {
-            console.log("[AuthGuard] Role not allowed. Allowed:", allowedRoles, "User role:", user.role, "Redirecting to:", `/dashboard/${user.role}`);
+            console.log("[AuthGuard] Role not allowed. Redirecting to:", `/dashboard/${user.role}`);
             router.push(`/dashboard/${user.role}`);
             return;
         }
