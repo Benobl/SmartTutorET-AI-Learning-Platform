@@ -246,23 +246,39 @@ export default function StudentTimetable() {
     }
 
     const handleJoinClass = async (slot: TimetableSlot) => {
-        if (!currentUser || !videoClient) return
+        if (!currentUser || !videoClient) {
+            toast({ title: "Stream Not Ready", description: "Please wait while we connect to the video service.", variant: "destructive" })
+            return
+        }
         setIsJoining(true)
         // Stable ID for the class so all students land in the same room
-        const callId = `class-${slot.code.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+        const callId = `class-${slot.code.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()}`
         const call = videoClient.call('default', callId)
+        
         try {
-            await call.getOrCreate({
-                data: {
-                    members: [{ user_id: currentUser._id || currentUser.id || "guest", role: 'admin' }],
-                    custom: { courseName: slot.course, tutorName: slot.tutor }
+            // Join the call, creating it if it doesn't exist
+            // We use 'create: true' so students can initiate the session if the tutor isn't there yet
+            await call.join({ create: true })
+            
+            // Set metadata if we are the one who created it (or just to be safe)
+            await call.update({
+                custom: { 
+                    courseName: slot.course, 
+                    tutorName: slot.tutor,
+                    type: 'academic-class'
                 }
             })
+
             setActiveCall(call)
             setActiveSlot(slot)
-        } catch (e) {
+            toast({ title: "Connected to Class", description: `Joined ${slot.course}` })
+        } catch (e: any) {
             console.error("Failed to join class:", e)
-            toast({ title: "Class Unavailable", variant: "destructive" })
+            toast({ 
+                title: "Connection Failed", 
+                description: e.message || "Could not join the live session. Please try again.", 
+                variant: "destructive" 
+            })
         } finally {
             setIsJoining(false)
         }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { groupApi, inviteApi, userApi } from "@/lib/api"
 import { X, Video, UserPlus, Search, Loader2, Mic, MicOff, VideoOff, Monitor, Radio, Plus, Users, Check, Crown, MessageSquare, BookOpen, PenTool, HelpCircle, Bell, ArrowLeft, Clock, Play, PhoneCall } from 'lucide-react'
 import { initializeSocket } from "@/lib/socket"
@@ -230,6 +231,25 @@ export default function ClassSquad() {
     const { videoClient, isReady: isStreamReady, initError: streamError, retryInit } = useStream()
     const currentUser = getCurrentUser()
     const currentUserId = (currentUser?._id || currentUser?.id || "") as string
+    const searchParams = useSearchParams()
+    const externalCallId = searchParams.get('joinCall')
+
+    // Handle Deep Link Joins
+    useEffect(() => {
+        if (externalCallId && isStreamReady && videoClient && currentUser) {
+            const handleAutoJoin = async () => {
+                const call = videoClient.call('default', externalCallId)
+                try {
+                    await call.getOrCreate()
+                    setActiveCall(call)
+                    setActiveSquad({ name: "Study Hub Session", avatar: "⚡", members: [] })
+                } catch (e) {
+                    console.error("Deep link join failed", e)
+                }
+            }
+            handleAutoJoin()
+        }
+    }, [externalCallId, isStreamReady, videoClient, currentUser])
 
     const fetchAll = async () => {
         try {
@@ -270,6 +290,15 @@ export default function ClassSquad() {
             const { callId, squadName, hostName, squadId, hostId } = data
             if (hostId === currentUserId) return
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: true, sessionData: { callId } } : s))
+            
+            // Also update activeSquad if the user is currently looking at it
+            setActiveSquad(prev => {
+                if (prev?._id === squadId) {
+                    return { ...prev, isLive: true, sessionData: { callId } }
+                }
+                return prev
+            })
+
             setLiveAlert({ callId, squadName, hostName, squadId })
             toast({ title: "Live Now!", description: `${hostName} is teaching in ${squadName}` })
         })
@@ -277,6 +306,15 @@ export default function ClassSquad() {
         socket.on("squad-live-ended", (data: any) => {
             const { squadId } = data
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: false, sessionData: null } : s))
+            
+            // Also update activeSquad if the user is currently looking at it
+            setActiveSquad(prev => {
+                if (prev?._id === squadId) {
+                    return { ...prev, isLive: false, sessionData: null }
+                }
+                return prev
+            })
+
             setLiveAlert(prev => prev?.squadId === squadId ? null : prev)
         })
 
@@ -334,11 +372,13 @@ export default function ClassSquad() {
         }
         const currentUserId = currentUser?._id || currentUser?.id
         setIsJoining(true)
-        const callId = existingCallId || `squad-${squad._id}-${Date.now()}`
+        const callId = existingCallId || squad.sessionData?.callId || `squad-${squad._id}-${Date.now()}`
         const call = videoClient.call('default', callId)
         try {
             await call.getOrCreate({ data: { members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })), custom: { squadName: squad.name, squadId: squad._id } } })
-            if (!existingCallId && socketRef.current) {
+            
+            // Only toggle backend and emit socket if WE are the ones starting a NEW session
+            if (!existingCallId && !squad.isLive && socketRef.current) {
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
                 socketRef.current.emit("squad-live-start", { callId, squadId: squad._id, squadName: squad.name, hostId: currentUserId, hostName: currentUser?.fullName || "Someone", memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [] })
             }
@@ -545,9 +585,11 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                             <div className="relative flex items-center gap-2">
                                 {isStreamReady ? (
                                     <>
-                                        <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                                        <div className={cn("w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]", squad.isLive ? "bg-emerald-400 animate-ping" : "animate-pulse")} />
                                         <Video className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Initialize Live</span>
+                                        <span className="hidden sm:inline">
+                                            {squad.isLive ? "Join Live Class" : "Initialize Live"}
+                                        </span>
                                     </>
                                 ) : (
                                     <>

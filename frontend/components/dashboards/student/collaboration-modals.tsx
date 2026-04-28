@@ -18,6 +18,8 @@ import {
 import { cn } from "@/lib/utils"
 import { friends } from "@/lib/mock-data"
 import { useToast } from "@/hooks/use-toast"
+import { useStream } from "@/components/providers/StreamProvider"
+import { useRouter } from "next/navigation"
 
 interface CollaborationModalsProps {
     isOpen: boolean
@@ -27,19 +29,46 @@ interface CollaborationModalsProps {
 
 export function CollaborationModals({ isOpen, onOpenChange, type }: CollaborationModalsProps) {
     const { toast } = useToast()
+    const { videoClient, isReady } = useStream()
+    const router = useRouter()
     const [step, setStep] = useState(1)
     const [sessionName, setSessionName] = useState("")
     const [generatedLink, setGeneratedLink] = useState("")
-    const [searchQuery, setSearchQuery] = useState("")
+    const [callId, setCallId] = useState("")
     const [invitedIds, setInvitedIds] = useState<number[]>([])
+    const [isCreating, setIsCreating] = useState(false)
 
-    const handleCreate = () => {
-        setGeneratedLink(`meet.smarttutoret.com/${Math.random().toString(36).substring(7)}`)
-        setStep(2)
-        toast({
-            title: "Session Created",
-            description: "Your secure study link is ready.",
-        })
+    const handleCreate = async () => {
+        if (!videoClient || !isReady) {
+            toast({ title: "Stream Not Ready", variant: "destructive" })
+            return
+        }
+        setIsCreating(true)
+        const id = `p2p-${Math.random().toString(36).substring(7)}`
+        try {
+            const call = videoClient.call('default', id)
+            await call.getOrCreate({
+                data: {
+                    custom: { name: sessionName, type: 'p2p-study-hub' }
+                }
+            })
+            setCallId(id)
+            setGeneratedLink(`${window.location.origin}/dashboard/student/squad?joinCall=${id}`)
+            setStep(2)
+            toast({
+                title: "Hub Established",
+                description: "Your live session is ready for collaborators.",
+            })
+        } catch (e: any) {
+            toast({ title: "Failed to create hub", description: e.message, variant: "destructive" })
+        } finally {
+            setIsCreating(false)
+        }
+    }
+
+    const handleJoinCreated = () => {
+        onOpenChange(false)
+        router.push(`/dashboard/student/squad?joinCall=${callId}`)
     }
 
     const copyLink = () => {
@@ -143,9 +172,10 @@ export function CollaborationModals({ isOpen, onOpenChange, type }: Collaboratio
                                             Dismiss Hub
                                         </Button>
                                         <Button
+                                            onClick={handleJoinCreated}
                                             className="flex-1 h-14 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20"
                                         >
-                                            Manage Invites
+                                            Enter Class Now
                                         </Button>
                                     </div>
                                 </div>
