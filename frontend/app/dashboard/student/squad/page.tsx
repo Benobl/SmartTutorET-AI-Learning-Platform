@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { groupApi, inviteApi, userApi } from "@/lib/api"
 import { X, Video, UserPlus, Search, Loader2, Mic, MicOff, VideoOff, Monitor, Radio, Plus, Users, Check, Crown, MessageSquare, BookOpen, PenTool, HelpCircle, Bell, ArrowLeft, Clock, Play, PhoneCall } from 'lucide-react'
@@ -207,7 +207,7 @@ function LiveAlert({ alert, onJoin, onDismiss }: { alert: any, onJoin: () => voi
 
 // ─────────── Main Page ───────────
 
-export default function ClassSquad() {
+function ClassSquadContent() {
     const [squads, setSquads] = useState<any[]>([])
     const [allStudents, setAllStudents] = useState<any[]>([])
     const [receivedInvites, setReceivedInvites] = useState<any[]>([])
@@ -505,6 +505,19 @@ export default function ClassSquad() {
                 </DialogContent>
             </Dialog>
         </>
+    )
+}
+
+export default function ClassSquad() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col h-screen items-center justify-center bg-slate-50">
+                <Loader2 className="w-12 h-12 text-sky-500 animate-spin" />
+                <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Squad Hub...</p>
+            </div>
+        }>
+            <ClassSquadContent />
+        </Suspense>
     )
 }
 
