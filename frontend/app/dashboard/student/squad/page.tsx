@@ -21,6 +21,7 @@ import { GroupChatTab } from "@/components/dashboard/squad/GroupChatTab"
 import { GroupWhiteboardTab } from "@/components/dashboard/squad/GroupWhiteboardTab"
 import { GroupForumTab } from "@/components/dashboard/squad/GroupForumTab"
 import { GroupQandATab } from "@/components/dashboard/squad/GroupQandATab"
+import { GroupStudentsTab } from "@/components/dashboard/squad/GroupStudentsTab"
 import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
 import { PermissionRecoveryModal } from "@/components/dashboard/stream/PermissionRecoveryModal"
 import { getCurrentUser } from "@/lib/auth-utils"
@@ -472,6 +473,7 @@ export default function ClassSquad() {
 const TABS = [
     { id: "chat", label: "Chat", Icon: MessageSquare },
     { id: "forum", label: "Forum", Icon: BookOpen },
+    { id: "students", label: "Students", Icon: Users },
     { id: "whiteboard", label: "Board", Icon: PenTool },
     { id: "qa", label: "Q&A", Icon: HelpCircle },
 ]
@@ -588,6 +590,9 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                 </div>
                 <div className={cn("h-full", activeTab !== "whiteboard" && "hidden")}>
                     <GroupWhiteboardTab squadId={squad._id} socket={socket} />
+                </div>
+                <div className={cn("h-full overflow-y-auto", activeTab !== "students" && "hidden")}>
+                    <GroupStudentsTab members={squad.members} />
                 </div>
                 <div className={cn("h-full overflow-y-auto", activeTab !== "qa" && "hidden")}>
                     <GroupQandATab squadId={squad._id} />
