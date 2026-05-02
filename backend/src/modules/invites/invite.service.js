@@ -1,35 +1,26 @@
-import Invite from "../groups/invite.model.js";
-import StudyGroup from "../groups/group.model.js";
+import Invite from "../live/invite.model.js";
+import Group from "../social/group.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class InviteService {
     static async sendInvite(senderId, inviteData) {
-        const { inviteeId, targetId, targetType } = inviteData;
+        const { inviteeId, sessionId } = inviteData;
 
         if (senderId.toString() === inviteeId?.toString()) {
             throw new ApiError(400, "You cannot invite yourself");
         }
 
-        // Check if already a member if target is StudyGroup
-        if (targetType === "StudyGroup") {
-            const group = await StudyGroup.findById(targetId);
-            if (group && group.members.includes(inviteeId)) {
-                throw new ApiError(400, "User is already a member of this squad");
-            }
-        }
-
         const existing = await Invite.findOne({
             inviter: senderId,
             invitee: inviteeId,
-            targetId,
+            session: sessionId,
             status: "pending"
         });
 
         if (existing) return { alreadyPending: true, invite: existing };
 
         const invite = await Invite.create({
-            targetId,
-            targetType,
+            session: sessionId,
             inviter: senderId,
             invitee: inviteeId
         });
@@ -37,21 +28,13 @@ export class InviteService {
     }
 
     static async getMyInvites(userId) {
-        try {
-            return await Invite.find({
-                $or: [{ invitee: userId }, { inviter: userId }]
-            })
-                .populate("inviter", "fullName profilePic")
-                .populate("invitee", "fullName profilePic")
-                .populate("targetId")
-                .lean();
-        } catch (error) {
-            console.error("[InviteService] getMyInvites population failure:", error);
-            // Fallback: return unpopulated if the SDK is choking on polymorphic rules
-            return await Invite.find({
-                $or: [{ invitee: userId }, { inviter: userId }]
-            }).lean();
-        }
+        return await Invite.find({
+            $or: [{ invitee: userId }, { inviter: userId }]
+        })
+            .populate("inviter", "name profile.avatar")
+            .populate("invitee", "name profile.avatar")
+            .populate("session")
+            .lean();
     }
 
     static async respondToInvite(userId, inviteId, status) {
@@ -61,14 +44,6 @@ export class InviteService {
 
         invite.status = status;
         await invite.save();
-
-        if (status === "accepted" && invite.targetType === "StudyGroup") {
-            const group = await StudyGroup.findById(invite.targetId);
-            if (group && !group.members.includes(userId)) {
-                group.members.push(userId);
-                await group.save();
-            }
-        }
 
         return invite;
     }

@@ -120,23 +120,26 @@ const LiveSessionContent = ({
         }
     }
 
-    React.useEffect(() => {
-        const autoEnable = async () => {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1000))
-                if (call.microphone && !micEnabled) await call.microphone.enable().catch(() => { })
-                if (call.camera && !camEnabled) await call.camera.enable().catch(() => { })
-            } catch (e: any) { if (e.name === "NotAllowedError") setIsPermissionOpen(true) }
-        }
-        autoEnable()
-    }, [])
-
-    const handleJoin = async () => {
+    const handleJoin = React.useCallback(async () => {
         try {
-            await call.join({ create: true })
-            toast({ title: "Classroom Ready", description: "You are now live in the squad hub." })
-        } catch (err: any) { toast({ title: "Join Failed", description: err.message, variant: "destructive" }) }
-    }
+            if (callingState === CallingState.IDLE) {
+                await call.join({ create: true });
+                toast({ title: "Classroom Ready", description: "You are now live in the squad hub." });
+                
+                // Auto-enable hardware after successful join
+                if (call.microphone) await call.microphone.enable().catch(() => {});
+                if (call.camera) await call.camera.enable().catch(() => {});
+            }
+        } catch (err: any) { 
+            toast({ title: "Join Failed", description: err.message, variant: "destructive" });
+        }
+    }, [call, callingState]);
+
+    React.useEffect(() => {
+        if (callingState === CallingState.IDLE) {
+            handleJoin();
+        }
+    }, [handleJoin, callingState]);
 
     React.useEffect(() => {
         if (isInviteOpen) {
@@ -314,7 +317,11 @@ const LiveSessionContent = ({
                     <div className="py-4 space-y-4">
                         <Input placeholder="Search partners..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-white/5 border-white/10 h-12 rounded-xl" />
                         <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-premium">
-                            {students.filter(s => (s._id || s.id) !== (currentUser?._id || currentUser?.id) && (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())).map(student => (
+                            {students.filter(s => 
+                                (s._id || s.id) !== (currentUser?._id || currentUser?.id) && 
+                                !invitedIds.has(s._id || s.id) &&
+                                (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
+                            ).map(student => (
                                 <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                                     <span className="text-sm font-bold">{student.fullName}</span>
                                     <Button size="sm" onClick={() => sendInvite(student)} className="bg-sky-600 hover:bg-sky-700 rounded-xl px-4">Invite</Button>

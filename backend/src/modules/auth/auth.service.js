@@ -9,25 +9,30 @@ import logger from "../../config/logger.js";
 
 export class AuthService {
     static async signup(userData) {
-        const { email, password, fullName, role } = userData;
+        const { email, password, name, role } = userData;
 
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
             throw new ApiError(400, "Email already registered");
         }
 
-        const validRoles = ["student", "tutor", "manager"];
+        const validRoles = ["student", "tutor", "manager", "admin"];
         const userRole = (role && validRoles.includes(role)) ? role : "student";
         const verificationToken = crypto.randomBytes(32).toString("hex");
 
         const idx = Math.floor(Math.random() * 100) + 1;
-        const profilePic = `https://avatar.iran.liara.run/public/${idx}.png`;
+        const defaultAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
         const newUser = await User.create({
             ...userData,
             email: email.toLowerCase(),
             role: userRole,
-            profilePic,
+            profile: {
+                avatar: userData.avatar || defaultAvatar,
+                bio: userData.bio || "",
+                expertise: userData.expertise || [],
+                education: userData.education || "",
+            },
             verificationToken,
             tutorStatus: userRole === "tutor" ? "pending" : "none"
         });
@@ -35,8 +40,8 @@ export class AuthService {
         // Stream & Email integration (async)
         upsertStreamUser({
             id: newUser._id.toString(),
-            name: newUser.fullName,
-            image: newUser.profilePic || "",
+            name: newUser.name,
+            image: newUser.profile.avatar || "",
         }).catch(err => console.error("Stream sync error:", err));
 
         sendEmail(newUser.email, verificationToken).catch(err => console.error("Email send error:", err));
@@ -56,6 +61,15 @@ export class AuthService {
         if (!isMatch) {
             logger.warn(`[AuthService] Password mismatch for ${email}`);
             throw new ApiError(401, "Invalid credentials");
+        }
+
+        // Check tutor approval status
+        if (user.role === "tutor" && user.tutorStatus !== "approved") {
+            logger.warn(`[AuthService] Unapproved tutor login attempt: ${email} (Status: ${user.tutorStatus})`);
+            const message = user.tutorStatus === "pending" 
+                ? "Your tutor account is pending approval by a manager." 
+                : "Your tutor account application was rejected.";
+            throw new ApiError(403, message);
         }
 
         logger.info(`[AuthService] Login successful for ${email}`);
@@ -139,11 +153,11 @@ export class AuthService {
             if (!user) {
                 user = await User.create({
                     email: email.toLowerCase(),
-                    firstName: given_name,
-                    lastName: family_name,
-                    fullName: `${given_name} ${family_name}`,
+                    name: `${given_name} ${family_name}`,
                     role: "student", // Default role for Google signup
-                    profilePic: picture,
+                    profile: {
+                        avatar: picture,
+                    },
                     isVerified: true, // Google accounts are pre-verified
                     googleId: sub,
                     tutorStatus: "none"
@@ -151,8 +165,8 @@ export class AuthService {
 
                 upsertStreamUser({
                     id: user._id.toString(),
-                    name: user.fullName,
-                    image: user.profilePic || "",
+                    name: user.name,
+                    image: user.profile.avatar || "",
                 }).catch(err => console.error("Stream sync error:", err));
             }
 

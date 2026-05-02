@@ -27,7 +27,7 @@ export class AdminService {
         user.tutorStatus = "approved";
         await user.save();
 
-        sendTutorApprovalEmail(user.email, user.fullName).catch(err => console.error("Email error:", err));
+        sendTutorApprovalEmail(user.email, user.name).catch(err => console.error("Email error:", err));
         return user;
     }
 
@@ -39,11 +39,11 @@ export class AdminService {
         user.tutorStatus = "rejected";
         await user.save();
 
-        sendTutorRejectionEmail(user.email, user.fullName, reason).catch(err => console.error("Email error:", err));
+        sendTutorRejectionEmail(user.email, user.name, reason).catch(err => console.error("Email error:", err));
         return user;
     }
 
     static async getApplications() {
-        return await TutorApplication.find().populate("userId", "fullName email").populate("jobId", "title");
+        return await TutorApplication.find().populate("userId", "name email").populate("jobId", "title");
     }
 }

@@ -14,15 +14,11 @@ export function AuthGuard({ children, allowedRoles }: { children: React.ReactNod
     const pathname = usePathname();
 
     // Synchronously check localStorage on first render to avoid the spinner flash
-    const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-        if (typeof window === "undefined") return false;
-        const user = getCurrentUser();
-        if (!user) return false;
-        if (allowedRoles && !allowedRoles.includes(user.role)) return false;
-        return true;
-    });
+    const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+    const [isMounted, setIsMounted] = useState<boolean>(false);
 
     useEffect(() => {
+        setIsMounted(true);
         const user = getCurrentUser();
         console.log("[AuthGuard] Checking authorization for path:", pathname, "User:", user?.email, "Role:", user?.role);
 

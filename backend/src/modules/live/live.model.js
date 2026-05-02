@@ -6,6 +6,10 @@ const liveSessionSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        subject: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Subject",
+        },
         host: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -36,6 +40,7 @@ const liveSessionSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        collection: "livesessions",
     }
 );
 

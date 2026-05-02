@@ -26,9 +26,9 @@ export const generateStreamToken = (userId) => {
     if (!streamClient) return null;
     try {
         const userIdStr = userId.toString();
-        return streamClient.createToken(userIdStr)
+        return streamClient.createToken(userIdStr);
     } catch (error) {
-        console.error("Error generating Stream token", error)
+        console.error("Error generating Stream token", error);
     }
 }
 export const addStreamChannelMember = async (channelId, userId) => {

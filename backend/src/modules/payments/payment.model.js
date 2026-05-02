@@ -1,45 +1,33 @@
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema({
-    tx_ref: String,
-
-    amount: Number,
-    currency: { type: String, default: "ETB" },
-
-    email: String,
-
-    // 🔹 Link payment to a specific course
-    courseId: {
+    student: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Course",
+        ref: "User",
         required: true
     },
-
-    // 🔹 Payment system status (Chapa)
-    paymentStatus: {
+    subject: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subject",
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true
+    },
+    status: {
         type: String,
         enum: ["pending", "completed", "failed"],
         default: "pending"
     },
-
-    // 🔹 Admin decision
-    approvalStatus: {
+    method: {
         type: String,
-        enum: ["pending", "approved", "rejected"],
-        default: "pending"
+        required: true
     },
-
-    // 🔹 Who approved/rejected
-    approvedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null
+    transactionId: {
+        type: String,
+        required: true
     },
-
-    approvedAt: {
-        type: Date,
-        default: null
-    }
 
 }, { timestamps: true });
 

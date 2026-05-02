@@ -1,15 +1,15 @@
-import PeerQuestion from "../users/question.model.js";
-import PeerAnswer from "../users/answer.model.js";
+import PeerQuestion from "../social/question.model.js";
+import PeerAnswer from "../social/answer.model.js";
 
 export class QuestionService {
     static async getAllQuestions(filters = {}) {
         return await PeerQuestion.find(filters)
-            .populate("author", "fullName profilePic")
+            .populate("author", "name profile.avatar")
             .sort({ createdAt: -1 });
     }
 
-    static async getSquadQuestions(squadId) {
-        return await this.getAllQuestions({ squadId });
+    static async getSubjectQuestions(subject) {
+        return await this.getAllQuestions({ subject });
     }
 
     static async askQuestion(authorId, questionData) {
@@ -19,25 +19,34 @@ export class QuestionService {
         });
     }
 
-    static async getAnswers(questionId) {
-        return await PeerAnswer.find({ questionId })
-            .populate("author", "fullName profilePic")
+    static async getAnswers(question) {
+        return await PeerAnswer.find({ question })
+            .populate("author", "name profile.avatar")
             .sort({ createdAt: 1 });
     }
 
-    static async answerQuestion(authorId, questionId, content) {
+    static async answerQuestion(authorId, question, content) {
         return await PeerAnswer.create({
-            questionId,
+            question,
             author: authorId,
             content
         });
     }
 
-    static async upvoteQuestion(questionId) {
-        return await PeerQuestion.findByIdAndUpdate(
-            questionId,
-            { $inc: { likes: 1 } },
-            { new: true }
-        );
+    static async upvoteQuestion(questionId, userId) {
+        const question = await PeerQuestion.findById(questionId);
+        if (!question) throw new ApiError(404, "Question not found");
+
+        const index = question.upvotes.findIndex(id => id.toString() === userId.toString());
+        if (index === -1) {
+            question.upvotes.push(userId);
+            // Remove from downvotes if present
+            const downIndex = question.downvotes.findIndex(id => id.toString() === userId.toString());
+            if (downIndex !== -1) question.downvotes.splice(downIndex, 1);
+        } else {
+            question.upvotes.splice(index, 1); // Toggle upvote
+        }
+
+        return await question.save();
     }
 }

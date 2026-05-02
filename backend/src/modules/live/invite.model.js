@@ -12,15 +12,10 @@ const inviteSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
-        targetType: {
-            type: String,
-            enum: ["StudyGroup"],
-            required: true,
-        },
-        targetId: {
+        session: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "LiveSession",
             required: true,
-            refPath: "targetType",
         },
         status: {
             type: String,
@@ -30,6 +25,7 @@ const inviteSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        collection: "invites",
     }
 );
 

@@ -38,7 +38,7 @@ export class AuthController {
                 data: {
                     _id: user._id,
                     id: user._id,
-                    fullName: user.fullName,
+                    name: user.name,
                     email: user.email,
                     role: user.role
                 }

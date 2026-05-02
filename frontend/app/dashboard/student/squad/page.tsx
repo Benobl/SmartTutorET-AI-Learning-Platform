@@ -256,6 +256,14 @@ function ClassSquadContent() {
             const squadRes = await groupApi.getMyGroups()
             const squadsArr = Array.isArray(squadRes) ? squadRes : (squadRes?.data || [])
             setSquads(squadsArr)
+            
+            // Auto-join socket rooms for all squads to receive live alerts
+            if (socketRef.current) {
+                squadsArr.forEach((s: any) => {
+                    socketRef.current.emit("join-squad", s._id);
+                });
+            }
+
             const liveSquad = squadsArr.find((s: any) => s.isLive)
             if (liveSquad && liveSquad.sessionData?.callId) {
                 setLiveAlert({ callId: liveSquad.sessionData.callId, squadName: liveSquad.name, squadId: liveSquad._id, hostName: "A squad member" })

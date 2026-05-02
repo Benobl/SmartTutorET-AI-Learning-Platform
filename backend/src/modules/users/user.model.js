@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    fullName: {
+    name: {
       type: String,
       required: true,
     },
@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "tutor", "admin", "manager"],
       default: "student",
     },
+    profile: {
+      bio: { type: String, default: "" },
+      expertise: { type: [String], default: [] },
+      education: { type: String, default: "" },
+      avatar: { type: String, default: "" },
+    },
     tutorStatus: {
       type: String,
       enum: ["none", "pending", "approved", "rejected"],
@@ -36,13 +42,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["9", "10", "11", "12"],
     },
-    // Tutor-specific fields
+    // Additional fields for tutor onboarding/application
     phone: String,
-    degree: String,
-    experience: Number,
-    subject: String, // Primary subject
-    subjects: [String], // Multiple subjects they can teach
-    skills: String, // Skill strengths description
+    subjects: [String],
+    skills: String,
     availability: [String],
     documents: {
       cv: String,
@@ -56,15 +59,7 @@ const userSchema = new mongoose.Schema(
     verificationToken: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
-    bio: {
-      type: String,
-      default: "",
-    },
-    profilePic: {
-      type: String,
-      default: "",
-    },
-    refreshTokens: [String], // Store valid refresh tokens for rotation
+    refreshTokens: [String],
     nativeLanguage: {
       type: String,
       default: "",

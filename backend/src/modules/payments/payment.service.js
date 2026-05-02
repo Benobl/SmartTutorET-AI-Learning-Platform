@@ -3,31 +3,31 @@ import Payment from "./payment.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class PaymentService {
-    static async initializePayment(userId, amount, email, fullName) {
-        const tx_ref = `tx-${userId}-${Date.now()}`;
-
-        // In a real app, you would call Chapa API here
-        // const response = await axios.post('https://api.chapa.co/v1/transaction/initialize', ...)
+    static async initializePayment(student, subject, amount, method) {
+        const transactionId = `tx-${student}-${Date.now()}`;
 
         const payment = await Payment.create({
-            userId,
+            student,
+            subject,
             amount,
-            tx_ref,
+            method,
+            transactionId,
             status: "pending"
         });
 
         return {
-            checkout_url: `https://test.chapa.co/checkout-now/${tx_ref}`, // Placeholder
-            tx_ref,
+            success: true,
+            message: "Payment initialized",
+            transactionId,
             payment
         };
     }
 
-    static async verifyPayment(tx_ref) {
-        const payment = await Payment.findOne({ tx_ref });
+    static async verifyPayment(transactionId) {
+        const payment = await Payment.findOne({ transactionId });
         if (!payment) throw new ApiError(404, "Payment record not found");
 
-        // In a real app, you would verify with Chapa API
+        // Simulate successful verification
         payment.status = "completed";
         await payment.save();
         return payment;

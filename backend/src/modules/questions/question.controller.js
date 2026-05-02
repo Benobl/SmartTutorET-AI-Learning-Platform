@@ -12,7 +12,7 @@ export class QuestionController {
 
     static async getBySquad(req, res, next) {
         try {
-            const questions = await QuestionService.getSquadQuestions(req.params.squadId);
+            const questions = await QuestionService.getSubjectQuestions(req.params.squadId);
             res.json({ success: true, data: questions });
         } catch (error) {
             next(error);
@@ -48,7 +48,7 @@ export class QuestionController {
 
     static async upvote(req, res, next) {
         try {
-            const question = await QuestionService.upvoteQuestion(req.params.questionId);
+            const question = await QuestionService.upvoteQuestion(req.params.questionId, req.user._id);
             res.json({ success: true, data: question });
         } catch (error) {
             next(error);

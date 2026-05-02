@@ -12,9 +12,9 @@ export class InviteController {
 
             // Notify recipient in real-time (populate fields for the socket payload)
             const populatedInvite = await invite.populate([
-                { path: "inviter", select: "fullName profilePic" },
-                { path: "invitee", select: "fullName profilePic" },
-                { path: "targetId", select: "name topic" },
+                { path: "inviter", select: "name profile.avatar" },
+                { path: "invitee", select: "name profile.avatar" },
+                { path: "session", select: "title" },
             ]);
             const receiverSocketId = getReceiverSocketId(req.body.inviteeId);
             if (receiverSocketId) {

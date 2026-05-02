@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const peerAnswerSchema = new mongoose.Schema(
     {
-        questionId: {
+        question: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "PeerQuestion",
             required: true,

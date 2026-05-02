@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 
 const forumSchema = new mongoose.Schema(
     {
+        subject: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Subject",
+        },
+        group: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Group",
+        },
         title: {
             type: String,
             required: true,
@@ -10,18 +18,10 @@ const forumSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
-        type: {
-            type: String,
-            enum: ["general", "group", "course"],
-            default: "general",
-        },
-        relatedId: {
+        createdBy: {
             type: mongoose.Schema.Types.ObjectId,
-            refPath: "typeModel",
-        },
-        typeModel: {
-            type: String,
-            enum: ["StudyGroup", "Course", null],
+            ref: "User",
+            required: true,
         },
     },
     {

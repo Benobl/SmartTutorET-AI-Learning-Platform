@@ -33,7 +33,7 @@ export const initializePayment = async (data) => {
         tx_ref,
         amount: data.amount,
         email: data.email,
-        courseId: data.courseId
+        subjectId: data.subjectId
     });
 
     return response.data;

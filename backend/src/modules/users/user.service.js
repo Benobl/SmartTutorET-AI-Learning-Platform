@@ -1,7 +1,7 @@
 import User from "./user.model.js";
 import FriendRequest from "./friend.model.js";
-import PeerQuestion from "./question.model.js";
-import PeerAnswer from "./answer.model.js";
+import PeerQuestion from "../social/question.model.js";
+import PeerAnswer from "../social/answer.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 import { upsertStreamUser } from "../../lib/stream.js";
 
@@ -18,8 +18,8 @@ export class UserService {
         // Sync with Stream
         upsertStreamUser({
             id: user._id.toString(),
-            name: user.fullName,
-            image: user.profilePic || "",
+            name: user.name,
+            image: user.profile.avatar || "",
         }).catch(err => console.error("Stream sync error during onboarding:", err));
 
         return user;
@@ -32,7 +32,7 @@ export class UserService {
     }
 
     static async getProfile(userId) {
-        const user = await User.findById(userId).select("-password").populate("friends", "fullName profilePic");
+        const user = await User.findById(userId).select("-password").populate("friends", "name profile.avatar");
         if (!user) throw new ApiError(404, "User not found");
         return user;
     }
@@ -64,15 +64,15 @@ export class UserService {
     }
 
     static async getStudents() {
-        return await User.find({ role: "student" }).select("fullName profilePic email grade");
+        return await User.find({ role: "student" }).select("name profile.avatar email grade");
     }
 
     static async getTutors() {
-        return await User.find({ role: "tutor" }).select("fullName profilePic email subject degree experience");
+        return await User.find({ role: "tutor" }).select("name profile.avatar email subject degree experience");
     }
 
     static async searchByEmail(email) {
-        const user = await User.findOne({ email: email.toLowerCase() }).select("fullName profilePic email role grade");
+        const user = await User.findOne({ email: email.toLowerCase() }).select("name profile.avatar email role grade");
         if (!user) throw new ApiError(404, "User not found");
         return user;
     }

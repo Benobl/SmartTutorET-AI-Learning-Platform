@@ -19,7 +19,8 @@ const VERSION = "1.0.7-manual-cors";
 import authRoutes from "./src/modules/auth/auth.route.js";
 import userRoutes from "./src/modules/users/user.route.js";
 import aiRoutes from "./src/modules/ai/ai.route.js";
-import courseRoutes from "./src/modules/courses/course.route.js";
+import courseRoutes from "./src/modules/courses/subject.route.js";
+import liveRoutes from "./src/modules/live/live.route.js";
 import tutorRoutes from "./src/modules/tutors/tutor.route.js";
 import groupRoutes from "./src/modules/groups/group.route.js";
 import paymentRoutes from "./src/modules/payments/payment.route.js";
@@ -90,6 +91,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/invites", inviteRoutes);
+app.use("/api/live", liveRoutes);
 app.use("/api/chat", chatRoutes);
 
 // Health Check
@@ -111,7 +113,9 @@ app.get("/", (req, res) => {
 // Centralized Error Handling
 app.use(errorHandler);
 
+// Connect to Database
+await connectDB();
+
 server.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
-  connectDB();
 });

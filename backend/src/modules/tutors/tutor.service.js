@@ -5,7 +5,7 @@ import { ApiError } from "../../middleware/error.middleware.js";
 
 export class TutorService {
     static async getJobs() {
-        return await TutorJob.find().populate("createdBy", "fullName email");
+        return await TutorJob.find().populate("createdBy", "name email");
     }
 
     static async applyTutor(userId, jobId, expertise, experience) {

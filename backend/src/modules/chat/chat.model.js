@@ -21,7 +21,7 @@ const chatMessageSchema = new mongoose.Schema(
         },
         squadId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "StudyGroup",
+            ref: "Group",
             default: null, // If null, it's a direct message
         },
         receiverId: {

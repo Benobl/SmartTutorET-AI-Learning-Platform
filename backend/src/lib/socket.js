@@ -142,8 +142,8 @@ io.on("connection", (socket) => {
 
             // Resolve Sender from DB to ensure correct Name/Pic
             const sender = await User.findById(userId);
-            const senderName = sender?.fullName || "Scholar";
-            const senderPic = sender?.profilePic || "";
+            const senderName = sender?.name || "Scholar";
+            const senderPic = sender?.profile.avatar || "";
 
             // Persist Squad Message
             const savedMsg = await ChatService.saveMessage({
@@ -172,7 +172,7 @@ io.on("connection", (socket) => {
         const { messageId, emoji, squadId } = data;
         try {
             const reactor = await User.findById(userId);
-            const userName = reactor?.fullName || "Scholar";
+            const userName = reactor?.name || "Scholar";
 
             // Update in DB
             const updatedMsg = await ChatService.addReaction(messageId, {
