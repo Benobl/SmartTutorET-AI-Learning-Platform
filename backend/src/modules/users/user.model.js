@@ -83,6 +83,14 @@ const userSchema = new mongoose.Schema(
   },
 );
 
+userSchema.pre("validate", function (next) {
+  // Graceful migration for legacy documents that have fullName instead of name
+  if (!this.name && this.get("fullName")) {
+    this.name = this.get("fullName");
+  }
+  next();
+});
+
 userSchema.pre("save", async function (next) {
   if (!this.password || !this.isModified("password")) return next();
   try {
