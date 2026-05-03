@@ -127,12 +127,9 @@ const LiveSessionContent = ({
     const handleJoin = React.useCallback(async () => {
         try {
             if (callingState === CallingState.IDLE) {
+                // join() will automatically use the hardware states (mic/cam) we set in the waiting room
                 await call.join({ create: true });
                 toast({ title: "Classroom Ready", description: "You are now live in the squad hub." });
-                
-                // Auto-enable hardware after successful join
-                if (call.microphone) await call.microphone.enable().catch(() => {});
-                if (call.camera) await call.camera.enable().catch(() => {});
             }
         } catch (err: any) { 
             toast({ title: "Join Failed", description: err.message, variant: "destructive" });
@@ -242,16 +239,18 @@ const LiveSessionContent = ({
             <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
                 
                 {/* 1. Theater Main Area (Center/Left) */}
-                <div className="flex-[3] lg:flex-[4] relative bg-black/40 flex flex-col items-center justify-center p-4 lg:p-6 min-h-0">
-                    <div className="w-full h-full relative rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-slate-950 border border-white/5 shadow-3xl group/theater">
+                <div className="flex-[3] lg:flex-[4] relative bg-black/40 flex flex-col items-center justify-center p-2 lg:p-6 min-h-0">
+                    <div className="w-full h-full relative rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-slate-950 border border-white/5 shadow-3xl group/theater flex items-center justify-center">
                         {isAnyoneSharing ? (
-                            <div className="w-full h-full bg-black">
+                            <div className="w-full h-full relative bg-black flex items-center justify-center">
+                                <div className="absolute inset-0 z-10 pointer-events-none border-4 border-indigo-500/20 rounded-[inherit]" />
                                 <ParticipantView
                                     participant={screenSharingParticipant!}
-                                    className="w-full h-full object-contain"
+                                    // Use object-contain and remove forced aspect ratio to see the WHOLE screen on mobile
+                                    className="max-w-full max-h-full w-auto h-auto object-contain"
                                     trackType="screenShareTrack"
                                 />
-                                <div className="absolute top-4 left-4 px-3 py-1.5 bg-indigo-600/90 backdrop-blur-xl rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/10 flex items-center gap-2">
+                                <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-indigo-600/90 backdrop-blur-xl rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/10 flex items-center gap-2">
                                     <Monitor className="w-3 h-3" /> {screenSharingParticipant?.name}'s Screen
                                 </div>
                             </div>
