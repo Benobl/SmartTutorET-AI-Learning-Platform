@@ -13,7 +13,9 @@ export function middleware(request: NextRequest) {
     if (isDashboardRoute) {
         if (!jwt) {
             console.log(`[Middleware] Unauthenticated access to ${pathname}. Redirecting to /login.`);
-            return NextResponse.redirect(new URL('/login', request.url));
+            const loginUrl = new URL('/login', request.url);
+            loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname + request.nextUrl.search);
+            return NextResponse.redirect(loginUrl);
         }
 
         if (userRole) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,11 +51,14 @@ export default function LoginPage() {
       if (user && !('error' in user)) {
         setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
         
-        const redirectPath = 
+        const callbackUrl = searchParams.get('callbackUrl')
+        
+        const redirectPath = callbackUrl || (
           user.role === "admin" ? "/dashboard/admin" :
           user.role === "tutor" ? "/dashboard/tutor" :
           user.role === "manager" ? "/dashboard/manager" :
-          "/dashboard/student";
+          "/dashboard/student"
+        );
 
         console.log(`[LoginPage] Success! Redirecting to ${redirectPath} via window.location`);
         
@@ -105,11 +109,14 @@ export default function LoginPage() {
                 }
                 setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
 
-                const redirectPath = 
+                const callbackUrl = searchParams.get('callbackUrl');
+                
+                const redirectPath = callbackUrl || (
                   user.role === "admin" ? "/dashboard/admin" :
                   user.role === "tutor" ? "/dashboard/tutor" :
                   user.role === "manager" ? "/dashboard/manager" :
-                  "/dashboard/student";
+                  "/dashboard/student"
+                );
 
                 console.log(`[Google Login] Success! Redirecting to ${redirectPath}`);
                 
