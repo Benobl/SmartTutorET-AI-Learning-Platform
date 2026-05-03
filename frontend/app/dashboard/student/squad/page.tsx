@@ -380,7 +380,7 @@ function ClassSquadContent() {
         } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setInvitingSids(prev => { const s = new Set(prev); s.delete(sid); return s }) }
     }
 
-    const startLaboratory = async (squad: any, existingCallId?: string) => {
+    const initializeLaboratoryRoom = async (squad: any, existingCallId?: string) => {
         // Fallback: If state isn't synced, try getting directly from storage
         const user = currentUser || getCurrentUser()
         if (!user) {
@@ -400,14 +400,13 @@ function ClassSquadContent() {
         const userId = user._id || user.id
         setIsJoining(true)
         
-        // Use a consistent call ID format
+        // Final deterministic ID fix
         const callId = existingCallId || squad.sessionData?.callId || `squad-${squad._id}`
         const call = videoClient.call('default', callId)
         
         try {
-            console.log("[Laboratory] Initializing call:", callId)
+            console.log("[Laboratory-v2] Initializing call:", callId)
             
-            // 1. Ensure the call exists with proper members and permissions
             await call.getOrCreate({ 
                 data: { 
                     members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })),
@@ -418,8 +417,6 @@ function ClassSquadContent() {
                 } 
             })
             
-            // 2. Only toggle backend and emit socket if we are STARTING a new session
-            // We check if the call is actually idle/new
             if (!existingCallId && !squad.isLive && socketRef.current) {
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
                 socketRef.current.emit("squad-live-start", { 
@@ -444,7 +441,7 @@ function ClassSquadContent() {
     }
 
     const handleJoinLive = async (squad: any, callId?: string) => { 
-        await startLaboratory(squad, callId) 
+        await initializeLaboratoryRoom(squad, callId) 
     }
 
     const handleLeaveLive = async () => {
