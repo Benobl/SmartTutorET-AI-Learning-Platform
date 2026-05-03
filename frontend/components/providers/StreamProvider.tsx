@@ -7,6 +7,7 @@ import {
     StreamVideo,
     User as StreamVideoUser,
 } from "@stream-io/video-react-sdk"
+import { toast } from "@/hooks/use-toast"
 import { authApi } from "@/lib/api"
 import { getCurrentUser } from "@/lib/auth-utils"
 
@@ -36,7 +37,7 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
     const [userId, setUserId] = useState<string | null>(null)
     const [retryTrigger, setRetryTrigger] = useState(0)
 
-    // Watch for session changes
+    // Watch for session changes (Client Side Only)
     useEffect(() => {
         const updateUserId = () => {
             const user = getCurrentUser()
@@ -128,8 +129,7 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                 setInitError(msg)
                 setIsReady(false)
                 
-                // Show a descriptive toast for easier debugging
-                const { toast } = require("@/hooks/use-toast")
+                // Use standard toast import
                 toast({
                     title: "Live Stream Sync Error",
                     description: msg,

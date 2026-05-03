@@ -229,10 +229,22 @@ function ClassSquadContent() {
     const [creating, setCreating] = useState(false)
     const socketRef = useRef<any>(null)
     const { videoClient, isReady: isStreamReady, initError: streamError, retryInit } = useStream()
-    const currentUser = getCurrentUser()
-    const currentUserId = (currentUser?._id || currentUser?.id || "") as string
+    
+    // Safety: Move currentUser to state to prevent hydration mismatch
+    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [currentUserId, setCurrentUserId] = useState<string>("")
+
     const searchParams = useSearchParams()
-    const externalCallId = searchParams.get('joinCall')
+    const externalCallId = searchParams ? searchParams.get('joinCall') : null
+
+    // Initialize User & Sync
+    useEffect(() => {
+        const user = getCurrentUser()
+        if (user) {
+            setCurrentUser(user)
+            setCurrentUserId((user._id || user.id || "") as string)
+        }
+    }, [])
 
     // Handle Deep Link Joins
     useEffect(() => {
