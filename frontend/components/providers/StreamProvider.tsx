@@ -66,13 +66,17 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         const user = getCurrentUser()
         if (!user) return
 
-        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY
+        // Detailed debug for environment variables
+        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_STREAM_API_KEY : null)
 
         if (!apiKey) {
-            console.warn("[StreamProvider] NEXT_PUBLIC_STREAM_API_KEY is not configured.")
-            setInitError("Stream API key not configured. Live video is unavailable.")
+            console.error("[StreamProvider] CRITICAL: NEXT_PUBLIC_STREAM_API_KEY is missing from environment.")
+            console.log("[StreamProvider] Current Environment Keys:", Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')))
+            setInitError("Video configuration missing. Please ensure NEXT_PUBLIC_STREAM_API_KEY is set in Vercel.")
             return
         }
+
+        console.log("[StreamProvider] API Key Detected:", apiKey.slice(0, 3) + "...")
 
         const initStream = async () => {
             console.log("[StreamProvider] Initializing Stream for:", userId)
