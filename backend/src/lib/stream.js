@@ -8,9 +8,10 @@ let streamClient = null;
 
 if (apikey && apiSecret) {
     streamClient = StreamChat.getInstance(apikey, apiSecret);
-    console.log("[Stream] Initialized with API key:", apikey?.slice(0, 6) + "...");
+    console.log(`[Stream] SUCCESS: Service initialized with key ${apikey.slice(0, 4)}...`);
 } else {
-    console.warn("[Stream] API key or Secret missing — Stream Chat/Video disabled. Set STREAM_API_KEY and STREAM_API_SECRET in .env");
+    console.error("[Stream] CRITICAL ERROR: API key or Secret missing in Environment Variables!");
+    console.log("[Stream] Expected: STREAM_API_KEY and STREAM_API_SECRET");
 }
 
 export const upsertStreamUser = async (userData) => {

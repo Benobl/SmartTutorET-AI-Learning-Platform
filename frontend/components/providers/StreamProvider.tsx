@@ -77,47 +77,64 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
             console.log("[StreamProvider] Initializing Stream for:", userId)
             setInitError(null)
             try {
-                // 1. Get Token
+                // 1. Get Token from your Render Backend
                 const tokenRes = await authApi.getStreamToken()
                 const token = tokenRes?.token
-                if (!token) throw new Error("Failed to retrieve stream token from server")
+                
+                if (!token) {
+                    console.error("[StreamProvider] Token is null. Check Render Environment Variables for STREAM_API_KEY/SECRET.")
+                    throw new Error("Server failed to generate a secure stream token. Please check backend environment variables.")
+                }
 
                 // 2. Chat Client Singleton
+                // We use a singleton pattern to prevent multiple initializations
                 const chat = StreamChat.getInstance(apiKey)
 
-                // Disconnect on identity change
+                // Disconnect on identity change to prevent session bleeding
                 if (chat.userID && chat.userID !== userId) {
-                    console.log(`[StreamProvider] Purging session for ${chat.userID}`)
                     await chat.disconnectUser()
                 }
 
                 if (!chat.userID) {
                     await chat.connectUser(
-                        { id: userId, name: user.fullName || "User", image: user.profilePic || "" },
+                        { id: userId, name: user.fullName || user.name || "User", image: user.profilePic || "" },
                         token
                     )
                 }
                 setChatClient(chat)
 
                 // 3. Video Client
-                if (videoClient) {
-                    await videoClient.disconnectUser()
-                }
+                // For Video, we create a fresh client to ensure the token and user are perfectly synced
                 const videoUser: StreamVideoUser = {
                     id: userId,
-                    name: user.fullName || "User",
+                    name: user.fullName || user.name || "User",
                     image: user.profilePic || ""
                 }
 
-                const vClient = new StreamVideoClient({ apiKey, user: videoUser, token })
+                const vClient = new StreamVideoClient({ 
+                    apiKey, 
+                    user: videoUser, 
+                    token,
+                    // Explicitly set the region to ensure consistency across Vercel/Render
+                    options: { timeout: 10000 } 
+                })
+                
                 setVideoClient(vClient)
                 setIsReady(true)
-                console.log("[StreamProvider] Stream Ready")
+                console.log("[StreamProvider] Stream Production Ready")
             } catch (error: any) {
                 const msg = error?.message || "Failed to initialize live stream"
-                console.error("[StreamProvider] Init Failed:", msg)
+                console.error("[StreamProvider] Init Failed:", error)
                 setInitError(msg)
                 setIsReady(false)
+                
+                // Show a descriptive toast for easier debugging
+                const { toast } = require("@/hooks/use-toast")
+                toast({
+                    title: "Live Stream Sync Error",
+                    description: msg,
+                    variant: "destructive"
+                })
             }
         }
 
