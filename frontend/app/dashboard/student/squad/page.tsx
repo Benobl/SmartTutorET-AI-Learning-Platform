@@ -400,8 +400,11 @@ function ClassSquadContent() {
         const userId = user._id || user.id
         setIsJoining(true)
         
-        // Final deterministic ID fix
-        const callId = existingCallId || squad.sessionData?.callId || `squad-${squad._id}`
+        // Final deterministic ID fix: Ignore old session data if it contains a timestamp (long number)
+        const savedCallId = squad.sessionData?.callId
+        const isOldId = savedCallId && savedCallId.split('-').length > 2 // Detects "squad-id-timestamp" format
+        
+        const callId = (existingCallId || (isOldId ? null : savedCallId)) || `squad-${squad._id}`
         const call = videoClient.call('default', callId)
         
         try {
