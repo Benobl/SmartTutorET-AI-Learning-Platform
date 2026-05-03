@@ -517,7 +517,10 @@ function ClassSquadContent() {
                 <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Squad Hub <span className="text-sky-500">⚡</span></h1>
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                                Squad Hub <span className="text-sky-500">⚡</span>
+                                <span className="ml-2 text-[8px] text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-widest">v2.0-STABLE</span>
+                            </h1>
                             <p className="text-xs text-slate-400 font-semibold mt-0.5">Your collaborative learning network</p>
                         </div>
                         <div className="flex gap-2">
