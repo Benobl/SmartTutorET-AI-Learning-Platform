@@ -381,32 +381,71 @@ function ClassSquadContent() {
     }
 
     const startLaboratory = async (squad: any, existingCallId?: string) => {
-        if (!currentUser) return
+        // Fallback: If state isn't synced, try getting directly from storage
+        const user = currentUser || getCurrentUser()
+        if (!user) {
+            toast({ title: "Session Error", description: "Please log in again to start a live session.", variant: "destructive" })
+            return
+        }
+
         if (!videoClient) {
             if (streamError) {
-                toast({ title: "Stream Not Ready", description: streamError, variant: "destructive" })
+                toast({ title: "Stream Error", description: streamError, variant: "destructive" })
             } else {
-                toast({ title: "Stream Initializing", description: "Please wait a moment then try again.", variant: "destructive" })
+                toast({ title: "Connecting...", description: "Video service is initializing. Please wait 2 seconds.", variant: "destructive" })
             }
             return
         }
-        const currentUserId = currentUser?._id || currentUser?.id
+
+        const userId = user._id || user.id
         setIsJoining(true)
-        const callId = existingCallId || squad.sessionData?.callId || `squad-${squad._id}-${Date.now()}`
+        
+        // Use a consistent call ID format
+        const callId = existingCallId || squad.sessionData?.callId || `squad-${squad._id}`
         const call = videoClient.call('default', callId)
+        
         try {
-            await call.getOrCreate({ data: { members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })), custom: { squadName: squad.name, squadId: squad._id } } })
+            console.log("[Laboratory] Initializing call:", callId)
             
-            // Only toggle backend and emit socket if WE are the ones starting a NEW session
+            // 1. Ensure the call exists with proper members and permissions
+            await call.getOrCreate({ 
+                data: { 
+                    members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })),
+                    custom: { 
+                        squadName: squad.name, 
+                        squadId: squad._id 
+                    } 
+                } 
+            })
+            
+            // 2. Only toggle backend and emit socket if we are STARTING a new session
+            // We check if the call is actually idle/new
             if (!existingCallId && !squad.isLive && socketRef.current) {
                 await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
-                socketRef.current.emit("squad-live-start", { callId, squadId: squad._id, squadName: squad.name, hostId: currentUserId, hostName: currentUser?.fullName || "Someone", memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== currentUserId) || [] })
+                socketRef.current.emit("squad-live-start", { 
+                    callId, 
+                    squadId: squad._id, 
+                    squadName: squad.name, 
+                    hostId: userId, 
+                    hostName: user.fullName || "A Squad Member", 
+                    memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== userId) || [] 
+                })
             }
-            setActiveCall(call); setActiveSquad(squad)
-        } catch (e: any) { console.error("[Lab Failed]", e); toast({ title: "Failed to join video", description: e.message, variant: "destructive" }) } finally { setIsJoining(false) }
+
+            setActiveCall(call)
+            setActiveSquad(squad)
+            toast({ title: "Success", description: "Classroom initialized." })
+        } catch (e: any) { 
+            console.error("[Lab Failed]", e)
+            toast({ title: "Initialization Failed", description: e.message || "Could not connect to video server.", variant: "destructive" })
+        } finally { 
+            setIsJoining(false) 
+        }
     }
 
-    const handleJoinLive = async (squad: any, callId?: string) => { await startLaboratory(squad, callId) }
+    const handleJoinLive = async (squad: any, callId?: string) => { 
+        await startLaboratory(squad, callId) 
+    }
 
     const handleLeaveLive = async () => {
         if (!activeCall || !activeSquad) {
