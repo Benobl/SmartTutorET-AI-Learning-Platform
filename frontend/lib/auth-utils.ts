@@ -11,6 +11,7 @@ export interface User {
     firstName: string;       // User's first name
     lastName: string;        // User's last name
     fullName: string;        // Full display name
+    name: string;            // Name expected by backend
     email: string;           // Login email
     role: UserRole;          // Role: student, tutor, admin, or manager
     grade?: string;          // Required for students (9, 10, 11, 12)
@@ -76,6 +77,14 @@ export const loginUser = async (email: string, password: string): Promise<User |
                 return { error: 'Your application was not approved at this time. Please contact support for details.' };
             }
 
+            // Normalize name fields for frontend components that expect firstName and lastName
+            if (user.name && !user.firstName) {
+                const parts = user.name.split(' ');
+                user.firstName = parts[0];
+                user.lastName = parts.slice(1).join(' ');
+                user.fullName = user.name;
+            }
+
             if (typeof window !== 'undefined') {
                 localStorage.setItem('smarttutor_user', JSON.stringify(user));
                 // Store JWT token for API authorization
@@ -99,15 +108,24 @@ export const loginUser = async (email: string, password: string): Promise<User |
  */
 export const registerUser = async (userData: any): Promise<User | { error: string }> => {
     try {
-        // Backend expects `fullName` but signup form sends `firstName` + `lastName`
+        // Backend expects `name` but signup form sends `firstName` + `lastName`
         const payload = {
             ...userData,
+            name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName || userData.name,
             fullName: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName,
         };
 
         const response = await authApi.signup(payload);
         if (response.success && response.data) {
             const user = response.data;
+
+            // Normalize name fields for frontend components that expect firstName and lastName
+            if (user.name && !user.firstName) {
+                const parts = user.name.split(' ');
+                user.firstName = parts[0];
+                user.lastName = parts.slice(1).join(' ');
+                user.fullName = user.name;
+            }
 
             if (typeof window !== 'undefined' && user.role === 'student') {
                 localStorage.setItem('smarttutor_user', JSON.stringify(user));
