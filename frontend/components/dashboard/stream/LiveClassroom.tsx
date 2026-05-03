@@ -376,6 +376,7 @@ const LiveSessionContent = ({
                 </DialogContent>
             </Dialog>
             <PermissionRecoveryModal open={isPermissionOpen} onOpenChange={setIsPermissionOpen} />
+        </StreamTheme>
     )
 }
 
