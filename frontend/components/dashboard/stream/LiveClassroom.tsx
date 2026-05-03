@@ -60,9 +60,12 @@ const LiveSessionContent = ({
     const { isEnabled: screenShareEnabled } = useScreenShareState()
     const isRecording = call.state.recording
 
-    const localParticipant = useLocalParticipant() || call.state.localParticipant
     const participants = useParticipants()
     const callingState = useCallCallingState()
+    
+    // Get the active speaker to show in center if no one is screen sharing
+    const { useActiveSpeaker } = useCallStateHooks()
+    const activeSpeaker = useActiveSpeaker()
 
     // Find if someone is sharing their screen
     const screenSharingParticipant = participants.find(p => p.screenShareStream)
@@ -117,10 +120,15 @@ const LiveSessionContent = ({
 
     const toggleRecording = async () => {
         try {
-            if (isRecording) await call.stopRecording()
-            else await call.startRecording()
+            if (isRecording) {
+                await call.stopRecording()
+                toast({ title: "Recording Stopped", description: "The session recording has ended." })
+            } else {
+                await call.startRecording()
+                toast({ title: "Recording Started", description: "All participants can now see the recording status." })
+            }
         } catch (e: any) {
-            toast({ title: "Recording Error", description: e.message, variant: "destructive" })
+            toast({ title: "Recording Error", description: "You might not have permission or a recording is already in progress.", variant: "destructive" })
         }
     }
 
@@ -239,15 +247,15 @@ const LiveSessionContent = ({
             <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
                 
                 {/* 1. Theater Main Area (Center/Left) */}
-                <div className="flex-[3] lg:flex-[4] relative bg-black/40 flex flex-col items-center justify-center p-2 lg:p-6 min-h-0">
-                    <div className="w-full h-full relative rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-slate-950 border border-white/5 shadow-3xl group/theater flex items-center justify-center">
+                <div className="flex-[3] lg:flex-[4] relative bg-black/40 flex flex-col items-center justify-center p-0 md:p-4 lg:p-6 min-h-0">
+                    <div className="w-full h-full relative md:rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-slate-950 border-y md:border border-white/5 shadow-3xl group/theater flex items-center justify-center">
                         {isAnyoneSharing ? (
-                            <div className="w-full h-full relative bg-black flex items-center justify-center">
+                            <div className="w-full h-full relative bg-black flex items-center justify-center overflow-hidden">
                                 <div className="absolute inset-0 z-10 pointer-events-none border-4 border-indigo-500/20 rounded-[inherit]" />
                                 <ParticipantView
                                     participant={screenSharingParticipant!}
-                                    // Use object-contain and remove forced aspect ratio to see the WHOLE screen on mobile
-                                    className="max-w-full max-h-full w-auto h-auto object-contain"
+                                    // Use absolute sizing for maximum width on mobile
+                                    className="w-full h-full object-contain"
                                     trackType="screenShareTrack"
                                 />
                                 <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-indigo-600/90 backdrop-blur-xl rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/10 flex items-center gap-2">
@@ -255,8 +263,15 @@ const LiveSessionContent = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="w-full h-full">
-                                <SpeakerLayout />
+                            <div className="w-full h-full flex items-center justify-center bg-slate-950">
+                                {activeSpeaker ? (
+                                    <ParticipantView 
+                                        participant={activeSpeaker} 
+                                        className="w-full h-full object-cover" 
+                                    />
+                                ) : (
+                                    <div className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs">Waiting for video...</div>
+                                )}
                             </div>
                         )}
 
@@ -273,14 +288,14 @@ const LiveSessionContent = ({
                     </div>
                 </div>
 
-                {/* 2. Side Gallery (Right) - Hide on very small mobile if screen sharing */}
+                {/* 2. Side Gallery (Right) - ALL participants stay here */}
                 <div className={cn(
                     "flex-1 min-w-[280px] max-w-full md:max-w-[340px] border-l border-white/5 bg-[#020617]/30 backdrop-blur-md flex flex-col min-h-0",
-                    isAnyoneSharing && "hidden lg:flex"
+                    isAnyoneSharing && "hidden md:flex" // Show sidebar on mobile ONLY if no one is sharing
                 )}>
-                    <div className="p-4 border-b border-white/5">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Users className="w-3.5 h-3.5" /> Participants ({participants.length})
+                            <Users className="w-3.5 h-3.5" /> Everyone ({participants.length})
                         </h3>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-premium">
@@ -308,40 +323,35 @@ const LiveSessionContent = ({
 
             {/* 3. Bottom Premium Control Dock */}
             <div className="shrink-0 h-24 flex items-center justify-center px-4 z-40 bg-gradient-to-t from-[#020617] to-transparent">
-                <div className="px-6 py-3 bg-[#0f172a]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 flex items-center gap-6 shadow-3xl">
+                <div className="px-6 py-3 bg-[#0f172a]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 flex items-center gap-4 md:gap-6 shadow-3xl">
                     
                     {/* Media Group */}
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={toggleMic} className={cn("w-12 h-12 rounded-2xl border-2 transition-all active:scale-90", micEnabled ? "bg-white/5 border-white/10 text-white hover:bg-white/10" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20")}>
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <Button variant="ghost" size="icon" onClick={toggleMic} className={cn("w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all active:scale-90", micEnabled ? "bg-white/5 border-white/10 text-white hover:bg-white/10" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20")}>
                             {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={toggleCam} className={cn("w-12 h-12 rounded-2xl border-2 transition-all active:scale-90", camEnabled ? "bg-white/5 border-white/10 text-white hover:bg-white/10" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20")}>
+                        <Button variant="ghost" size="icon" onClick={toggleCam} className={cn("w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all active:scale-90", camEnabled ? "bg-white/5 border-white/10 text-white hover:bg-white/10" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20")}>
                             {camEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
                         </Button>
                     </div>
 
-                    <div className="w-[1px] h-8 bg-white/10" />
+                    <div className="hidden md:block w-[1px] h-8 bg-white/10" />
 
                     {/* Interaction Group */}
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={() => call.screenShare.toggle()} className={cn("w-12 h-12 rounded-2xl border-2 transition-all active:scale-90", screenShareEnabled ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10")}>
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <Button variant="ghost" size="icon" onClick={() => call.screenShare.toggle()} className={cn("w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all active:scale-90", screenShareEnabled ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10")}>
                             <Monitor className="w-5 h-5" />
                         </Button>
-                        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/5">
-                            {[{ e: '❤️', t: 'heart' }, { e: '👍', t: 'like' }, { e: '🎉', t: 'party' }].map(r => (
-                                <button key={r.t} onClick={() => handleReaction(r.e)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 transition-all text-xl active:scale-125">{r.e}</button>
-                            ))}
-                        </div>
                     </div>
 
                     <div className="w-[1px] h-8 bg-white/10" />
 
                     {/* System Group */}
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={toggleRecording} className={cn("w-12 h-12 rounded-2xl border-2 transition-all active:scale-90", isRecording ? "bg-rose-500/20 border-rose-500/50 text-rose-500" : "bg-white/5 border-white/10 text-slate-500 hover:text-white hover:bg-white/10")}>
+                    <div className="flex items-center gap-3 md:gap-4">
+                        <Button variant="ghost" size="icon" onClick={toggleRecording} className={cn("w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all active:scale-90", isRecording ? "bg-rose-500/20 border-rose-500/50 text-rose-500" : "bg-white/5 border-white/10 text-slate-500 hover:text-white hover:bg-white/10")}>
                             <Radio className="w-5 h-5" />
                         </Button>
-                        <Button variant="destructive" onClick={onLeave} className="w-14 h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 shadow-2xl shadow-rose-900/40 transition-all hover:rotate-90 active:scale-90 flex items-center justify-center">
+                        <Button variant="destructive" onClick={onLeave} className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 shadow-2xl shadow-rose-900/40 transition-all hover:rotate-90 active:scale-90 flex items-center justify-center">
                             <X className="w-7 h-7" />
                         </Button>
                     </div>
