@@ -6,7 +6,6 @@ import {
     CallControls,
     CallingState,
     CallParticipantsList,
-    SpeakerLayout,
     StreamCall,
     StreamTheme,
     useCallStateHooks,
