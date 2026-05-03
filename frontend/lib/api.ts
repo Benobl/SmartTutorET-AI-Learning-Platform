@@ -1,6 +1,18 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://smarttutoret-ai-learning-platform.onrender.com/api"
 
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+    refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+    refreshSubscribers.forEach((cb) => cb(token));
+    refreshSubscribers = [];
+};
+
+export async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
     const headers = {
@@ -10,19 +22,79 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         ...options.headers,
     };
 
-    try {
-        const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
-        const cleanEndpoint = endpoint.replace(/^\//, "");
-        const fullUrl = `${cleanBaseUrl}/${cleanEndpoint}`;
+    const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
+    const cleanEndpoint = endpoint.replace(/^\//, "");
+    const fullUrl = `${cleanBaseUrl}/${cleanEndpoint}`;
 
-        console.log(`[API Request] ${options.method || "GET"} to: ${fullUrl}`);
-        const response = await fetch(fullUrl, {
+    try {
+        let response = await fetch(fullUrl, {
             ...options,
             headers,
             credentials: "include",
         });
 
-        console.log(`[API Response] ${endpoint} Status:`, response.status);
+        // Intercept 401 Unauthorized to refresh token
+        if (response.status === 401 && endpoint !== "/auth/login" && endpoint !== "/auth/refresh") {
+            if (!isRefreshing) {
+                isRefreshing = true;
+                try {
+                    console.log("[API] Token expired, attempting refresh...");
+                    const refreshRes = await fetch(`${cleanBaseUrl}/auth/refresh`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-ST-CSRF": "XMLHttpRequest",
+                        },
+                        credentials: "include",
+                    });
+
+                    if (!refreshRes.ok) {
+                        throw new Error("Session expired. Please log in again.");
+                    }
+
+                    const refreshData = await refreshRes.json();
+                    const newToken = refreshData.token || refreshData.accessToken;
+                    
+                    if (newToken && typeof window !== "undefined") {
+                        localStorage.setItem("token", newToken);
+                        onRefreshed(newToken);
+                    } else {
+                        throw new Error("No token returned from refresh endpoint.");
+                    }
+                } catch (refreshErr) {
+                    console.error("[API] Refresh failed:", refreshErr);
+                    onRefreshed(""); // Unblock queue, but with failure
+                    if (typeof window !== "undefined") {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("user");
+                        window.location.href = "/login";
+                    }
+                    throw refreshErr;
+                } finally {
+                    isRefreshing = false;
+                }
+            }
+
+            // Wait for refresh to complete, then retry
+            const newToken = await new Promise<string>((resolve) => {
+                subscribeTokenRefresh((token) => resolve(token));
+            });
+
+            if (newToken) {
+                // Retry original request with new token
+                const retryHeaders = {
+                    ...headers,
+                    "Authorization": `Bearer ${newToken}`,
+                };
+                response = await fetch(fullUrl, {
+                    ...options,
+                    headers: retryHeaders,
+                    credentials: "include",
+                });
+            } else {
+                throw new Error("Session expired. Please log in again.");
+            }
+        }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -31,7 +103,6 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         }
 
         const data = await response.json();
-        console.log(`[API Success] ${endpoint} Data received`);
         return data;
     } catch (error: any) {
         console.error(`[API FETCH ERROR] ${endpoint}:`, error.message || error);

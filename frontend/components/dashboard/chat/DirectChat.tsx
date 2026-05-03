@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth-utils"
 import { cn } from "@/lib/utils"
 
 interface DirectChatProps {
-    otherUser: { _id: string; fullName: string; profilePic?: string }
+    otherUser: { _id: string; fullName?: string; name?: string; profilePic?: string }
     onBack?: () => void
 }
 
@@ -92,12 +92,12 @@ export function DirectChat({ otherUser, onBack }: DirectChatProps) {
                 </Button>
                 <div className="relative">
                     <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 font-black overflow-hidden shadow-inner">
-                        {otherUser.profilePic ? <img src={otherUser.profilePic} className="w-full h-full object-cover" /> : otherUser.fullName[0]}
+                        {otherUser.profilePic ? <img src={otherUser.profilePic} className="w-full h-full object-cover" /> : (otherUser.fullName?.[0] || otherUser.name?.[0] || 'U')}
                     </div>
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-sm font-black text-slate-800 tracking-tight">{otherUser.fullName}</span>
+                    <span className="text-sm font-black text-slate-800 tracking-tight">{otherUser.fullName || otherUser.name || "User"}</span>
                     <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Active Now</span>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
