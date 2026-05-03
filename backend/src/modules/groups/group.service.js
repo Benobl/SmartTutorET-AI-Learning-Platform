@@ -54,14 +54,14 @@ export class GroupService {
         });
     }
 
-    static async getGroupForums(groupId) {
+    static async getGroupForums(groupId, requestingUserId = null) {
         let forums = await Forum.find({ group: groupId });
         if (forums.length === 0) {
             const group = await Group.findById(groupId);
             if (group) {
                 const defaultForum = await Forum.create({
                     group: group._id,
-                    createdBy: group.createdBy,
+                    createdBy: group.createdBy || group.members?.[0] || requestingUserId,
                     title: "General Discussion",
                     description: `Welcome to the ${group.name} general forum.`
                 });

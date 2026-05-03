@@ -21,7 +21,7 @@ export class GroupController {
 
     static async getForums(req, res, next) {
         try {
-            const forums = await GroupService.getGroupForums(req.params.groupId);
+            const forums = await GroupService.getGroupForums(req.params.groupId, req.user._id);
             res.json({ success: true, data: forums });
         } catch (error) {
             next(error);
