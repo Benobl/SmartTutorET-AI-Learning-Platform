@@ -57,9 +57,24 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                 setInvites(prev => [data, ...prev])
                 // Optional: trigger a sound or browser notification
             })
+            
+            socket.on("squad-live-notification", (data: any) => {
+                const { toast } = require("@/hooks/use-toast")
+                toast({
+                    title: "🔴 Live Session Started!",
+                    description: data.message || `Live class started in ${data.squadName}!`,
+                    action: (
+                        <Button variant="default" size="sm" onClick={() => router.push('/dashboard/student/squad')}>
+                            Join Now
+                        </Button>
+                    ),
+                    duration: 10000,
+                })
+            })
 
             return () => {
                 socket.off("new-invite")
+                socket.off("squad-live-notification")
             }
         }
     }, [])

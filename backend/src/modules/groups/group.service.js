@@ -5,7 +5,7 @@ import LiveSession from "../live/live.model.js";
 import Invite from "../live/invite.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 import { addStreamChannelMember } from "../../lib/stream.js";
-import { io } from "../../lib/socket.js";
+import { io, getReceiverSocketId } from "../../lib/socket.js";
 
 export class GroupService {
     static async createGroup(createdBy, groupData) {
@@ -141,6 +141,23 @@ export class GroupService {
                         isLive: !!isLive,
                         sessionId: session?._id
                     });
+
+                    // Also notify all online members individually if going live
+                    if (isLive) {
+                        group.members.forEach(memberId => {
+                            // Don't notify the host themselves
+                            if (memberId.toString() !== userId.toString()) {
+                                const socketId = getReceiverSocketId(memberId.toString());
+                                if (socketId) {
+                                    io.to(socketId).emit("squad-live-notification", {
+                                        squadId: groupId.toString(),
+                                        squadName: group.name,
+                                        message: `Live class started in ${group.name}!`
+                                    });
+                                }
+                            }
+                        });
+                    }
                 } catch (socketErr) {
                     console.error(`[GroupService] Socket broadcast failed:`, socketErr);
                 }
