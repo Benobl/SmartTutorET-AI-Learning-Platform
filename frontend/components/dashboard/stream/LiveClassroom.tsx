@@ -376,33 +376,6 @@ const LiveSessionContent = ({
                 </DialogContent>
             </Dialog>
             <PermissionRecoveryModal open={isPermissionOpen} onOpenChange={setIsPermissionOpen} />
-        </StreamTheme>
-    )
-}
-
-
-            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                <DialogContent className="max-w-md bg-slate-900 border-white/10 text-white rounded-[2rem] p-8">
-                    <DialogHeader><DialogTitle className="text-xl font-black">Invite Partners</DialogTitle></DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <Input placeholder="Search partners..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-white/5 border-white/10 h-12 rounded-xl" />
-                        <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-premium">
-                            {students.filter(s => 
-                                (s._id || s.id) !== (currentUser?._id || currentUser?.id) && 
-                                !invitedIds.has(s._id || s.id) &&
-                                (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
-                            ).map(student => (
-                                <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                                    <span className="text-sm font-bold">{student.fullName}</span>
-                                    <Button size="sm" onClick={() => sendInvite(student)} className="bg-sky-600 hover:bg-sky-700 rounded-xl px-4">Invite</Button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-            <PermissionRecoveryModal open={isPermissionOpen} onOpenChange={setIsPermissionOpen} />
-        </StreamTheme>
     )
 }
 
