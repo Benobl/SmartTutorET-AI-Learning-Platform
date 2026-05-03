@@ -126,6 +126,11 @@ export class GroupService {
                 );
             }
 
+            // Persist the live state on the Group model so late-joiners can find the session
+            group.isLive = isLive;
+            group.sessionData = isLive ? sessionData : null;
+            await group.save();
+
             // Defensive Broadcast to squad room
             if (typeof io !== 'undefined' && io) {
                 try {

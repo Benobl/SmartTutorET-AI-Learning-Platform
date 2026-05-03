@@ -10,7 +10,23 @@ const groupSchema = new mongoose.Schema(
         subject: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Subject",
-            required: true,
+            required: false,
+        },
+        topic: {
+            type: String,
+            default: "General",
+        },
+        avatar: {
+            type: String,
+            default: "🧬",
+        },
+        isLive: {
+            type: Boolean,
+            default: false,
+        },
+        sessionData: {
+            type: mongoose.Schema.Types.Mixed,
+            default: null,
         },
         members: [
             {
