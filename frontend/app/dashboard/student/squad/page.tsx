@@ -645,35 +645,54 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                             <span className="hidden sm:inline">Retry Stream</span>
                         </Button>
                     ) : (
-                        <Button
-                            size="sm"
-                            onClick={onStartLive}
-                            disabled={!isStreamReady}
-                            className={cn(
-                                "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
-                                isStreamReady
-                                    ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
-                                    : "bg-slate-300 cursor-wait"
-                            )}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                            <div className="relative flex items-center gap-2">
-                                {isStreamReady ? (
-                                    <>
-                                        <div className={cn("w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]", squad.isLive ? "bg-emerald-400 animate-ping" : "animate-pulse")} />
-                                        <Video className="w-4 h-4" />
-                                        <span className="hidden sm:inline">
-                                            {squad.isLive ? "Join Live Class" : "Initialize Live"}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span className="hidden sm:inline">Connecting...</span>
-                                    </>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                onClick={onStartLive}
+                                disabled={!isStreamReady}
+                                className={cn(
+                                    "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
+                                    isStreamReady
+                                        ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
+                                        : "bg-slate-300 cursor-wait"
                                 )}
-                            </div>
-                        </Button>
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                                <div className="relative flex items-center gap-2">
+                                    {isStreamReady ? (
+                                        <>
+                                            <div className={cn("w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]", squad.isLive ? "bg-emerald-400 animate-ping" : "animate-pulse")} />
+                                            <Video className="w-4 h-4" />
+                                            <span className="hidden sm:inline">
+                                                {squad.isLive ? "Join Live Class" : "Initialize Live"}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span className="hidden sm:inline">Connecting...</span>
+                                        </>
+                                    )}
+                                </div>
+                            </Button>
+
+                            {squad.isLive && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (confirm("Force end this session? This will clear the live status for everyone.")) {
+                                            await groupApi.toggleLive(squad._id, { isLive: false, sessionData: null });
+                                            window.location.reload();
+                                        }
+                                    }}
+                                    className="h-10 px-4 rounded-2xl text-rose-500 hover:bg-rose-50 font-black text-[10px] uppercase tracking-widest"
+                                >
+                                    Force End
+                                </Button>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
