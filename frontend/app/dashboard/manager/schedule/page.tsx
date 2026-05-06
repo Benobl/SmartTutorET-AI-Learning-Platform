@@ -129,8 +129,8 @@ export default function ScheduleMaster() {
             setLoading(true)
             const result = await generateGradeSchedule(selectedGrade, "Common", courses)
             if (result && result.length > 0) {
-                // Assign first available tutor as default for AI slots
-                const defaultTutorId = tutors[0]?._id || tutors[0]?.id;
+                let skippedSlots = 0;
+                const newlyAssigned: any[] = [];
                 
                 for (const item of result) {
                     const subject = courses.find((c: any) => {
@@ -140,21 +140,61 @@ export default function ScheduleMaster() {
                     });
                     
                     if (subject) {
+                        // 1. Find all busy tutors for this specific time slot
+                        const busyTutorIds = new Set();
+                        
+                        // Check global schedule
+                        scheduleData.forEach(s => {
+                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime) {
+                                busyTutorIds.add(s.tutor?._id || s.tutor?.id);
+                            }
+                        });
+                        
+                        // Check newly assigned this batch
+                        newlyAssigned.forEach(s => {
+                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime) {
+                                busyTutorIds.add(s.tutorId);
+                            }
+                        });
+
+                        // 2. Filter available tutors
+                        const availableTutors = tutors.filter(t => !busyTutorIds.has(t._id || t.id));
+                        
+                        if (availableTutors.length === 0) {
+                            skippedSlots++;
+                            continue; // No tutor available for this slot, skip it to prevent overlap
+                        }
+
+                        // 3. Try to find a subject-expert tutor, otherwise fallback to any available
+                        let selectedTutor = availableTutors.find(t => 
+                            t.subjects && t.subjects.some((s: string) => s.toLowerCase() === (subject.title || subject.name || "").toLowerCase())
+                        );
+                        if (!selectedTutor) selectedTutor = availableTutors[0]; // fallback
+
+                        const tutorId = selectedTutor._id || selectedTutor.id;
+
                         await addScheduleEntry({
                             grade: selectedGrade,
                             stream: "Common",
                             semester: selectedSemester,
                             section: selectedSection,
                             subject: subject._id || subject.id,
-                            tutor: defaultTutorId,
+                            tutor: tutorId,
                             dayOfWeek: item.dayOfWeek,
                             startTime: item.startTime,
                             endTime: item.endTime,
                             type: "regular"
                         });
+                        
+                        newlyAssigned.push({ dayOfWeek: item.dayOfWeek, startTime: item.startTime, tutorId });
                     }
                 }
-                toast.success(`Gemini created a ${result.length}-slot weekly timetable for Grade ${selectedGrade}!`)
+                
+                if (skippedSlots > 0) {
+                    toast.warning(`Gemini created ${result.length - skippedSlots} slots. ${skippedSlots} slots skipped due to teacher overlaps!`)
+                } else {
+                    toast.success(`Gemini successfully created all ${result.length} weekly slots without overlaps!`)
+                }
                 await refreshData()
             }
         } catch (error) {
@@ -387,6 +427,10 @@ export default function ScheduleMaster() {
                                                             </button>
                                                         </div>
                                                         <p className="text-sm font-black text-slate-800 tracking-tight leading-tight line-clamp-2 relative z-10 uppercase">{subject?.title || subject?.name || 'Academic Slot'}</p>
+                                                        <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white/40 w-fit px-2 py-1 rounded-lg mt-1 relative z-10">
+                                                            <Clock className="w-3 h-3 text-blue-500" />
+                                                            {schedule.startTime} - {schedule.endTime}
+                                                        </div>
                                                         <div className="flex flex-col gap-2 pt-1 relative z-10">
                                                             <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white/40 w-fit px-2 py-1 rounded-lg">
                                                                 <User className="w-3 h-3 text-blue-500" />
