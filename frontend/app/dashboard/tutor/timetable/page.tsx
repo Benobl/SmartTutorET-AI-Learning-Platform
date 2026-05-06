@@ -12,7 +12,7 @@ import { useStream } from "@/components/providers/StreamProvider"
 import { Call, CallingState } from "@stream-io/video-react-sdk"
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-const TIME_SLOTS = ["08:30", "10:30", "13:30", "15:30"]
+const TIME_SLOTS = ["08:30", "10:00", "11:30", "14:00"]
 
 const colorMap: Record<string, { bg: string; border: string; text: string; dot: string; glow: string }> = {
     sky: { bg: "bg-sky-50", border: "border-sky-100", text: "text-sky-600", dot: "bg-sky-500", glow: "shadow-sky-500/20" },

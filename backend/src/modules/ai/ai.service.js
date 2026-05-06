@@ -158,11 +158,13 @@ Format your response in a clear, structured way using markdown formatting when h
         Available Subjects: ${subjects.map(s => s.title).join(", ")}.
         
         CRITICAL ARCHITECTURAL RULES:
-        1. You MUST generate EXACTLY 20 slots (4 slots per day, 5 days/week).
-        2. Daily Time Slots: 08:30-10:00, 10:30-12:00, 13:30-15:00, 15:30-17:00.
-        3. SUBJECT PRIORITY: Math, English, and Physics MUST have at least 3 slots each per week. These are core subjects.
-        4. Other subjects should have 1-2 slots each to fill the remaining 11 slots.
-        5. PEDAGOGY: Place core subjects (Math, Physics, Biology, Chemistry) in the 08:30 and 10:30 morning slots when students are most alert.
+        1. You MUST generate EXACTLY 20 slots (4 slots per day, 5 days/week). This guarantees a maximum of 4 hours of learning per day to maximize student focus.
+        2. Daily Time Slots MUST strictly be: 08:30-09:30, 10:00-11:00, 11:30-12:30, 14:00-15:00. These specific times include generous structured breaks.
+        3. CURRICULUM LOGIC:
+           - If Grade 11 or 12: Heavily prioritize the ${stream} stream subjects.
+           - If Grade 9 or 10: Distribute the core 6-7 subjects evenly across the week.
+        4. SUBJECT PRIORITY: Math, English, and Physics MUST have at least 3 slots each per week.
+        5. PEDAGOGY: Place intensive core subjects (Math, Physics, Biology, Chemistry) in the 08:30 and 10:00 morning slots when students are most alert.
         6. NO GAPS: Every single day MUST have exactly 4 subjects assigned.
         
         Return ONLY a JSON array of objects with this schema:
@@ -170,7 +172,7 @@ Format your response in a clear, structured way using markdown formatting when h
           {
             "dayOfWeek": "Monday",
             "startTime": "08:30",
-            "endTime": "10:00",
+            "endTime": "09:30",
             "subjectTitle": "..."
           }
         ]`;

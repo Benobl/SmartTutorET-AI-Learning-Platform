@@ -38,7 +38,7 @@ import { getCurrentUser } from "@/lib/auth-utils"
 
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-const TIME_SLOTS = ["08:30", "10:30", "13:30", "15:30"]
+const TIME_SLOTS = ["08:30", "10:00", "11:30", "14:00"]
 
 const getCurrentDay = () => {
     const dayIndex = new Date().getDay()

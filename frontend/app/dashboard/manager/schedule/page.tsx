@@ -40,7 +40,7 @@ import { toast } from "sonner"
 
 export default function ScheduleMaster() {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-    const timeSlots = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30"]
+    const timeSlots = ["08:30", "10:00", "11:30", "14:00"]
 
     const [scheduleData, setScheduleData] = useState<any[]>([])
     const [courses, setCourses] = useState<any[]>([])
@@ -57,7 +57,7 @@ export default function ScheduleMaster() {
         courseId: "",
         tutorId: "",
         day: "Monday",
-        startTime: "08:00",
+        startTime: "08:30",
         endTime: "09:30",
         room: "Online Hub A",
         type: "regular" as "regular" | "midterm" | "final",
@@ -166,12 +166,19 @@ export default function ScheduleMaster() {
     }
 
     const handleDelete = async (id: string) => {
-        const success = await deleteScheduleEntry(id)
-        if (success) {
-            refreshData()
-            toast.error("Slot released.")
-        } else {
-            toast.error("Failed to remove slot.")
+        try {
+            setLoading(true)
+            const result = await deleteScheduleEntry(id)
+            if (result) {
+                toast.success("Schedule slot removed.")
+            } else {
+                toast.error("Failed to delete slot or slot already deleted.")
+            }
+        } catch (error) {
+            toast.error("Failed to delete slot.")
+        } finally {
+            await refreshData()
+            setLoading(false)
         }
     }
 
