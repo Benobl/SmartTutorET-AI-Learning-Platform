@@ -146,37 +146,76 @@ Format your response in a clear, structured way using markdown formatting when h
     }
 
     static async generateWeeklySchedule(grade, stream, subjects) {
-        const modelName = "models/gemini-2.0-flash"; // More stable for JSON
-        try {
-            const model = getGenAI().getGenerativeModel({ 
-                model: modelName, 
-                generationConfig: { response_mime_type: "application/json" } 
-            });
-            
-            const prompt = `Act as an Ethiopian High School Registrar. Create a standard weekly school timetable (Monday to Friday) for Grade ${grade} ${stream}.
-            
-            Use the following subjects available in our curriculum: ${subjects.map(s => s.title).join(", ")}.
-            
-            Rules:
-            1. Create 4 slots per day (slots: 08:30-10:00, 10:30-12:00, 13:30-15:00, 15:30-17:00).
-            2. Distribute the provided subjects evenly throughout the week.
-            3. Each subject should appear at least once or twice depending on total count.
-            
-            Return ONLY a JSON array of objects with this schema:
-            [
-              {
-                "dayOfWeek": "Monday",
-                "startTime": "08:30",
-                "endTime": "10:00",
-                "subjectTitle": "..."
-              }
-            ]`;
+        const modelsToTry = [
+            "models/gemini-2.5-flash",
+            "models/gemini-2.0-flash",
+            "models/gemini-1.5-flash",
+            "models/gemini-2.5-pro"
+        ];
+        
+        const prompt = `Act as an Ethiopian High School Registrar. Create a standard weekly school timetable (Monday to Friday) for Grade ${grade} ${stream}.
+        
+        Use the following subjects available in our curriculum: ${subjects.map(s => s.title).join(", ")}.
+        
+        Rules:
+        1. Create 4 slots per day (slots: 08:30-10:00, 10:30-12:00, 13:30-15:00, 15:30-17:00).
+        2. Distribute the provided subjects evenly throughout the week.
+        3. Each subject should appear at least once or twice depending on total count.
+        
+        Return ONLY a JSON array of objects with this schema:
+        [
+          {
+            "dayOfWeek": "Monday",
+            "startTime": "08:30",
+            "endTime": "10:00",
+            "subjectTitle": "..."
+          }
+        ]`;
 
-            const result = await model.generateContent(prompt);
-            return JSON.parse(result.response.text());
-        } catch (error) {
-            console.error("Schedule generation failed:", error);
-            throw error;
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`📡 Attempting schedule generation with model: ${modelName}...`);
+                const model = getGenAI().getGenerativeModel({ 
+                    model: modelName, 
+                    generationConfig: { response_mime_type: "application/json" } 
+                });
+                
+                const result = await model.generateContent(prompt);
+                console.log(`✅ Successfully generated schedule using ${modelName}`);
+                return JSON.parse(result.response.text());
+            } catch (error) {
+                console.warn(`⚠️ Model ${modelName} failed for schedule generation:`, error.message);
+            }
         }
+        
+        console.warn("🚀 All AI models failed due to quota/rate limits. Using static fallback schedule algorithm...");
+        
+        // Static fallback if all AI models fail
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+        const timeSlots = [
+            { startTime: "08:30", endTime: "10:00" },
+            { startTime: "10:30", endTime: "12:00" },
+            { startTime: "13:30", endTime: "15:00" },
+            { startTime: "15:30", endTime: "17:00" }
+        ];
+        
+        const fallbackSchedule = [];
+        let subjectIndex = 0;
+        
+        if (subjects && subjects.length > 0) {
+            for (const day of days) {
+                for (const slot of timeSlots) {
+                    fallbackSchedule.push({
+                        dayOfWeek: day,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        subjectTitle: subjects[subjectIndex % subjects.length].title
+                    });
+                    subjectIndex++;
+                }
+            }
+        }
+        
+        return fallbackSchedule;
     }
 }
