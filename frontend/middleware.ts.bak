@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Define protected routes
@@ -22,18 +22,22 @@ export function proxy(request: NextRequest) {
             const segments = pathname.split('/');
             const dashboardType = segments[2]; // 'student' | 'admin' | 'tutor' | 'manager'
 
+            /*
             if (dashboardType && dashboardType !== userRole) {
                 console.log(`[Middleware] Role mismatch: ${pathname}. Role: ${userRole}. Redirecting to /dashboard/${userRole}`);
                 return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
             }
+            */
         }
     }
 
-    // Also redirect from login/signup if already authenticated
+    /* 
+    // Commented out to prevent blinking redirect loops between Middleware and AuthGuard
     if ((pathname === '/login' || pathname === '/signup') && jwt && userRole) {
         console.log(`[Middleware] Authenticated user on ${pathname}. Redirecting to /dashboard/${userRole}`);
         return NextResponse.redirect(new URL(`/dashboard/${userRole}`, request.url));
     }
+    */
 
     return NextResponse.next();
 }

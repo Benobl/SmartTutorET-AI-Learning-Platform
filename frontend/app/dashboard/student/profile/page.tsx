@@ -23,10 +23,10 @@ export default function StudentProfile() {
         setUser(getCurrentUser())
     }, [])
 
-    const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "U"
-    const fullName = user ? `${user.firstName} ${user.lastName}` : "Authenticated User"
-    const firstName = user ? user.firstName : ""
-    const lastName = user ? user.lastName : ""
+    const initials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : "U"
+    const fullName = user?.name || "Authenticated User"
+    const firstName = user?.name?.split(' ')[0] || ""
+    const lastName = user?.name?.split(' ').slice(1).join(' ') || ""
     const email = user ? user.email : "user@example.com"
     const grade = user ? user.grade : "12"
 

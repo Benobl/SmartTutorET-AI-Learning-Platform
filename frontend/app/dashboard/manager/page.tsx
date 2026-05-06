@@ -33,6 +33,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { getCurrentUser } from "@/lib/auth-utils"
+import { adminApi } from "@/lib/api"
 import {
     getStudents,
     getPendingTutors,
@@ -44,7 +45,8 @@ import {
     exportReport,
     getFullExportData,
     getNotifications,
-    markNotificationAsRead
+    markNotificationAsRead,
+    getPendingSubjects
 } from "@/lib/manager-utils"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -68,25 +70,29 @@ export default function ManagerDashboard() {
     const [vettingModalOpen, setVettingModalOpen] = useState(false)
     const [docType, setDocType] = useState<'degree' | 'cv' | null>(null)
 
-    const refreshData = () => {
+    const refreshData = async () => {
         const currentUser = getCurrentUser()
         setUser(currentUser)
 
-        const students = getStudents()
-        const pending = getPendingTutors()
-        const courses = getCourses()
-        const jobs = getJobs()
-        const sysStats = getSystemStats()
+        const students = await getStudents()
+        const pending = await getPendingTutors()
+        const statsRes = await adminApi.getStats()
+        const statsData = statsRes.data || { totalStudents: 0, totalTutors: 0, pendingTutors: 0, totalJobs: 0 }
+        
+        const courses = await getCourses()
+        const jobs = await getJobs()
+        const pendingSubjects = await getPendingSubjects()
 
         setPendingTutors(pending)
-        setNotifications(getNotifications())
+        const notifs = await getNotifications()
+        setNotifications(notifs)
         setStats([
-            { label: "Pending Vetting", value: pending.length.toString(), icon: ShieldCheck, color: "text-blue-500", bgColor: "bg-blue-50/50" },
+            { label: "Pending Vetting", value: statsData.pendingTutors.toString(), icon: ShieldCheck, color: "text-blue-500", bgColor: "bg-blue-50/50" },
+            { label: "New Subjects", value: pendingSubjects.length.toString(), icon: GraduationCap, color: "text-emerald-500", bgColor: "bg-emerald-50/50" },
             { label: "Active Courses", value: courses.length.toString(), icon: BookOpen, color: "text-sky-500", bgColor: "bg-sky-50/50" },
-            { label: "Total Students", value: students.length.toString(), icon: TrendingUp, color: "text-indigo-500", bgColor: "bg-indigo-50/50" },
-            { label: "Open Vacancies", value: jobs.length.toString(), icon: Briefcase, color: "text-violet-500", bgColor: "bg-violet-50/50" },
+            { label: "Total Students", value: statsData.totalStudents.toString(), icon: TrendingUp, color: "text-indigo-500", bgColor: "bg-indigo-50/50" },
         ])
-        setSystem(sysStats)
+        setSystem({ health: "99.9%" })
     }
 
     useEffect(() => {
@@ -103,26 +109,41 @@ export default function ManagerDashboard() {
         setIsProcessing(true)
         try {
             if (action === 'approve') {
-                approveTutor(id)
-                toast.success("Strategic Faculty activated.")
-                toast.info(`Backend simulated: Activation email dispatched to faculty member.`, {
-                    description: "The tutor can now secure access to their educator terminal.",
-                    duration: 5000
-                })
+                const success = await approveTutor(id)
+                if (success) {
+                    toast.success("Strategic Faculty activated.")
+                    toast.info(`Success: Activation email dispatched to faculty member.`, {
+                        description: "The tutor can now secure access to their educator terminal.",
+                        duration: 5000
+                    })
+                } else {
+                    toast.error("Failed to approve tutor.")
+                }
             } else {
-                rejectTutor(id)
-                toast.error("Application archived as rejected.")
+                const reason = window.prompt("Please enter the reason for rejection (this will be sent to the tutor):");
+                if (reason === null) {
+                    setIsProcessing(false);
+                    return;
+                }
+                const success = await rejectTutor(id, reason)
+                if (success) {
+                    toast.error("Application archived as rejected.")
+                } else {
+                    toast.error("Failed to reject application.")
+                }
             }
             setVettingModalOpen(false)
-            refreshData()
+            await refreshData()
+        } catch (error: any) {
+            toast.error(error.message || "An error occurred.")
         } finally {
             setIsProcessing(false)
         }
     }
 
-    const handleMarkAsRead = (id: string) => {
-        markNotificationAsRead(id)
-        refreshData()
+    const handleMarkAsRead = async (id: string) => {
+        await markNotificationAsRead(id)
+        await refreshData()
     }
 
     const handleExport = () => {
@@ -131,7 +152,7 @@ export default function ManagerDashboard() {
         toast.success("Report exported successfully.")
     }
 
-    const managerName = user ? user.firstName : "Manager"
+    const managerName = user ? (user.name?.split(' ')[0] || user.name) : "Manager"
 
     return (
         <div className="relative space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 overflow-x-hidden">
@@ -254,14 +275,14 @@ export default function ManagerDashboard() {
                                 <div key={idx} className="p-6 rounded-[32px] bg-white border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:translate-x-2 transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/50">
                                     <div className="flex items-center gap-5">
                                         <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 flex items-center justify-center text-2xl font-black text-blue-600 uppercase shadow-inner">
-                                            {tutor.firstName[0]}
+                                            {tutor.name?.[0] || 'T'}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-3">
                                                 <p className="font-black text-slate-700 text-lg">{tutor.name}</p>
                                                 <Badge className="bg-blue-500/10 text-blue-500 border-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5">Verification Pending</Badge>
                                             </div>
-                                            <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wide mt-1">{tutor.subject} • {tutor.degree}</p>
+                                            <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wide mt-1">{(tutor.subjects || []).join(', ') || 'No subjects'} • {tutor.documents?.degree || 'No degree'}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -338,6 +359,9 @@ export default function ManagerDashboard() {
             {/* Vetting / Application Modal */}
             <Dialog open={vettingModalOpen} onOpenChange={setVettingModalOpen}>
                 <DialogContent className="sm:max-w-[700px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Tutor Application Vetting</DialogTitle>
+                    </DialogHeader>
                     {selectedTutor && (
                         <div className="animate-in fade-in zoom-in-95 duration-500">
                             <div className="p-10 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row items-center gap-8 relative">
@@ -347,14 +371,16 @@ export default function ManagerDashboard() {
                                     </Badge>
                                 </div>
                                 <div className="w-24 h-24 rounded-3xl bg-blue-600 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-blue-500/30">
-                                    {selectedTutor.firstName[0]}
+                                    {selectedTutor.name?.[0] || 'T'}
                                 </div>
                                 <div className="text-center md:text-left">
                                     <h2 className="text-3xl font-black text-slate-800 leading-none mb-2">{selectedTutor.name}</h2>
                                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                        <span className="text-blue-500 font-black text-xs tracking-widest uppercase">{selectedTutor.subject} Specialist</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                        <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{selectedTutor.experience} Years Exp</span>
+                                        <span className="text-blue-500 font-black text-xs tracking-widest uppercase">{(selectedTutor.subjects || []).join(', ') || 'No subjects'}</span>
+                                        {selectedTutor.documents?.degree && (
+                                            <><span className="w-1 h-1 rounded-full bg-slate-300" />
+                                            <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{selectedTutor.documents.degree}</span></>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -368,36 +394,62 @@ export default function ManagerDashboard() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <button
                                             onClick={() => {
-                                                setDocType(docType === 'degree' ? null : 'degree')
-                                                window.open(`https://docs.google.com/viewer?url=https://example.com/${selectedTutor.degree || 'degree'}.pdf`, '_blank')
+                                                const path = selectedTutor.documents?.degree;
+                                                if (!path) return;
+                                                const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+                                                
+                                                if (path.includes('/') || path.includes('.')) {
+                                                    const url = path.startsWith('http') ? path : `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+                                                    console.log("Opening degree:", url);
+                                                    window.open(url, '_blank');
+                                                } else {
+                                                    toast.info(`Qualification: ${path}`, {
+                                                        description: "Text-based entry provided during registration.",
+                                                        duration: 5000
+                                                    });
+                                                }
+                                                setDocType('degree');
                                             }}
                                             className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'degree' ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                                         >
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'degree' ? 'bg-blue-500 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500'}`}>
                                                 <GraduationCap className="w-5 h-5" />
                                             </div>
-                                            <div className="text-left">
+                                            <div className="text-left flex-1 min-w-0">
                                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Credentials</p>
-                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'degree' ? 'text-blue-600' : 'text-slate-600'}`}>{selectedTutor.degree || 'academic_proof.pdf'}</p>
+                                                <p className={`text-xs font-bold truncate ${docType === 'degree' ? 'text-blue-600' : 'text-slate-600'}`}>{selectedTutor.documents?.degree ? (selectedTutor.documents.degree.includes('/') ? selectedTutor.documents.degree.split('/').pop() : selectedTutor.documents.degree) : 'No degree uploaded'}</p>
                                             </div>
-                                            <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${docType === 'degree' ? 'opacity-100 text-blue-500' : 'opacity-20'}`} />
+                                            <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${selectedTutor.documents?.degree ? 'opacity-100 text-blue-500' : 'opacity-20'}`} />
                                         </button>
 
                                         <button
                                             onClick={() => {
-                                                setDocType(docType === 'cv' ? null : 'cv')
-                                                window.open(`https://docs.google.com/viewer?url=https://example.com/cv_${selectedTutor.firstName}.pdf`, '_blank')
+                                                const path = selectedTutor.documents?.cv;
+                                                if (!path) return;
+                                                const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+                                                
+                                                if (path.includes('/') || path.includes('.')) {
+                                                    const url = path.startsWith('http') ? path : `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+                                                    console.log("Opening CV:", url);
+                                                    window.open(url, '_blank');
+                                                } else {
+                                                    toast.info(`Resume Detail: ${path}`, {
+                                                        description: "Text-based entry provided during registration.",
+                                                        duration: 5000
+                                                    });
+                                                }
+                                                setDocType('cv');
                                             }}
                                             className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 group ${docType === 'cv' ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                                         >
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${docType === 'cv' ? 'bg-indigo-500 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
                                                 <FileText className="w-5 h-5" />
                                             </div>
-                                            <div className="text-left">
+                                            <div className="text-left flex-1 min-w-0">
                                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Professional CV</p>
-                                                <p className={`text-xs font-bold truncate max-w-[120px] ${docType === 'cv' ? 'text-indigo-600' : 'text-slate-600'}`}>Experience_Log.pdf</p>
+                                                <p className={`text-xs font-bold truncate ${docType === 'cv' ? 'text-indigo-600' : 'text-slate-600'}`}>{selectedTutor.documents?.cv ? (selectedTutor.documents.cv.includes('/') ? selectedTutor.documents.cv.split('/').pop() : selectedTutor.documents.cv) : 'No CV uploaded'}</p>
                                             </div>
-                                            <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${docType === 'cv' ? 'opacity-100 text-indigo-500' : 'opacity-20'}`} />
+                                            <ExternalLink className={`w-3.5 h-3.5 ml-auto transition-opacity ${selectedTutor.documents?.cv ? 'opacity-100 text-indigo-500' : 'opacity-20'}`} />
                                         </button>
                                     </div>
                                 </div>
@@ -427,14 +479,14 @@ export default function ManagerDashboard() {
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 px-1">Biography / Career Summary</h3>
                                     <p className="text-slate-600 text-[14px] leading-relaxed bg-slate-50/50 p-6 rounded-[28px] border border-slate-100 italic relative">
                                         <span className="absolute top-3 left-4 text-3xl text-slate-100 font-serif leading-none">“</span>
-                                        {selectedTutor.cvSummary || 'The educator has not provided a professional biography.'}
+                                        {selectedTutor.skills || 'The educator has not provided a professional biography.'}
                                         <span className="absolute bottom-3 right-4 text-3xl text-slate-100 font-serif leading-none">”</span>
                                     </p>
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
                                     <Button
-                                        onClick={() => handleAction(selectedTutor.id, 'reject')}
+                                        onClick={() => handleAction(selectedTutor._id || selectedTutor.id, 'reject')}
                                         disabled={isProcessing}
                                         className="w-full sm:flex-1 bg-white border-2 border-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-100 rounded-2xl h-16 font-black uppercase tracking-[0.2em] text-[11px] transition-all shadow-sm group"
                                     >
@@ -442,7 +494,7 @@ export default function ManagerDashboard() {
                                         Reject Application
                                     </Button>
                                     <Button
-                                        onClick={() => handleAction(selectedTutor.id, 'approve')}
+                                        onClick={() => handleAction(selectedTutor._id || selectedTutor.id, 'approve')}
                                         disabled={isProcessing}
                                         className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-16 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-blue-500/30 transition-all active:scale-95 group"
                                     >

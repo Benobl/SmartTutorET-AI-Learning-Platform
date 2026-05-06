@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "tutor", "admin", "manager"],
       default: "student",
     },
+    isApproved: {
+      type: Boolean,
+      default: true,
+    },
     profile: {
       bio: { type: String, default: "" },
       expertise: { type: [String], default: [] },
@@ -41,6 +45,10 @@ const userSchema = new mongoose.Schema(
     grade: {
       type: String,
       enum: ["9", "10", "11", "12"],
+    },
+    stream: {
+      type: String,
+      enum: ["Natural Science", "Social Science"],
     },
     // Additional fields for tutor onboarding/application
     phone: String,

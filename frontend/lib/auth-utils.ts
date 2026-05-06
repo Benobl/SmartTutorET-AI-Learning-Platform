@@ -1,4 +1,4 @@
-import { authApi } from './api';
+import { authApi, uploadApi } from './api';
 
 export type UserRole = 'student' | 'tutor' | 'admin' | 'manager';
 
@@ -65,7 +65,9 @@ export const clearAuthCookies = () => {
  */
 export const loginUser = async (email: string, password: string): Promise<User | { error: string }> => {
     try {
+        console.log("[AuthUtils] Attempting login for:", email);
         const response = await authApi.login({ email, password });
+        console.log("[AuthUtils] API Response:", response);
         if (response.success && response.data) {
             const user = response.data;
 
@@ -96,8 +98,10 @@ export const loginUser = async (email: string, password: string): Promise<User |
             }
             return user;
         }
+        console.log("[AuthUtils] Login failed with response:", response);
         return { error: response.message || "Invalid email or password" };
     } catch (error: any) {
+        console.error("[AuthUtils] Login exception:", error);
         return { error: error.message || "An error occurred during login." };
     }
 };
@@ -109,11 +113,59 @@ export const loginUser = async (email: string, password: string): Promise<User |
 export const registerUser = async (userData: any): Promise<User | { error: string }> => {
     try {
         // Backend expects `name` but signup form sends `firstName` + `lastName`
-        const payload = {
+        const fullName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName || userData.name;
+
+        // Map form fields to backend User model schema
+        const payload: any = {
             ...userData,
-            name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName || userData.name,
-            fullName: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.fullName,
+            name: fullName,
+            fullName,
         };
+
+        // Tutors: upload files and map form fields to DB schema fields
+        if (userData.role === 'tutor') {
+            const documents: Record<string, string> = {};
+
+            // Upload degree certificate if provided
+            if (userData.degreeFile instanceof File) {
+                try {
+                    const uploaded = await uploadApi.uploadDocument(userData.degreeFile, 'degree');
+                    documents.degree = uploaded.url;
+                } catch (uploadErr: any) {
+                    return { error: `Degree upload failed: ${uploadErr.message}` };
+                }
+            } else if (userData.degree) {
+                // Plain text degree (no file)
+                documents.degree = userData.degree;
+            }
+
+            // Upload CV if provided
+            if (userData.cvFile instanceof File) {
+                try {
+                    const uploaded = await uploadApi.uploadDocument(userData.cvFile, 'cv');
+                    documents.cv = uploaded.url;
+                } catch (uploadErr: any) {
+                    return { error: `CV upload failed: ${uploadErr.message}` };
+                }
+            }
+
+            payload.documents = documents;
+
+            // subjects is an array, form sends single 'subject'
+            if (userData.subject) {
+                payload.subjects = [userData.subject];
+                delete payload.subject;
+            }
+            // experience -> skills text
+            if (userData.experience !== undefined) {
+                payload.skills = `${userData.experience} years of teaching experience`;
+                delete payload.experience;
+            }
+            // Remove raw file fields from JSON payload
+            delete payload.degree;
+            delete payload.degreeFile;
+            delete payload.cvFile;
+        }
 
         const response = await authApi.signup(payload);
         if (response.success && response.data) {

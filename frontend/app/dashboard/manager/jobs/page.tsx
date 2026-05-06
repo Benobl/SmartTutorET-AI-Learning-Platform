@@ -53,8 +53,9 @@ export default function JobManagement() {
         type: "Full-time"
     })
 
-    const refreshJobs = () => {
-        setJobs(getJobs())
+    const refreshJobs = async () => {
+        const data = await getJobs()
+        setJobs(data)
     }
 
     useEffect(() => {
@@ -68,32 +69,41 @@ export default function JobManagement() {
         }
         setIsPosting(true)
         try {
-            postJob(newJob)
-            setIsCreateModalOpen(false)
-            setNewJob({
-                title: "",
-                subject: "",
-                grade: "",
-                salaryRange: "",
-                description: "",
-                location: "Addis Ababa (On-site)",
-                type: "Full-time"
-            })
-            refreshJobs()
-            toast.success("Job vacancy posted successfully!")
+            const success = await postJob(newJob)
+            if (success) {
+                setIsCreateModalOpen(false)
+                setNewJob({
+                    title: "",
+                    subject: "",
+                    grade: "",
+                    salaryRange: "",
+                    description: "",
+                    location: "Addis Ababa (On-site)",
+                    type: "Full-time"
+                })
+                await refreshJobs()
+                toast.success("Job vacancy posted successfully!")
+            } else {
+                toast.error("Failed to post job vacancy.")
+            }
         } finally {
             setIsPosting(false)
         }
     }
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         setIsDeleting(id)
-        setTimeout(() => {
-            deleteJob(id)
-            refreshJobs()
+        try {
+            const success = await deleteJob(id)
+            if (success) {
+                await refreshJobs()
+                toast.error("Job listing deleted.")
+            } else {
+                toast.error("Failed to delete job listing.")
+            }
+        } finally {
             setIsDeleting(null)
-            toast.error("Job listing deleted.")
-        }, 800)
+        }
     }
 
     const openDetails = (job: any) => {

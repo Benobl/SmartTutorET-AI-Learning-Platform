@@ -7,6 +7,23 @@ const subjectSchema = new mongoose.Schema({
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     price: { type: Number, default: 0 },
     category: { type: String },
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    grade: { type: Number, enum: [9, 10, 11, 12], default: 9 },
+    isPremium: { type: Boolean, default: false },
+    stream: { type: String, enum: ["Natural Science", "Social Science", "Common"], default: "Common" },
+    semester: { type: String, enum: ["1", "2", "Full Year"], default: "Full Year" },
+    roadmap: {
+        semester1: {
+            chapters: [String],
+            midTermDate: { type: String },
+            finalDate: { type: String }
+        },
+        semester2: {
+            chapters: [String],
+            midTermDate: { type: String },
+            finalDate: { type: String }
+        }
+    }
 }, { timestamps: true, collection: "subjects" });
 
 const Subject = mongoose.model("Subject", subjectSchema);

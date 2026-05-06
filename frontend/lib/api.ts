@@ -118,6 +118,17 @@ export const courseApi = {
         method: "POST",
         body: JSON.stringify(data)
     }),
+    create: (data: any) => fetchWithAuth("/courses", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    update: (id: string, data: any) => fetchWithAuth(`/courses/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data)
+    }),
+    delete: (id: string) => fetchWithAuth(`/courses/${id}`, {
+        method: "DELETE"
+    }),
 };
 
 export const groupApi = {
@@ -177,6 +188,29 @@ export const questionApi = {
     }),
 };
 
+export const aiApi = {
+    getTutorResponse: (data: any) => fetchWithAuth("/ai/tutor-response", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getCourseOutline: (subject: string, grade: number) => fetchWithAuth("/ai/course-outline", {
+        method: "POST",
+        body: JSON.stringify({ subject, grade })
+    }),
+    getResourceSuggestions: (subject: string, grade: number) => fetchWithAuth("/ai/resource-suggestions", {
+        method: "POST",
+        body: JSON.stringify({ subject, grade })
+    }),
+    generateGradeCurriculum: (grade: string, stream: string) => fetchWithAuth("/ai/generate-grade-curriculum", {
+        method: "POST",
+        body: JSON.stringify({ grade, stream })
+    }),
+    generateGradeSchedule: (grade: string, stream: string, subjects: any[]) => fetchWithAuth("/ai/generate-grade-schedule", {
+        method: "POST",
+        body: JSON.stringify({ grade, stream, subjects })
+    }),
+};
+
 export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
     getAllTutors: () => fetchWithAuth("/users/tutors"),
@@ -217,3 +251,79 @@ export const chatApi = {
         body: JSON.stringify({ messageIds })
     }),
 };
+
+export const schedulingApi = {
+    getAll: () => fetchWithAuth("/scheduling"),
+    getByGrade: (grade: string) => fetchWithAuth(`/scheduling/grade/${grade}`),
+    create: (data: any) => fetchWithAuth("/scheduling", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    delete: (id: string) => fetchWithAuth(`/scheduling/${id}`, { method: "DELETE" }),
+};
+
+export const adminApi = {
+    getPendingTutors: () => fetchWithAuth("/admin/pending-tutors"),
+    approveTutor: (userId: string) => fetchWithAuth(`/admin/approve-tutor/${userId}`, {
+        method: "PATCH"
+    }),
+    rejectTutor: (userId: string, reason?: string) => fetchWithAuth(`/admin/reject-tutor/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ reason })
+    }),
+    getStats: () => fetchWithAuth("/admin/stats"),
+    getJobs: () => fetchWithAuth("/admin/jobs"),
+    createJob: (data: any) => fetchWithAuth("/admin/jobs", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    deleteJob: (id: string) => fetchWithAuth(`/admin/jobs/${id}`, { method: "DELETE" }),
+    // --- Subject Approval ---
+    getPendingSubjects: () => fetchWithAuth("/admin/pending-subjects"),
+    approveSubject: (id: string) => fetchWithAuth(`/admin/approve-subject/${id}`, {
+        method: "PATCH"
+    }),
+    rejectSubject: (id: string) => fetchWithAuth(`/admin/reject-subject/${id}`, {
+        method: "PATCH"
+    }),
+    // --- Monitoring ---
+    getUsers: () => fetchWithAuth("/admin/users"),
+    getStudentProgress: (studentId: string) => fetchWithAuth(`/admin/student-progress/${studentId}`),
+};
+
+export const notificationApi = {
+    getMine: () => fetchWithAuth("/notifications/mine"),
+    markAsRead: (id: string) => fetchWithAuth(`/notifications/mark-read/${id}`, { method: "PATCH" }),
+    markAllAsRead: () => fetchWithAuth("/notifications/mark-all-read", { method: "PATCH" }),
+};
+
+export const uploadApi = {
+    uploadDocument: async (file: File, type: "degree" | "cv"): Promise<{ url: string; filename: string }> => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", type);
+
+        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://smarttutoret-ai-learning-platform.onrender.com/api").replace(/\/$/, "");
+
+        const response = await fetch(`${cleanBaseUrl}/upload/document`, {
+            method: "POST",
+            headers: {
+                "X-ST-CSRF": "XMLHttpRequest",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                // NOTE: Do NOT set Content-Type — browser sets multipart/form-data with boundary automatically
+            },
+            credentials: "include",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || "File upload failed");
+        }
+
+        const data = await response.json();
+        return data.data; // { url, filename, originalName, size, type }
+    },
+};
+

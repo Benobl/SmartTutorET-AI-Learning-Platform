@@ -1,6 +1,6 @@
 import express from "express";
 import { AIController } from "./ai.controller.js";
-import { protectRoute } from "../../middleware/auth.middleware.js";
+import { verifyToken } from "../../middleware/auth.middleware.js";
 import { validate } from "../../middleware/validation.middleware.js";
 import { generateResponseSchema } from "./ai.validation.js";
 import rateLimit from "express-rate-limit";
@@ -13,6 +13,10 @@ const aiLimiter = rateLimit({
     message: "Too many AI requests, please try again later"
 });
 
-router.post("/tutor", protectRoute, aiLimiter, validate(generateResponseSchema), AIController.generateResponse);
+router.post("/tutor-response", verifyToken, aiLimiter, validate(generateResponseSchema), AIController.generateResponse);
+router.post("/course-outline", verifyToken, AIController.getCourseOutline);
+router.post("/resource-suggestions", verifyToken, AIController.getSuggestions);
+router.post("/generate-grade-curriculum", verifyToken, AIController.generateGradeCurriculum);
+router.post("/generate-grade-schedule", verifyToken, AIController.generateGradeSchedule);
 
 export default router;

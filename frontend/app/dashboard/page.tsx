@@ -10,7 +10,7 @@ export default function DashboardPage() {
         setUser(getCurrentUser())
     }, [])
 
-    const userName = user ? user.firstName : "User"
+    const userName = user ? (user.name?.split(' ')[0] || user.name) : "User"
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

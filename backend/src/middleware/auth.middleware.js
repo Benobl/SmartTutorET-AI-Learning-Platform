@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../modules/users/user.model.js";
-export const protectRoute = async (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
     try {
         let token = req.cookies?.jwt;
         if (!token && req.headers.authorization) {
@@ -21,7 +21,7 @@ export const protectRoute = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        console.error("Error in protectRoute middleware:", error.name, error.message);
+        console.error("Error in verifyToken middleware:", error.name, error.message);
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({ message: "Unauthorized - Token expired" });
         }
@@ -31,3 +31,5 @@ export const protectRoute = async (req, res, next) => {
         next(error);
     }
 }
+
+export const protectRoute = verifyToken;

@@ -360,7 +360,6 @@ export const recentActivityLog = [
 export const ADMIN_TABS = [
     { id: "overview", label: "Overview", icon: "📊", url: "/dashboard/admin" },
     { id: "users", label: "All Users", icon: "👥", url: "/dashboard/admin/users" },
-    { id: "tutors", label: "Manage Tutors", icon: "🎓", url: "/dashboard/admin/tutors" },
     { id: "managers", label: "Manage Managers", icon: "💼", url: "/dashboard/admin/managers" },
     { id: "students", label: "Manage Students", icon: "🧑‍🎓", url: "/dashboard/admin/students" },
     { id: "moderation", label: "Moderation", icon: "🛡️", url: "/dashboard/admin/moderation" },

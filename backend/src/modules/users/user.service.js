@@ -68,7 +68,9 @@ export class UserService {
     }
 
     static async getTutors() {
-        return await User.find({ role: "tutor" }).select("name profile.avatar email subject degree experience");
+        return await User.find({ role: "tutor" }).select(
+            "name profile email subjects documents skills availability tutorStatus isApproved createdAt"
+        );
     }
 
     static async searchByEmail(email) {

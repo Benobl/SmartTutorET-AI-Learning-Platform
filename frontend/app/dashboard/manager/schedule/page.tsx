@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { getSchedules, getCourses, getAllTutors, addScheduleEntry, deleteScheduleEntry, exportToPDF } from "@/lib/manager-utils"
+import { getMasterSchedules, getCourses, getAllTutors, addScheduleEntry, deleteScheduleEntry, exportToPDF } from "@/lib/manager-utils"
 import { toast } from "sonner"
 
 export default function ScheduleMaster() {
@@ -50,6 +50,7 @@ export default function ScheduleMaster() {
     const [selectedSection, setSelectedSection] = useState("Section A")
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [showExamsOnly, setShowExamsOnly] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     // Form state
     const [newEntry, setNewEntry] = useState({
@@ -59,40 +60,108 @@ export default function ScheduleMaster() {
         startTime: "08:00",
         endTime: "09:30",
         room: "Online Hub A",
-        type: "regular" as "regular" | "midterm" | "final"
+        type: "regular" as "regular" | "midterm" | "final",
+        grade: "",
+        stream: "Common"
     })
 
-    const refreshData = () => {
-        setScheduleData(getSchedules())
-        setCourses(getCourses())
-        setTutors(getAllTutors().filter((t: any) => t.status === 'approved'))
+    const refreshData = async () => {
+        try {
+            setLoading(true)
+            const scheduleData = await getMasterSchedules()
+            setScheduleData(scheduleData)
+            
+            const coursesList = await getCourses()
+            setCourses(coursesList)
+            
+            const tutorsList = await getAllTutors()
+            if (Array.isArray(tutorsList)) {
+                setTutors(tutorsList)
+            }
+        } catch (error) {
+            console.error("Failed to refresh schedule data:", error)
+            toast.error("Resource synchronization failed.")
+        } finally {
+            setLoading(false)
+        }
     }
 
     useEffect(() => {
         refreshData()
     }, [])
 
-    const handleAddEntry = (e: React.FormEvent) => {
+    const handleAddEntry = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newEntry.courseId) return
+        if (!newEntry.courseId || !newEntry.tutorId) {
+            toast.error("Please fill in all required fields.")
+            return
+        }
 
-        addScheduleEntry({
+        const payload = {
             ...newEntry,
-            grade: selectedGrade,
-            semester: selectedSemester,
-            section: selectedSection
-        })
+            subject: newEntry.courseId,
+            tutor: newEntry.tutorId,
+            dayOfWeek: newEntry.day,
+            grade: newEntry.grade || selectedGrade
+        }
 
-        setIsAddModalOpen(false)
-        setNewEntry({ courseId: "", tutorId: "", day: "Monday", startTime: "08:00", endTime: "09:30", room: "Online Hub A", type: "regular" })
-        refreshData()
-        toast.success(newEntry.type === 'regular' ? "Semester slot synchronized." : "Exam slot locked.")
+        const result = await addScheduleEntry(payload)
+        
+        if (result) {
+            setIsAddModalOpen(false)
+            setNewEntry({ courseId: "", tutorId: "", day: "Monday", startTime: "08:00", endTime: "09:30", room: "Online Hub A", type: "regular", grade: "" })
+            refreshData()
+            toast.success(newEntry.type === 'regular' ? "Semester slot synchronized." : "Exam slot locked.")
+        } else {
+            toast.error("Failed to update master schedule.")
+        }
     }
 
-    const handleDelete = (id: string) => {
-        deleteScheduleEntry(id)
-        refreshData()
-        toast.error("Slot released.")
+    const handleAISyncSchedule = async () => {
+        try {
+            setLoading(true)
+            const result = await generateGradeSchedule(selectedGrade, "Common", courses)
+            if (result && result.length > 0) {
+                // Assign first available tutor as default for AI slots
+                const defaultTutorId = tutors[0]?._id || tutors[0]?.id;
+                
+                for (const item of result) {
+                    const subject = courses.find((c: any) => 
+                        (c.title || c.name || "").toLowerCase().includes(item.subjectTitle.toLowerCase())
+                    );
+                    
+                    if (subject) {
+                        await addScheduleEntry({
+                            grade: selectedGrade,
+                            stream: "Common",
+                            subject: subject._id || subject.id,
+                            tutor: defaultTutorId,
+                            dayOfWeek: item.dayOfWeek,
+                            startTime: item.startTime,
+                            endTime: item.endTime,
+                            type: "regular"
+                        });
+                    }
+                }
+                toast.success(`Gemini created a ${result.length}-slot weekly timetable for Grade ${selectedGrade}!`)
+                refreshData()
+            }
+        } catch (error) {
+            console.error("AI scheduling failed:", error)
+            toast.error("AI scheduling failed.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDelete = async (id: string) => {
+        const success = await deleteScheduleEntry(id)
+        if (success) {
+            refreshData()
+            toast.error("Slot released.")
+        } else {
+            toast.error("Failed to remove slot.")
+        }
     }
 
     const handleExportPDF = () => {
@@ -101,8 +170,8 @@ export default function ScheduleMaster() {
             .filter((s: any) => s.grade === selectedGrade && s.semester === selectedSemester && s.section === selectedSection)
             .map((s: any) => ({
                 ...s,
-                courseName: courses.find((c: any) => c.id === s.courseId)?.name || 'Unknown',
-                tutorName: tutors.find((t: any) => t.id === s.tutorId)?.name || 'Unassigned'
+                courseName: courses.find((c: any) => (c._id || c.id) === s.subject?._id)?.title || 'Unknown',
+                tutorName: tutors.find((t: any) => (t._id || t.id) === s.tutor?._id)?.name || 'Unassigned'
             }))
 
         exportToPDF(exportData, columns, `Institutional Timeline: Grade ${selectedGrade} - ${selectedSemester} (${selectedSection})`, `schedule_grade_${selectedGrade}`)
@@ -135,6 +204,14 @@ export default function ScheduleMaster() {
                     >
                         <FileDown className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
                         Export Timeline
+                    </Button>
+                    <Button
+                        onClick={handleAISyncSchedule}
+                        disabled={loading}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-[20px] gap-2 font-black px-8 h-14 text-[11px] uppercase tracking-widest shadow-2xl shadow-emerald-500/30 transition-all active:scale-95"
+                    >
+                        <Zap className={`w-5 h-5 fill-white ${loading ? 'animate-pulse' : ''}`} />
+                        {loading ? 'Generating...' : 'AI Suggest Timetable'}
                     </Button>
                     <Button
                         onClick={() => setIsAddModalOpen(true)}
@@ -250,7 +327,8 @@ export default function ScheduleMaster() {
                                             schedule = null
                                         }
 
-                                        const course = schedule ? courses.find((c: any) => c.id === schedule.courseId) : null
+                                        const subject = schedule?.subject
+                                        const tutor = schedule?.tutor
 
                                         let bgColor = "from-blue-50 to-indigo-50 border-blue-100/50"
                                         let accentColor = "bg-blue-500"
@@ -268,27 +346,27 @@ export default function ScheduleMaster() {
 
                                         return (
                                             <td key={`${day}-${time}`} className="p-4 border-b border-r border-slate-50 last:border-r-0 h-44 align-top group/cell">
-                                                {course && (
+                                                {schedule && (
                                                     <div className={`h-full w-full rounded-[30px] bg-gradient-to-br ${bgColor} border p-6 space-y-4 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-pointer group shadow-sm relative overflow-hidden animate-in zoom-in-95 duration-500`}>
                                                         {/* Slot identifier pattern */}
                                                         <div className={`absolute -bottom-4 -right-4 w-20 h-20 ${accentColor} opacity-5 rounded-full blur-xl group-hover:opacity-10 transition-all`} />
 
                                                         <div className="flex items-center justify-between relative z-10">
                                                             <div className={`px-3 py-1 bg-white/80 rounded-full text-[9px] font-black ${textColor} uppercase tracking-widest shadow-sm border border-white/50`}>
-                                                                {course.code}
+                                                                {subject?.code || 'REG'}
                                                             </div>
                                                             <button
-                                                                onClick={() => handleDelete(schedule.id)}
+                                                                onClick={() => handleDelete(schedule._id || schedule.id)}
                                                                 className="w-8 h-8 rounded-xl bg-white/50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         </div>
-                                                        <p className="text-sm font-black text-slate-800 tracking-tight leading-tight line-clamp-2 relative z-10 uppercase">{course.name}</p>
+                                                        <p className="text-sm font-black text-slate-800 tracking-tight leading-tight line-clamp-2 relative z-10 uppercase">{subject?.title || subject?.name || 'Academic Slot'}</p>
                                                         <div className="flex flex-col gap-2 pt-1 relative z-10">
                                                             <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white/40 w-fit px-2 py-1 rounded-lg">
                                                                 <User className="w-3 h-3 text-blue-500" />
-                                                                {tutors.find((t: any) => t.id === schedule.tutorId)?.name || 'Staff Member'}
+                                                                {tutor?.name || 'Staff Member'}
                                                             </span>
                                                             <div className="flex items-center justify-between">
                                                                 <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -300,7 +378,7 @@ export default function ScheduleMaster() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                {!course && (
+                                                {!schedule && (
                                                     <div className="h-full w-full flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-all duration-500">
                                                         <Button
                                                             onClick={() => {
@@ -364,10 +442,41 @@ export default function ScheduleMaster() {
                             >
                                 <option value="">Select Faculty Member...</option>
                                 {tutors.map((t: any) => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                    <option key={t._id || t.id} value={t._id || t.id}>{t.name}</option>
                                 ))}
                             </select>
                         </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
+                            <select
+                                className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                value={newEntry.grade}
+                                onChange={(e) => setNewEntry({ ...newEntry, grade: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Grade...</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+
+                        {(newEntry.grade === "11" || newEntry.grade === "12") && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Stream</Label>
+                                <select
+                                    className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                    value={newEntry.stream}
+                                    onChange={(e) => setNewEntry({ ...newEntry, stream: e.target.value })}
+                                    required
+                                >
+                                    <option value="Common">Common (All Streams)</option>
+                                    <option value="Natural Science">Natural Science</option>
+                                    <option value="Social Science">Social Science</option>
+                                </select>
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Curriculum Component</Label>
                             <select
@@ -378,8 +487,22 @@ export default function ScheduleMaster() {
                             >
                                 <option value="">Select Course...</option>
                                 {courses.map((c: any) => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                                    <option key={c._id || c.id} value={c._id || c.id}>{c.title || c.name} ({c.code || 'N/A'})</option>
                                 ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
+                            <select
+                                className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                value={newEntry.type}
+                                onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value })}
+                                required
+                            >
+                                <option value="regular">Regular Class</option>
+                                <option value="midterm">Mid-Term Exam</option>
+                                <option value="final">Final Exam</option>
+                                <option value="one-to-one">One-to-One Session</option>
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-6">

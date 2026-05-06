@@ -44,6 +44,7 @@ const signupSchema = z.object({
   subject: z.string().optional(),
   availability: z.array(z.string()).optional(),
   degreeFile: z.any().optional(),
+  cvFile: z.any().optional(),
 }).refine((data) => {
   if (data.role === "student") {
     return !!data.grade
@@ -54,11 +55,11 @@ const signupSchema = z.object({
   path: ["grade"]
 }).refine((data) => {
   if (data.role === "tutor") {
-    return !!data.degree && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
+    return (!!data.degree || !!data.degreeFile) && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
   }
   return true
 }, {
-  message: "Degree is required",
+  message: "Degree certificate is required",
   path: ["degree"]
 }).refine((data) => {
   if (data.role === "tutor") {
@@ -99,6 +100,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [role, setRole] = useState<"student" | "tutor">("student")
   const [fileName, setFileName] = useState<string | null>(null)
+  const [cvFileName, setCvFileName] = useState<string | null>(null)
   const [step, setStep] = useState(1)
 
   const {
@@ -130,19 +132,43 @@ export default function SignupPage() {
         setValue("degreeFile", null)
         return
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         setError("File size too large. Max 5MB.")
         setFileName(null)
         setValue("degreeFile", null)
         return
       }
-
       setFileName(file.name)
       setValue("degreeFile", file)
       setError(null)
     } else {
       setFileName(null)
       setValue("degreeFile", null)
+    }
+  }
+
+  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const validTypes = ["application/pdf", "image/jpeg", "image/png"]
+      if (!validTypes.includes(file.type)) {
+        setError("Invalid file type. Please upload a PDF or Image.")
+        setCvFileName(null)
+        setValue("cvFile", null)
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("CV file size too large. Max 5MB.")
+        setCvFileName(null)
+        setValue("cvFile", null)
+        return
+      }
+      setCvFileName(file.name)
+      setValue("cvFile", file)
+      setError(null)
+    } else {
+      setCvFileName(null)
+      setValue("cvFile", null)
     }
   }
 
@@ -537,8 +563,9 @@ export default function SignupPage() {
                       )}
                     </div>
 
+                    {/* Degree Upload */}
                     <div className="space-y-2">
-                      <Label className="ml-1 text-white/80">Upload Degree (PDF/Images)</Label>
+                      <Label className="ml-1 text-white/80">Upload Degree Certificate (PDF/Image) <span className="text-emerald-400/70 text-xs">*</span></Label>
                       <div className="relative">
                         <input
                           type="file"
@@ -550,7 +577,7 @@ export default function SignupPage() {
                         <label
                           htmlFor="degree-upload"
                           className={cn(
-                            "flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed py-6 transition-smooth",
+                            "flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed py-5 transition-smooth",
                             fileName
                               ? "border-emerald-500/50 bg-emerald-500/5 text-emerald-400"
                               : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"
@@ -573,7 +600,52 @@ export default function SignupPage() {
                           ) : (
                             <>
                               <Upload className="h-5 w-5" />
-                              <span className="text-sm">Click to upload degree</span>
+                              <span className="text-sm">Upload degree certificate</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* CV Upload */}
+                    <div className="space-y-2">
+                      <Label className="ml-1 text-white/80">Upload CV / Resume (PDF/Image) <span className="text-white/40 text-xs">(optional)</span></Label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="cv-upload"
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleCvChange}
+                        />
+                        <label
+                          htmlFor="cv-upload"
+                          className={cn(
+                            "flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed py-5 transition-smooth",
+                            cvFileName
+                              ? "border-sky-500/50 bg-sky-500/5 text-sky-400"
+                              : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"
+                          )}
+                        >
+                          {cvFileName ? (
+                            <>
+                              <CheckCircle2 className="h-5 w-5" />
+                              <span className="max-w-[200px] truncate text-sm">{cvFileName}</span>
+                              <X
+                                className="ml-2 h-4 w-4 hover:text-red-400"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setCvFileName(null)
+                                  setValue("cvFile", null)
+                                }}
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-5 w-5" />
+                              <span className="text-sm">Upload your CV or resume</span>
+
                             </>
                           )}
                         </label>

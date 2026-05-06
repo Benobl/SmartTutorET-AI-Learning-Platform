@@ -22,6 +22,7 @@ import {
     DollarSign,
     BarChart3,
     Shield,
+    Activity,
 } from "lucide-react"
 import {
     Sidebar,
@@ -183,10 +184,15 @@ const managerNavItems: NavItem[] = [
         activeColor: "sky",
     },
     {
-        title: "Course Catalog",
+        title: "Academic Courses",
         url: "/dashboard/manager/courses",
         icon: BookOpen,
         activeColor: "sky",
+        items: [
+            { title: "Curriculum Registry", url: "/dashboard/manager/courses" },
+            { title: "Master Timetable", url: "/dashboard/manager/schedule" },
+            { title: "Subject Requests", url: "/dashboard/manager/approvals/subjects" }
+        ]
     },
     {
         title: "Job Postings",
@@ -202,9 +208,9 @@ const managerNavItems: NavItem[] = [
         badge: 1,
     },
     {
-        title: "Schedule Master",
-        url: "/dashboard/manager/schedule",
-        icon: CalendarDays,
+        title: "Monitoring",
+        url: "/dashboard/manager/monitoring",
+        icon: Activity,
         activeColor: "sky",
     },
     {

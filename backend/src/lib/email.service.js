@@ -145,6 +145,18 @@ export const sendTutorApprovalEmail = async (email, name) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const loginLink = `${frontendUrl}/login`;
 
+  // Always log for dev visibility
+  console.log("\n" + "=".repeat(60));
+  console.log("🎓 TUTOR APPROVAL EMAIL (Terminal Access)");
+  console.log(`To: ${email}`);
+  console.log(`Status: APPROVED`);
+  console.log("=".repeat(60) + "\n");
+
+  if (!isEmailConfigured) {
+    console.warn("[Email] SMTP not configured. Tutor approval logged to terminal.");
+    return;
+  }
+
   await transporter.sendMail({
     from: `"SmartTutorET" <${process.env.EMAIL}>`,
     to: email,
@@ -199,6 +211,20 @@ export const sendTutorApprovalEmail = async (email, name) => {
 
 // Tutor rejection email
 export const sendTutorRejectionEmail = async (email, name, reason = "") => {
+  // Always log for dev visibility
+  console.log("\n" + "=".repeat(60));
+  console.log("🎓 TUTOR REJECTION EMAIL (Terminal Access)");
+  console.log(`To: ${email}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  reason && console.log(`Reason: ${reason}`);
+  console.log("Status: REJECTED");
+  console.log("=".repeat(60) + "\n");
+
+  if (!isEmailConfigured) {
+    console.warn("[Email] SMTP not configured. Tutor rejection logged to terminal.");
+    return;
+  }
+
   await transporter.sendMail({
     from: `"SmartTutorET" <${process.env.EMAIL}>`,
     to: email,

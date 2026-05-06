@@ -40,4 +40,76 @@ export class AdminController {
             next(error);
         }
     }
+
+    static async getStats(req, res, next) {
+        try {
+            const stats = await AdminService.getSystemStats();
+            res.json({ success: true, data: stats });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getJobs(req, res, next) {
+        try {
+            const jobs = await AdminService.getAllJobs();
+            res.json({ success: true, data: jobs });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async deleteJob(req, res, next) {
+        try {
+            await AdminService.deleteTutorJob(req.params.id);
+            res.json({ success: true, message: "Job deleted successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getPendingSubjects(req, res, next) {
+        try {
+            const subjects = await AdminService.getPendingSubjects();
+            res.json({ success: true, data: subjects });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async approveSubject(req, res, next) {
+        try {
+            const subject = await AdminService.approveSubject(req.params.id);
+            res.json({ success: true, message: "Subject approved", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async rejectSubject(req, res, next) {
+        try {
+            const subject = await AdminService.rejectSubject(req.params.id);
+            res.json({ success: true, message: "Subject rejected", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getUsers(req, res, next) {
+        try {
+            const users = await AdminService.getAllUsers();
+            res.json({ success: true, data: users });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getProgress(req, res, next) {
+        try {
+            const progress = await AdminService.getStudentProgress(req.params.studentId);
+            res.json({ success: true, data: progress });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

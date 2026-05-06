@@ -33,7 +33,19 @@ export class SubjectService {
             subject
         });
     }
-    static async getAllSubjects() {
-        return await Subject.find({}).populate("tutor", "name profile.avatar");
+    static async getAllSubjects(query = {}) {
+        return await Subject.find(query).populate("tutor", "name profile.avatar");
+    }
+
+    static async updateSubject(subjectId, updates) {
+        const subject = await Subject.findByIdAndUpdate(subjectId, updates, { new: true });
+        if (!subject) throw new ApiError(404, "Subject not found");
+        return subject;
+    }
+
+    static async deleteSubject(subjectId) {
+        const subject = await Subject.findByIdAndDelete(subjectId);
+        if (!subject) throw new ApiError(404, "Subject not found");
+        return subject;
     }
 }

@@ -1,6 +1,6 @@
 import express from "express";
 import { AuthController } from "./auth.controller.js";
-import { protectRoute } from "../../middleware/auth.middleware.js";
+import { verifyToken } from "../../middleware/auth.middleware.js";
 import { validate } from "../../middleware/validation.middleware.js";
 import {
     signupSchema,
@@ -21,7 +21,7 @@ router.get("/verify-email/:token", AuthController.verifyEmail);
 router.post("/forgot-password", validate(forgotPasswordSchema), AuthController.forgotPassword);
 router.post("/reset-password/:token", validate(resetPasswordSchema), AuthController.resetPassword);
 
-router.get("/me", protectRoute, AuthController.getMe);
-router.get("/stream-token", protectRoute, AuthController.getStreamToken);
+router.get("/me", verifyToken, AuthController.getMe);
+router.get("/stream-token", verifyToken, AuthController.getStreamToken);
 
 export default router;

@@ -27,6 +27,7 @@ export class AuthService {
             ...userData,
             email: email.toLowerCase(),
             role: userRole,
+            isApproved: userRole !== "tutor", // Tutor is false, others are true
             profile: {
                 avatar: userData.avatar || defaultAvatar,
                 bio: userData.bio || "",
@@ -63,13 +64,17 @@ export class AuthService {
             throw new ApiError(401, "Invalid credentials");
         }
 
-        // Check tutor approval status
-        if (user.role === "tutor" && user.tutorStatus !== "approved") {
-            logger.warn(`[AuthService] Unapproved tutor login attempt: ${email} (Status: ${user.tutorStatus})`);
-            const message = user.tutorStatus === "pending" 
-                ? "Your tutor account is pending approval by a manager." 
-                : "Your tutor account application was rejected.";
-            throw new ApiError(403, message);
+        // Check approval status
+        if (!user.isApproved) {
+            if (user.role === "tutor") {
+                if (user.tutorStatus === "rejected") {
+                    logger.warn(`[AuthService] Rejected tutor login attempt: ${email}`);
+                    throw new ApiError(403, "Your tutor application has been rejected. Please contact support for further information.");
+                }
+                logger.warn(`[AuthService] Pending tutor login attempt: ${email}`);
+                throw new ApiError(403, "Your tutor account is pending approval by a manager. You will receive an email once reviewed.");
+            }
+            throw new ApiError(403, "Your account is not approved.");
         }
 
         logger.info(`[AuthService] Login successful for ${email}`);

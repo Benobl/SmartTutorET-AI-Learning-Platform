@@ -25,9 +25,15 @@ import tutorRoutes from "./src/modules/tutors/tutor.route.js";
 import groupRoutes from "./src/modules/groups/group.route.js";
 import paymentRoutes from "./src/modules/payments/payment.route.js";
 import adminRoutes from "./src/modules/admin/admin.route.js";
+import notificationRoutes from "./src/modules/notifications/notification.route.js";
 import questionRoutes from "./src/modules/questions/question.route.js";
 import inviteRoutes from "./src/modules/invites/invite.route.js";
 import chatRoutes from "./src/modules/chat/chat.route.js";
+import uploadRoutes from "./src/modules/upload/upload.route.js";
+import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route.js";
+import { fileURLToPath } from "url";
+import path from "path";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = process.env.PORT || 5001;
 
@@ -72,6 +78,14 @@ app.use(morgan("dev"));
 app.use(requestLogger);
 app.use(csrfProtection);
 
+// Serve uploaded documents as static files
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  setHeaders: (res) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+}));
+
 // Global Rate Limiter
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -93,6 +107,9 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/invites", inviteRoutes);
 app.use("/api/live", liveRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/scheduling", masterScheduleRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {

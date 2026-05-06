@@ -1,13 +1,15 @@
 import express from "express";
 import { SubjectController } from "./subject.controller.js";
-import { protectRoute } from "../../middleware/auth.middleware.js";
-import { authorize } from "../../middleware/rbac.middleware.js";
+import { verifyToken } from "../../middleware/auth.middleware.js";
+import { allowRoles } from "../../middleware/rbac.middleware.js";
 
 const router = express.Router();
 
-router.post("/", protectRoute, authorize("tutor", "admin", "manager"), SubjectController.createSubject);
-router.get("/", protectRoute, SubjectController.getAll);
-router.get("/:subjectId", protectRoute, SubjectController.getSubject);
-router.post("/:subjectId/enroll", protectRoute, SubjectController.enroll);
+router.post("/", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.createSubject);
+router.patch("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.update);
+router.delete("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.delete);
+router.get("/", verifyToken, SubjectController.getAll);
+router.get("/:subjectId", verifyToken, SubjectController.getSubject);
+router.post("/:subjectId/enroll", verifyToken, SubjectController.enroll);
 
 export default router;

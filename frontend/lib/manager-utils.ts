@@ -1,4 +1,7 @@
-import { User } from './auth-utils';
+import { User, authApi } from './auth-utils';
+import * as api from './api';
+const { adminApi, userApi, courseApi, notificationApi, aiApi, schedulingApi } = api;
+console.log("[DEBUG] schedulingApi loaded:", !!schedulingApi);
 import { getDb, saveDb } from './db-utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,25 +13,40 @@ import autoTable from 'jspdf-autotable';
 /**
  * Get all students
  */
-export const getStudents = (): User[] => {
-    const db = getDb();
-    return db.users.students as User[];
+export const getStudents = async (): Promise<User[]> => {
+    try {
+        const response = await userApi.getAllStudents();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch students:", error);
+        return [];
+    }
 };
 
 /**
  * Get all tutors (including pending)
  */
-export const getAllTutors = (): User[] => {
-    const db = getDb();
-    return db.users.tutors as User[];
+export const getAllTutors = async (): Promise<User[]> => {
+    try {
+        const response = await userApi.getAllTutors();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch tutors:", error);
+        return [];
+    }
 };
 
 /**
  * Get pending tutors for review
  */
-export const getPendingTutors = (): User[] => {
-    const db = getDb();
-    return (db.users.tutors as User[]).filter(t => t.status === 'pending');
+export const getPendingTutors = async (): Promise<User[]> => {
+    try {
+        const response = await adminApi.getPendingTutors();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch pending tutors:", error);
+        return [];
+    }
 };
 
 /**
@@ -42,17 +60,50 @@ export const getTutorById = (id: string): User | undefined => {
 /**
  * Get all jobs
  */
-export const getJobs = () => {
-    const db = getDb();
-    return db.jobs;
+export const getJobs = async () => {
+    try {
+        const response = await adminApi.getJobs();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch jobs:", error);
+        return [];
+    }
 };
 
 /**
  * Get all courses
  */
-export const getCourses = () => {
-    const db = getDb();
-    return db.courses;
+export const getCourses = async () => {
+    try {
+        const response = await courseApi.getAll();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch courses:", error);
+        return [];
+    }
+};
+
+/**
+ * AI-Powered Curriculum Generation
+ */
+export const generateGradeCurriculum = async (grade: string, stream: string) => {
+    try {
+        const response = await aiApi.generateGradeCurriculum(grade, stream);
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to generate curriculum:", error);
+        return [];
+    }
+};
+
+export const generateGradeSchedule = async (grade: string, stream: string, subjects: any[]) => {
+    try {
+        const response = await aiApi.generateGradeSchedule(grade, stream, subjects);
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to generate schedule:", error);
+        return [];
+    }
 };
 
 /**
@@ -66,125 +117,142 @@ export const getSchedules = () => {
 /**
  * Get system stats
  */
-export const getSystemStats = () => {
-    const db = getDb();
-    return db.systemStats;
+export const getSystemStats = async () => {
+    try {
+        const response = await adminApi.getStats();
+        return response.data || { totalStudents: 0, totalTutors: 0, pendingTutors: 0, totalJobs: 0 };
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch system stats:", error);
+        return { totalStudents: 0, totalTutors: 0, pendingTutors: 0, totalJobs: 0 };
+    }
 };
 
 /**
  * Approve a tutor
  */
-export const approveTutor = (tutorId: string): boolean => {
-    const db = getDb();
-    const tutorIndex = db.users.tutors.findIndex((t: any) => t.id === tutorId);
-    if (tutorIndex !== -1) {
-        db.users.tutors[tutorIndex].status = 'approved';
-        saveDb(db);
-        return true;
+export const approveTutor = async (tutorId: string): Promise<boolean> => {
+    try {
+        const response = await adminApi.approveTutor(tutorId);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to approve tutor:", error);
+        return false;
     }
-    return false;
 };
 
 /**
  * Reject a tutor
  */
-export const rejectTutor = (tutorId: string): boolean => {
-    const db = getDb();
-    const tutorIndex = db.users.tutors.findIndex((t: any) => t.id === tutorId);
-    if (tutorIndex !== -1) {
-        db.users.tutors[tutorIndex].status = 'rejected';
-        saveDb(db);
-        return true;
+export const rejectTutor = async (tutorId: string, reason?: string): Promise<boolean> => {
+    try {
+        const response = await adminApi.rejectTutor(tutorId, reason);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to reject tutor:", error);
+        return false;
     }
-    return false;
 };
 
 /**
  * Delete a job vacancy
  */
-export const deleteJob = (jobId: string): boolean => {
-    const db = getDb();
-    const initialLength = db.jobs.length;
-    db.jobs = db.jobs.filter((j: any) => j.id !== jobId);
-    if (db.jobs.length < initialLength) {
-        saveDb(db);
-        return true;
+export const deleteJob = async (jobId: string): Promise<boolean> => {
+    try {
+        const response = await adminApi.deleteJob(jobId);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to delete job:", error);
+        return false;
     }
-    return false;
 };
 
 /**
  * Post a new job
  */
-export const postJob = (job: any): boolean => {
-    const db = getDb();
-    const newJob = {
-        ...job,
-        id: `job_${Date.now()}`,
-        status: 'active',
-        postedAt: new Date().toISOString().split('T')[0],
-        applicantsCount: 0
-    };
-    db.jobs.push(newJob);
-    saveDb(db);
-    return true;
+export const postJob = async (job: any): Promise<boolean> => {
+    try {
+        const response = await adminApi.createJob(job);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to post job:", error);
+        return false;
+    }
 };
 
 /**
  * Course Management
  */
-export const addCourse = (course: any) => {
-    const db = getDb();
-    const newCourse = {
-        ...course,
-        id: `course_${Date.now()}`,
-        studentCount: 0
-    };
-    db.courses.push(newCourse);
-    saveDb(db);
-    return newCourse;
-};
-
-export const updateCourse = (id: string, updates: any) => {
-    const db = getDb();
-    const idx = db.courses.findIndex((c: any) => c.id === id);
-    if (idx !== -1) {
-        db.courses[idx] = { ...db.courses[idx], ...updates };
-        saveDb(db);
-        return true;
+export const addCourse = async (course: any) => {
+    try {
+        const response = await courseApi.create(course);
+        return response.data;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to create course:", error);
+        return null;
     }
-    return false;
 };
 
-export const deleteCourse = (id: string) => {
-    const db = getDb();
-    db.courses = db.courses.filter((c: any) => c.id !== id);
-    saveDb(db);
+export const updateCourse = async (id: string, updates: any) => {
+    try {
+        const response = await courseApi.update(id, updates);
+        return response.data;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to update course:", error);
+        return null;
+    }
+};
+
+export const deleteCourse = async (id: string) => {
+    try {
+        const response = await courseApi.delete(id);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to delete course:", error);
+        return false;
+    }
 };
 
 /**
- * Schedule Management
+ * Master Schedule Management (Backend-driven)
  */
-export const addScheduleEntry = (entry: any) => {
-    const db = getDb();
-    const newEntry = {
-        ...entry,
-        id: `sch_${Date.now()}`,
-        type: entry.type || 'regular',
-        isOnline: true,
-        room: entry.room || 'Virtual Hub A',
-        startTime: entry.startTime || '08:00',
-        endTime: entry.endTime || '09:30'
-    };
-    db.schedules.push(newEntry);
-    saveDb(db);
-    return newEntry;
+export const getMasterSchedules = async () => {
+    try {
+        const response = await schedulingApi.getAll();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch master schedule:", error);
+        return [];
+    }
 };
 
-export const deleteScheduleEntry = (id: string) => {
-    const db = getDb();
-    db.schedules = db.schedules.filter((s: any) => s.id !== id);
-    saveDb(db);
+export const getGradeSchedule = async (grade: string) => {
+    try {
+        const response = await schedulingApi.getByGrade(grade);
+        return response.data || [];
+    } catch (error) {
+        console.error(`[ManagerUtils] Failed to fetch schedule for grade ${grade}:`, error);
+        return [];
+    }
+};
+
+export const addScheduleEntry = async (entry: any) => {
+    try {
+        const response = await schedulingApi.create(entry);
+        return response.data;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to create schedule entry:", error);
+        return null;
+    }
+};
+
+export const deleteScheduleEntry = async (id: string) => {
+    try {
+        const response = await schedulingApi.delete(id);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to delete schedule entry:", error);
+        return false;
+    }
 };
 
 /**
@@ -243,46 +311,88 @@ export const getFullExportData = () => {
 /**
  * Notifications Management
  */
-export const getNotifications = () => {
-    const db = getDb();
-    if (!db.notifications) {
-        db.notifications = [
-            {
-                id: '1',
-                title: 'New Tutor Application',
-                message: 'Dr. Aster Gebre submitted a new application for Biology.',
-                time: '2 hours ago',
-                type: 'alert',
-                isRead: false
-            },
-            {
-                id: '2',
-                title: 'System Update',
-                message: 'Curriculum registry has been synchronized with the master timeline.',
-                time: '5 hours ago',
-                type: 'info',
-                isRead: true
-            }
-        ];
-        saveDb(db);
+export const getNotifications = async () => {
+    try {
+        const response = await notificationApi.getMine();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch notifications:", error);
+        return [];
     }
-    return db.notifications;
 };
 
-export const markNotificationAsRead = (id: string) => {
-    const db = getDb();
-    const idx = db.notifications.findIndex((n: any) => n.id === id);
-    if (idx !== -1) {
-        db.notifications[idx].isRead = true;
-        saveDb(db);
-        return true;
+export const markNotificationAsRead = async (id: string) => {
+    try {
+        const response = await notificationApi.markAsRead(id);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to mark notification as read:", error);
+        return false;
     }
-    return false;
 };
 
-export const clearNotifications = () => {
-    const db = getDb();
-    db.notifications = [];
-    saveDb(db);
-    return true;
+export const clearNotifications = async () => {
+    try {
+        const response = await notificationApi.markAllAsRead();
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to clear notifications:", error);
+        return false;
+    }
+};
+
+/**
+ * Subject Approval
+ */
+export const getPendingSubjects = async () => {
+    try {
+        const response = await adminApi.getPendingSubjects();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch pending subjects:", error);
+        return [];
+    }
+};
+
+export const approveSubject = async (id: string) => {
+    try {
+        const response = await adminApi.approveSubject(id);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to approve subject:", error);
+        return false;
+    }
+};
+
+export const rejectSubject = async (id: string) => {
+    try {
+        const response = await adminApi.rejectSubject(id);
+        return response.success;
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to reject subject:", error);
+        return false;
+    }
+};
+
+/**
+ * User & Progress Monitoring
+ */
+export const getUsers = async () => {
+    try {
+        const response = await adminApi.getUsers();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch users:", error);
+        return [];
+    }
+};
+
+export const getStudentProgress = async (studentId: string) => {
+    try {
+        const response = await adminApi.getStudentProgress(studentId);
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch student progress:", error);
+        return [];
+    }
 };

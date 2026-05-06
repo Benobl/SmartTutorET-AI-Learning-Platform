@@ -62,9 +62,12 @@ function LoginForm() {
     setSuccess(null)
 
     try {
+      console.log(`[LoginPage] Attempting login for ${data.email}...`);
       const user = await loginUser(data.email, data.password);
+      console.log(`[LoginPage] Login result:`, user);
 
       if (user && !('error' in user)) {
+        console.log(`[LoginPage] Success! Found user:`, user.fullName);
         setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
         
         const callbackUrl = searchParams.get('callbackUrl')
@@ -84,8 +87,10 @@ function LoginForm() {
           window.location.href = redirectPath;
         }, 800);
       } else if (user && 'error' in user) {
+        console.warn(`[LoginPage] Login failed: ${user.error}`);
         setError(user.error)
       } else {
+        console.warn(`[LoginPage] Login failed: Unexpected response`);
         setError("Invalid email or password. Please check your credentials.")
       }
     } catch (err: any) {
