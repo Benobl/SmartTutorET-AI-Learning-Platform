@@ -11,6 +11,14 @@ const masterScheduleSchema = new mongoose.Schema({
         enum: ["Natural Science", "Social Science", "Common"], 
         default: "Common" 
     },
+    semester: {
+        type: String,
+        default: "Semester 1"
+    },
+    section: {
+        type: String,
+        default: "Section A"
+    },
     subject: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "Subject", 

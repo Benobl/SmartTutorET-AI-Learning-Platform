@@ -102,7 +102,9 @@ export default function ScheduleMaster() {
             subject: newEntry.courseId,
             tutor: newEntry.tutorId,
             dayOfWeek: newEntry.day,
-            grade: newEntry.grade || selectedGrade
+            grade: newEntry.grade || selectedGrade,
+            semester: selectedSemester,
+            section: selectedSection
         }
 
         const result = await addScheduleEntry(payload)
@@ -134,6 +136,8 @@ export default function ScheduleMaster() {
                         await addScheduleEntry({
                             grade: selectedGrade,
                             stream: "Common",
+                            semester: selectedSemester,
+                            section: selectedSection,
                             subject: subject._id || subject.id,
                             tutor: defaultTutorId,
                             dayOfWeek: item.dayOfWeek,
@@ -320,7 +324,7 @@ export default function ScheduleMaster() {
                                         {time}
                                     </td>
                                     {days.map(day => {
-                                        let schedule = currentViewData.find((s: any) => s.day === day && s.startTime === time)
+                                        let schedule = currentViewData.find((s: any) => (s.day === day || s.dayOfWeek === day) && s.startTime === time)
 
                                         // If Exam Pulse is on, hide regular slots
                                         if (showExamsOnly && schedule?.type === 'regular') {
@@ -404,7 +408,7 @@ export default function ScheduleMaster() {
 
             {/* Add Entry Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="sm:max-w-[500px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl">
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] bg-white rounded-[40px] p-0 overflow-y-auto overflow-x-hidden border-0 shadow-3xl">
                     <div className="p-10 bg-slate-50/50 border-b border-slate-100">
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-black text-slate-800 leading-none">Slot Initialization</DialogTitle>
@@ -415,11 +419,12 @@ export default function ScheduleMaster() {
                     <form onSubmit={handleAddEntry} className="p-10 space-y-8">
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phase Distinction</Label>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                                 {[
                                     { id: 'regular', label: 'Regular', color: 'blue' },
                                     { id: 'midterm', label: 'Midterm', color: 'amber' },
-                                    { id: 'final', label: 'Final', color: 'rose' }
+                                    { id: 'final', label: 'Final', color: 'rose' },
+                                    { id: 'one-to-one', label: '1-to-1', color: 'indigo' }
                                 ].map(type => (
                                     <button
                                         key={type.id}
@@ -432,6 +437,7 @@ export default function ScheduleMaster() {
                                 ))}
                             </div>
                         </div>
+
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Staff Faculty</Label>
                             <select
@@ -489,20 +495,6 @@ export default function ScheduleMaster() {
                                 {courses.map((c: any) => (
                                     <option key={c._id || c.id} value={c._id || c.id}>{c.title || c.name} ({c.code || 'N/A'})</option>
                                 ))}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
-                            <select
-                                className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
-                                value={newEntry.type}
-                                onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value })}
-                                required
-                            >
-                                <option value="regular">Regular Class</option>
-                                <option value="midterm">Mid-Term Exam</option>
-                                <option value="final">Final Exam</option>
-                                <option value="one-to-one">One-to-One Session</option>
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-6">

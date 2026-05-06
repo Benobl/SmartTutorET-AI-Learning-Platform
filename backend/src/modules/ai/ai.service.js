@@ -153,16 +153,18 @@ Format your response in a clear, structured way using markdown formatting when h
             "models/gemini-2.5-pro"
         ];
         
-        const prompt = `Act as an Ethiopian High School Registrar. Create a standard weekly school timetable (Monday to Friday) for Grade ${grade} ${stream}.
+        const prompt = `Act as an Ethiopian High School Registrar. Create a comprehensive, realistic weekly school timetable (Monday to Friday) for Grade ${grade} ${stream}.
         
         Use the following subjects available in our curriculum: ${subjects.map(s => s.title).join(", ")}.
         
-        Rules:
-        1. Create 4 slots per day (slots: 08:30-10:00, 10:30-12:00, 13:30-15:00, 15:30-17:00).
-        2. Distribute the provided subjects evenly throughout the week.
-        3. Each subject should appear at least once or twice depending on total count.
+        CRITICAL RULES:
+        1. You MUST create EXACTLY 20 slots in total (4 slots per day for 5 days). Do not skip any days or slots.
+        2. The exact time slots for every day are: "08:30", "10:30", "13:30", and "15:30".
+        3. The exact end times for every day are: "10:00", "12:00", "15:00", and "17:00".
+        4. Distribute the provided subjects evenly and logically throughout the week. Hard subjects (like Math/Physics) are better in the morning.
+        5. No single subject should dominate the schedule; ensure a balanced academic week.
         
-        Return ONLY a JSON array of objects with this schema:
+        Return ONLY a JSON array of objects with this exact schema:
         [
           {
             "dayOfWeek": "Monday",
