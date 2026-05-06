@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { getMasterSchedules, getCourses, getAllTutors, addScheduleEntry, deleteScheduleEntry, exportToPDF } from "@/lib/manager-utils"
+import { getMasterSchedules, getCourses, getAllTutors, addScheduleEntry, deleteScheduleEntry, exportToPDF, generateGradeSchedule } from "@/lib/manager-utils"
 import { toast } from "sonner"
 
 export default function ScheduleMaster() {
