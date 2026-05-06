@@ -3,9 +3,10 @@
 import { timetable as initialTimetable, type TimetableSlot } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, ListChecks, Plus, X, Brain, Sparkles, Download, ArrowUpRight, Activity, Book, PenTool, SearchCode, History, CheckCircle, Video } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
+import { schedulingApi } from "@/lib/api"
 
 /**
  * Weekly Timetable page — now featuring a "Personal Study Scheduler"
@@ -36,8 +37,8 @@ import { getCurrentUser } from "@/lib/auth-utils"
 
 
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"]
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const TIME_SLOTS = ["08:30", "10:30", "13:30", "15:30"]
 
 const getCurrentDay = () => {
     const dayIndex = new Date().getDay()
@@ -166,28 +167,72 @@ export default function StudentTimetable() {
     const { toast } = useToast()
     const [selectedDay, setSelectedDay] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<"class" | "study">("class")
+    const [academicSlots, setAcademicSlots] = useState<TimetableSlot[]>([])
     const [studySlots, setStudySlots] = useState<TimetableSlot[]>([])
     const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
     const [pendingStudy, setPendingStudy] = useState<{ day: string; time: string } | null>(null)
     const [studyDetails, setStudyDetails] = useState({ title: "", category: "Reading", startTime: "", endTime: "" })
+    const [loading, setLoading] = useState(true)
+
+    const currentUser = getCurrentUser()
+
+    useEffect(() => {
+        const fetchSchedule = async () => {
+            if (!currentUser) return
+            try {
+                setLoading(true)
+                // Fetch all schedules for this grade
+                const response = await schedulingApi.getByGrade(currentUser.grade || "9")
+                const data = response.data || []
+                
+                // Filter by section and semester (defaulting to current academic settings)
+                const filtered = data.filter((item: any) => {
+                    const gradeMatch = String(item.grade) === String(currentUser.grade || "9")
+                    const sectionMatch = !item.section || item.section === (currentUser.section || "Section A")
+                    const semesterMatch = !item.semester || item.semester === "Semester 1" || item.semester === "Full Year"
+                    return gradeMatch && sectionMatch && semesterMatch
+                })
+
+                const mapped: TimetableSlot[] = filtered.map((item: any) => ({
+                    id: item._id || item.id,
+                    course: item.subject?.title || item.subject?.name || "Academic Class",
+                    code: item.subject?.code || "REG-101",
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    day: item.dayOfWeek || item.day,
+                    room: item.room || "Virtual Hall",
+                    tutor: item.tutor?.name || "Staff Member",
+                    color: item.type === "regular" ? "sky" : (item.type === "midterm" ? "amber" : "rose")
+                }))
+                setAcademicSlots(mapped)
+            } catch (error) {
+                console.error("Failed to load timetable:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchSchedule()
+    }, [currentUser])
 
     const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [activeSlot, setActiveSlot] = useState<TimetableSlot | null>(null)
     const [isJoining, setIsJoining] = useState(false)
     const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false)
     const { videoClient, isReady: isStreamReady } = useStream()
-    const currentUser = getCurrentUser()
 
 
 
-    // Combine class schedule with personal study plan
+    // Combine academic schedule with personal study plan
     const fullSchedule = useMemo(() => {
-        return [...initialTimetable, ...studySlots]
-    }, [studySlots])
+        return [...academicSlots, ...studySlots]
+    }, [academicSlots, studySlots])
 
     const byDay: Record<string, TimetableSlot[]> = {}
     DAYS.forEach((d) => { byDay[d] = [] })
-    fullSchedule.forEach((slot) => { byDay[slot.day]?.push(slot) })
+    fullSchedule.forEach((slot) => { 
+        const dayMatch = DAYS.find(d => d.toLowerCase() === (slot.day || "").toLowerCase())
+        if (dayMatch) byDay[dayMatch].push(slot)
+    })
 
     const handleAddStudyTrigger = (day: string, time: string) => {
         if (viewMode !== "study") return
@@ -251,8 +296,8 @@ export default function StudentTimetable() {
             return
         }
         setIsJoining(true)
-        // Stable ID for the class so all students land in the same room
-        const callId = `class-${slot.code.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()}`
+        // Stable ID for the class so all students land in the same room for this specific slot
+        const callId = `class-${slot.id.toString().toLowerCase()}`
         const call = videoClient.call('default', callId)
         
         try {
@@ -386,8 +431,16 @@ export default function StudentTimetable() {
             </div>
 
             {/* Desktop Grid Layout */}
-            <div className="hidden lg:block rounded-[56px] bg-white border border-slate-200 overflow-hidden shadow-2xl shadow-slate-200/10">
-                <div className="grid grid-cols-[140px_repeat(6,1fr)] bg-slate-50 border-b border-slate-100">
+            <div className="hidden lg:block rounded-[56px] bg-white border border-slate-200 overflow-hidden shadow-2xl shadow-slate-200/10 relative">
+                {loading && (
+                    <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-sm flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <Activity className="w-12 h-12 text-sky-500 animate-pulse" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing with Academy...</p>
+                        </div>
+                    </div>
+                )}
+                <div className="grid grid-cols-[140px_repeat(5,1fr)] bg-slate-50 border-b border-slate-100">
                     <div className="p-10" />
                     {DAYS.map((day) => (
                         <div key={day} className={cn("p-10 text-center border-l border-slate-100 relative group", day === currentDay && "bg-sky-50/50")}>
@@ -399,7 +452,7 @@ export default function StudentTimetable() {
                 </div>
 
                 {TIME_SLOTS.map((time) => (
-                    <div key={time} className="grid grid-cols-[140px_repeat(6,1fr)] border-b border-slate-100 last:border-0 hover:bg-slate-50/20 transition-colors group/row">
+                    <div key={time} className="grid grid-cols-[140px_repeat(5,1fr)] border-b border-slate-100 last:border-0 hover:bg-slate-50/20 transition-colors group/row">
                         <div className="p-8 flex items-center justify-center border-r border-slate-50">
                             <span className="text-[11px] text-slate-400 font-black tracking-tighter bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm group-hover/row:border-sky-200 transition-colors">{time}</span>
                         </div>

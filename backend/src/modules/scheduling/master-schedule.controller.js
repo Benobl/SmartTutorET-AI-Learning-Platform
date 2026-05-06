@@ -30,6 +30,16 @@ export class MasterScheduleController {
         }
     }
 
+    static async getMySchedule(req, res, next) {
+        try {
+            const tutorId = req.user._id;
+            const data = await MasterScheduleService.getTutorSchedule(tutorId);
+            res.json({ success: true, data });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async delete(req, res, next) {
         try {
             await MasterScheduleService.deleteEntry(req.params.id);

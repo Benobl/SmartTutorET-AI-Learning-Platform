@@ -254,6 +254,7 @@ export const chatApi = {
 
 export const schedulingApi = {
     getAll: () => fetchWithAuth("/scheduling"),
+    getMySchedule: () => fetchWithAuth("/scheduling/my-schedule"),
     getByGrade: (grade: string) => fetchWithAuth(`/scheduling/grade/${grade}`),
     create: (data: any) => fetchWithAuth("/scheduling", {
         method: "POST",

@@ -23,6 +23,13 @@ export class MasterScheduleService {
             .populate("tutor", "name profile.avatar");
     }
 
+    static async getTutorSchedule(tutorId) {
+        return await MasterSchedule.find({ tutor: tutorId })
+            .populate("subject", "title code")
+            .populate("tutor", "name profile.avatar")
+            .sort({ dayOfWeek: 1, startTime: 1 });
+    }
+
     static async deleteEntry(id) {
         const entry = await MasterSchedule.findByIdAndDelete(id);
         if (!entry) throw new ApiError(404, "Schedule entry not found");

@@ -68,8 +68,9 @@ export default function ScheduleMaster() {
     const refreshData = async () => {
         try {
             setLoading(true)
-            const scheduleData = await getMasterSchedules()
-            setScheduleData(scheduleData)
+            const data = await getMasterSchedules()
+            console.log("[DEBUG] Fetched schedules from backend:", data)
+            setScheduleData(data)
             
             const coursesList = await getCourses()
             setCourses(coursesList)
@@ -120,6 +121,10 @@ export default function ScheduleMaster() {
     }
 
     const handleAISyncSchedule = async () => {
+        if (tutors.length === 0) {
+            toast.error("No tutors registered. Please approve at least one faculty member first.")
+            return
+        }
         try {
             setLoading(true)
             const result = await generateGradeSchedule(selectedGrade, "Common", courses)
@@ -128,9 +133,11 @@ export default function ScheduleMaster() {
                 const defaultTutorId = tutors[0]?._id || tutors[0]?.id;
                 
                 for (const item of result) {
-                    const subject = courses.find((c: any) => 
-                        (c.title || c.name || "").toLowerCase().includes(item.subjectTitle.toLowerCase())
-                    );
+                    const subject = courses.find((c: any) => {
+                        const title = (c.title || c.name || "").toLowerCase();
+                        const target = item.subjectTitle.toLowerCase();
+                        return title.includes(target) || target.includes(title);
+                    });
                     
                     if (subject) {
                         await addScheduleEntry({
@@ -148,7 +155,7 @@ export default function ScheduleMaster() {
                     }
                 }
                 toast.success(`Gemini created a ${result.length}-slot weekly timetable for Grade ${selectedGrade}!`)
-                refreshData()
+                await refreshData()
             }
         } catch (error) {
             console.error("AI scheduling failed:", error)
@@ -183,11 +190,14 @@ export default function ScheduleMaster() {
     }
 
     // Filtered data for the grid
-    const currentViewData = scheduleData.filter((s: any) =>
-        s.grade === selectedGrade &&
-        s.semester === selectedSemester &&
-        s.section === selectedSection
-    )
+    console.log("[DEBUG] Current scheduleData count:", scheduleData.length)
+    const currentViewData = scheduleData.filter((s: any) => {
+        const gradeMatch = String(s.grade) === String(selectedGrade)
+        const semesterMatch = !s.semester || s.semester === selectedSemester || s.semester === "Full Year"
+        const sectionMatch = !s.section || s.section === selectedSection
+        return gradeMatch && semesterMatch && sectionMatch
+    })
+    console.log("[DEBUG] Filtered currentViewData count:", currentViewData.length)
 
     return (
         <div className="space-y-10 animate-in fade-in duration-700 pb-20 relative">
@@ -324,7 +334,10 @@ export default function ScheduleMaster() {
                                         {time}
                                     </td>
                                     {days.map(day => {
-                                        let schedule = currentViewData.find((s: any) => (s.day === day || s.dayOfWeek === day) && s.startTime === time)
+                                        let schedule = currentViewData.find((s: any) => 
+                                            ((s.day || s.dayOfWeek || "").toLowerCase() === day.toLowerCase()) && 
+                                            s.startTime === time
+                                        )
 
                                         // If Exam Pulse is on, hide regular slots
                                         if (showExamsOnly && schedule?.type === 'regular') {

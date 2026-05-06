@@ -148,6 +148,12 @@ const teacherNavItems: NavItem[] = [
         activeColor: "sky",
     },
     {
+        title: "Academic Timetable",
+        url: "/dashboard/tutor/timetable",
+        icon: CalendarDays,
+        activeColor: "sky",
+    },
+    {
         title: "Earnings",
         url: "/dashboard/tutor/earnings",
         icon: DollarSign,

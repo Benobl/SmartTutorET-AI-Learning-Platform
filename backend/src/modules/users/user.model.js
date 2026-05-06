@@ -50,6 +50,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["Natural Science", "Social Science"],
     },
+    section: {
+      type: String,
+      default: "Section A",
+    },
     // Additional fields for tutor onboarding/application
     phone: String,
     subjects: [String],
