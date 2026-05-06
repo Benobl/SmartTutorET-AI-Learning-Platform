@@ -6,7 +6,7 @@ import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, List
 import { useState, useMemo, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { schedulingApi } from "@/lib/api"
+import { schedulingApi, aiApi } from "@/lib/api"
 
 /**
  * Weekly Timetable page — now featuring a "Personal Study Scheduler"
@@ -121,26 +121,19 @@ function SlotCard({ slot, isStudy = false, onJoin, onDelete }: {
                 )}
             </div>
 
-            <div className="flex items-center gap-4 relative z-10">
-                <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center">
-                        <User className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-slate-50 border-2 border-white flex items-center justify-center">
-                        <CheckCircle className="w-4 h-4 text-indigo-200" />
-                    </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest truncate">
+            <div className="flex flex-col gap-2.5 relative z-10 mt-2">
+                <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
                         {isStudy ? "Self Guided" : slot.tutor}
                     </p>
                 </div>
                 <div className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-[10px] tracking-tight",
+                    "flex items-center gap-2 w-fit px-3 py-1.5 rounded-xl border font-black text-[10px] tracking-tight",
                     isStudy ? "bg-slate-50 border-slate-100 text-slate-500" : "bg-white/40 border-white/60 text-slate-600"
                 )}>
-                    <Clock className="w-3.5 h-3.5" />
-                    {slot.startTime} - {slot.endTime}
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{slot.startTime} - {slot.endTime}</span>
                 </div>
             </div>
 
@@ -173,6 +166,7 @@ export default function StudentTimetable() {
     const [pendingStudy, setPendingStudy] = useState<{ day: string; time: string } | null>(null)
     const [studyDetails, setStudyDetails] = useState({ title: "", category: "Reading", startTime: "", endTime: "" })
     const [loading, setLoading] = useState(true)
+    const [isGenerating, setIsGenerating] = useState(false)
 
     const currentUser = getCurrentUser()
 
@@ -212,7 +206,7 @@ export default function StudentTimetable() {
             }
         }
         fetchSchedule()
-    }, [currentUser])
+    }, [currentUser?.id, currentUser?.grade, currentUser?.section])
 
     const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [activeSlot, setActiveSlot] = useState<TimetableSlot | null>(null)
@@ -233,6 +227,47 @@ export default function StudentTimetable() {
         const dayMatch = DAYS.find(d => d.toLowerCase() === (slot.day || "").toLowerCase())
         if (dayMatch) byDay[dayMatch].push(slot)
     })
+
+    const handleAIGenerateStudyPlan = async () => {
+        if (!currentUser) return
+        try {
+            setIsGenerating(true)
+            const subjects = academicSlots.map(s => s.course)
+            const response = await aiApi.generateStudyPlan({
+                grade: currentUser.grade || "9",
+                subjects: subjects.length > 0 ? subjects : ["Mathematics", "Physics", "English", "Biology"]
+            })
+            
+            if (response.success && Array.isArray(response.data)) {
+                const aiSlots: TimetableSlot[] = response.data.map((item: any, idx: number) => ({
+                    id: `ai-study-${Date.now()}-${idx}`,
+                    course: item.title,
+                    code: item.category.toUpperCase(),
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    day: item.dayOfWeek,
+                    room: item.category,
+                    tutor: "AI Optimized",
+                    color: "indigo"
+                }))
+                
+                setStudySlots(prev => [...prev, ...aiSlots])
+                toast({
+                    title: "Smart Plan Generated! 🚀",
+                    description: `Gemini has added ${aiSlots.length} optimized study sessions to your week.`
+                })
+            }
+        } catch (error) {
+            console.error("AI Study Plan failed:", error)
+            toast({
+                title: "AI Generation Failed",
+                description: "Could not connect to the pedagogical engine.",
+                variant: "destructive"
+            })
+        } finally {
+            setIsGenerating(false)
+        }
+    }
 
     const handleAddStudyTrigger = (day: string, time: string) => {
         if (viewMode !== "study") return
@@ -405,6 +440,16 @@ export default function StudentTimetable() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {viewMode === "study" && (
+                        <Button 
+                            onClick={handleAIGenerateStudyPlan}
+                            disabled={isGenerating}
+                            className="h-16 px-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[28px] font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform"
+                        >
+                            {isGenerating ? <Activity className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 text-amber-300" />}
+                            {isGenerating ? "Optimizing..." : "Generate Smart Plan"}
+                        </Button>
+                    )}
                     <Button className="h-16 px-10 bg-slate-900 text-white rounded-[28px] font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform">
                         <Download className="w-5 h-5 text-sky-400" />
                         Export Agenda

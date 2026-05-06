@@ -18,5 +18,6 @@ router.post("/course-outline", verifyToken, AIController.getCourseOutline);
 router.post("/resource-suggestions", verifyToken, AIController.getSuggestions);
 router.post("/generate-grade-curriculum", verifyToken, AIController.generateGradeCurriculum);
 router.post("/generate-grade-schedule", verifyToken, AIController.generateGradeSchedule);
+router.post("/generate-study-plan", verifyToken, AIController.generateStudyPlan);
 
 export default router;

@@ -209,6 +209,10 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify({ grade, stream, subjects })
     }),
+    generateStudyPlan: (data: any) => fetchWithAuth("/ai/generate-study-plan", {
+        method: "POST",
+        body: JSON.stringify(data)
+    })
 };
 
 export const userApi = {

@@ -223,4 +223,64 @@ Format your response in a clear, structured way using markdown formatting when h
         
         return fallbackSchedule;
     }
+
+    static async generateStudyPlan(grade, subjects) {
+        const modelsToTry = [
+            "models/gemini-2.5-flash",
+            "models/gemini-2.0-flash",
+            "models/gemini-1.5-flash",
+            "models/gemini-2.5-pro"
+        ];
+        
+        const subjectList = Array.isArray(subjects) ? subjects.map(s => s.title || s.name || s).join(", ") : subjects;
+        
+        const prompt = `Act as an expert Educational Psychologist. Create a personalized, highly effective weekly after-school Study Plan (Monday to Friday) for a Grade ${grade} student.
+        
+        Current Subjects: ${subjectList}.
+        
+        CRITICAL RULES:
+        1. NO CONFLICTS: Academic school hours are 08:30 to 15:00. DO NOT schedule any study sessions during this time.
+        2. TIMING: Only schedule sessions in the late afternoon or evening (e.g., 16:00-17:00, 18:00-19:00, 20:00-21:00).
+        3. DURATION: Each session should be exactly 1 hour long.
+        4. CATEGORIES: Each session must be assigned one of the following exact categories: "Reading", "Homework", "Question Practice", or "Review".
+        5. QUANTITY: Generate exactly 2 study sessions per day (Total: 10 sessions for the week).
+        6. PEDAGOGY: Mix subjects to prevent burnout. Do not schedule the same subject twice in one day.
+        
+        Return ONLY a JSON array of objects with this exact schema:
+        [
+          {
+            "dayOfWeek": "Monday",
+            "startTime": "16:00",
+            "endTime": "17:00",
+            "title": "Subject Name",
+            "category": "Reading"
+          }
+        ]`;
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`📡 Attempting study plan generation with model: ${modelName}...`);
+                const model = getGenAI().getGenerativeModel({ 
+                    model: modelName, 
+                    generationConfig: { response_mime_type: "application/json" } 
+                });
+                
+                const result = await model.generateContent(prompt);
+                console.log(`✅ Successfully generated study plan using ${modelName}`);
+                return JSON.parse(result.response.text());
+            } catch (error) {
+                console.warn(`⚠️ Model ${modelName} failed for study plan generation:`, error.message);
+            }
+        }
+        
+        // Static fallback
+        return [
+            { dayOfWeek: "Monday", startTime: "16:00", endTime: "17:00", title: "Mathematics", category: "Question Practice" },
+            { dayOfWeek: "Monday", startTime: "18:00", endTime: "19:00", title: "Physics", category: "Review" },
+            { dayOfWeek: "Tuesday", startTime: "16:00", endTime: "17:00", title: "Chemistry", category: "Homework" },
+            { dayOfWeek: "Tuesday", startTime: "18:00", endTime: "19:00", title: "Biology", category: "Reading" },
+            { dayOfWeek: "Wednesday", startTime: "16:00", endTime: "17:00", title: "English", category: "Reading" },
+            { dayOfWeek: "Wednesday", startTime: "18:00", endTime: "19:00", title: "Mathematics", category: "Review" }
+        ];
+    }
 }

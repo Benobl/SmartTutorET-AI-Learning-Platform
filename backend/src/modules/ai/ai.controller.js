@@ -54,4 +54,14 @@ export class AIController {
             next(error);
         }
     }
+
+    static async generateStudyPlan(req, res, next) {
+        try {
+            const { grade, subjects } = req.body;
+            const plan = await AIService.generateStudyPlan(grade, subjects);
+            res.json({ success: true, data: plan });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
