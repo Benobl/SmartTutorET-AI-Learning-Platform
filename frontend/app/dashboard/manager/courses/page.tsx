@@ -18,7 +18,13 @@ import {
     CheckCircle2,
     Clock,
     Sparkles,
-    Zap
+    Zap,
+    Eye,
+    ArrowRight,
+    FileText,
+    TrendingDown,
+    TrendingUp,
+    ListPlus
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,10 +38,18 @@ import {
     DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import { getCourses, addCourse, updateCourse, deleteCourse, exportToPDF, generateGradeCurriculum } from "@/lib/manager-utils"
 import { toast } from "sonner"
 import { courseApi, adminApi } from "@/lib/api"
-import { cn } from "@/lib/utils"
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api').replace(/\/api$/, '')
+
+const getFileUrl = (path?: string) => {
+    if (!path) return ""
+    if (path.startsWith('http')) return path
+    return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
+}
 
 export default function CourseManagement() {
     const [searchQuery, setSearchQuery] = useState("")
@@ -185,6 +199,8 @@ export default function CourseManagement() {
     }
 
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+    const [selectedCourseForReview, setSelectedCourseForReview] = useState<any>(null)
     const [rejectionFeedback, setRejectionFeedback] = useState("")
     const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
 
@@ -232,13 +248,22 @@ export default function CourseManagement() {
         (c.code || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
 
+    const appendFeedback = (text: string) => {
+        setRejectionFeedback(prev => prev ? `${prev}. ${text}` : text)
+    }
+
+    const openReview = (course: any) => {
+        setSelectedCourseForReview(course)
+        setIsReviewModalOpen(true)
+    }
+
     return (
         <div className="space-y-10 animate-in fade-in duration-500 pb-20">
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 px-1">
-                <div className="space-y-2">
-                    <h1 className="text-4xl font-black text-slate-800 tracking-tight">Curriculum <span className="text-blue-500">Registry</span></h1>
-                    <p className="text-slate-400 font-medium">Standardize and audit institutional learning paths.</p>
+                <div className="space-y-1">
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Academic <span className="text-blue-600">Governance</span></h1>
+                    <p className="text-slate-500 font-medium text-sm">Review, audit, and authorize institutional curriculum frameworks.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="inline-flex p-1.5 bg-slate-100 rounded-[24px] border border-slate-200 shadow-inner mr-4">
@@ -303,12 +328,15 @@ export default function CourseManagement() {
             </div>
 
             {/* Course Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredCourses.length > 0 ? (
                     filteredCourses.map((course, index) => (
-                        <Card key={course._id || course.id || index} className="bg-white border-slate-100 rounded-[40px] overflow-hidden hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 border shadow-sm group relative">
-                            {/* Decorative Corner Circle */}
-                            <div className="absolute -top-6 -right-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all" />
+                        <Card key={course._id || course.id || index} className="bg-white border-slate-100 rounded-[32px] overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 border shadow-sm group relative flex flex-col">
+                            {/* Status Indicator Bar */}
+                            <div className={cn(
+                                "h-1.5 w-full",
+                                activeView === "pending" ? "bg-amber-400" : "bg-blue-500"
+                            )} />
 
                             <CardContent className="p-8 space-y-8 relative z-10">
                                 <div className="space-y-4">
@@ -329,16 +357,14 @@ export default function CourseManagement() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-50 flex flex-col gap-1 group-hover:bg-white group-hover:border-blue-100 transition-all">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Students</span>
-                                        <p className="text-xl font-black text-slate-800">{course.studentCount}</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 flex flex-col gap-1">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Enrollment</span>
+                                        <p className="text-lg font-black text-slate-900">{course.studentCount || 0}</p>
                                     </div>
-                                    <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-50 flex flex-col gap-1 group-hover:bg-white group-hover:border-blue-100 transition-all">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Status</span>
-                                        <div className="flex items-center gap-2 text-[11px] font-black uppercase text-blue-500">
-                                            <CheckCircle2 className="w-3.5 h-3.5" /> Staffed
-                                        </div>
+                                    <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 flex flex-col gap-1">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Price Point</span>
+                                        <p className="text-lg font-black text-blue-600">{course.price || 0} <span className="text-[10px] text-slate-400">ETB</span></p>
                                     </div>
                                 </div>
 
@@ -368,44 +394,36 @@ export default function CourseManagement() {
                                     </div>
                                 </div>
 
-                                 <div className="flex items-center gap-3 pt-2">
+                                 <div className="flex flex-col gap-3 pt-4">
                                      {activeView === "pending" ? (
-                                         <>
-                                             <Button
-                                                 onClick={() => handleApprove(course._id || course.id)}
-                                                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all"
-                                             >
-                                                 Approve Path
-                                             </Button>
-                                             <Button
-                                                 onClick={() => openRejectModal(course._id || course.id)}
-                                                 className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest border border-rose-100 transition-all"
-                                             >
-                                                 Reject
-                                             </Button>
-                                         </>
+                                         <Button
+                                             onClick={() => openReview(course)}
+                                             className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/10"
+                                         >
+                                             <Eye className="w-4 h-4" /> Review Framework
+                                         </Button>
                                      ) : (
-                                         <>
+                                         <div className="flex gap-2">
                                              <Button
                                                  onClick={() => openEdit(course)}
-                                                 className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-14 border border-slate-100 text-[11px] uppercase tracking-widest transition-all"
+                                                 className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-12 border border-slate-200 text-[10px] uppercase tracking-widest transition-all"
                                              >
-                                                 Modify Path
+                                                 Edit
                                              </Button>
                                              <Button
                                                  variant="ghost"
                                                  onClick={() => handleDelete(course._id || course.id)}
-                                                 className="bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-400 rounded-2xl h-14 w-14 border border-rose-100/50 transition-all"
+                                                 className="bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-400 rounded-2xl h-12 w-12 border border-rose-100/50 transition-all flex items-center justify-center"
                                              >
-                                                 <Trash2 className="w-5 h-5" />
+                                                 <Trash2 className="w-4 h-4" />
                                              </Button>
-                                         </>
+                                         </div>
                                      )}
                                  </div>
                                  
                                  {course.syllabusUrl && (
                                      <a 
-                                         href={course.syllabusUrl} 
+                                         href={getFileUrl(course.syllabusUrl)} 
                                          target="_blank" 
                                          rel="noopener noreferrer"
                                          className="flex items-center justify-center gap-2 text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-700 transition-colors pt-2"
@@ -597,7 +615,150 @@ export default function CourseManagement() {
                                     {editingCourse ? "Update Standards" : "Finalize Archive"}
                                 </Button>
                             </div>
-                        </form>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Review Framework Modal [NEW] */}
+            <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+                <DialogContent className="sm:max-w-[700px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl flex flex-col max-h-[90vh]">
+                    <div className="p-8 bg-slate-900 text-white flex-shrink-0">
+                        <div className="flex items-center justify-between mb-4">
+                            <Badge className="bg-blue-500 text-white border-none text-[9px] uppercase font-black px-3 py-1">Framework Audit</Badge>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Submitted: {selectedCourseForReview && new Date(selectedCourseForReview.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="text-3xl font-black leading-tight">
+                                {selectedCourseForReview?.title || selectedCourseForReview?.name}
+                            </DialogTitle>
+                            <div className="flex items-center gap-4 mt-4">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10">
+                                    <User className="w-4 h-4 text-blue-400" />
+                                    <span className="text-[11px] font-bold text-slate-300">{selectedCourseForReview?.tutor?.name || "Anonymous Tutor"}</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10">
+                                    <GraduationCap className="w-4 h-4 text-emerald-400" />
+                                    <span className="text-[11px] font-bold text-slate-300">Grade {selectedCourseForReview?.grade} • {selectedCourseForReview?.stream}</span>
+                                </div>
+                            </div>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                        {/* Summary & Price */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proposed Tuition Fee</Label>
+                                <div className="flex items-end gap-2">
+                                    <span className="text-3xl font-black text-slate-900">{selectedCourseForReview?.price || 0}</span>
+                                    <span className="text-sm font-black text-slate-400 mb-1">ETB</span>
+                                </div>
+                                <div className="pt-2 flex gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-8 rounded-lg text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:text-blue-600"
+                                        onClick={() => {
+                                            appendFeedback("Please decrease the price by 10-20%")
+                                            openRejectModal(selectedCourseForReview._id || selectedCourseForReview.id)
+                                        }}
+                                    >
+                                        <TrendingDown className="w-3 h-3 mr-1" /> Decrease
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-8 rounded-lg text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:text-emerald-600"
+                                        onClick={() => {
+                                            appendFeedback("Price seems low for this content volume. Consider increasing it")
+                                            openRejectModal(selectedCourseForReview._id || selectedCourseForReview.id)
+                                        }}
+                                    >
+                                        <TrendingUp className="w-3 h-3 mr-1" /> Increase
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 flex flex-col justify-center items-center text-center space-y-3">
+                                <FileText className="w-8 h-8 text-blue-500" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Syllabus Outline</p>
+                                    <p className="text-[11px] font-bold text-slate-500 leading-tight">Detailed educational framework (PDF)</p>
+                                </div>
+                                {selectedCourseForReview?.syllabusUrl ? (
+                                    <Button 
+                                        asChild 
+                                        className="w-full bg-white hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-200 rounded-xl font-black text-[10px] uppercase h-10 tracking-widest transition-all"
+                                    >
+                                        <a href={getFileUrl(selectedCourseForReview.syllabusUrl)} target="_blank" rel="noopener noreferrer">
+                                            <Download className="w-3 h-3 mr-2" /> Open Outline
+                                        </a>
+                                    </Button>
+                                ) : (
+                                    <span className="text-[10px] font-black text-slate-400 uppercase italic">No File Provided</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Roadmap Content */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 flex items-center gap-2">
+                                    <ListPlus className="w-4 h-4 text-blue-500" /> Curriculum Chapters
+                                </Label>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50"
+                                    onClick={() => appendFeedback("The roadmap is too sparse. Please add more specific chapters or sub-topics")}
+                                >
+                                    Suggest Content Additions
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-6 rounded-3xl bg-white border border-slate-100 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                        <span className="text-[10px] font-black uppercase text-blue-600">Semester 1</span>
+                                        <Badge className="bg-blue-50 text-blue-600 border-none text-[8px] font-black uppercase">{selectedCourseForReview?.roadmap?.semester1?.midTermDate || "TBD"} Mid-term</Badge>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-700 leading-relaxed min-h-[60px]">
+                                        {selectedCourseForReview?.roadmap?.semester1?.chapters || "No chapters listed for this semester."}
+                                    </p>
+                                </div>
+                                <div className="p-6 rounded-3xl bg-white border border-slate-100 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                                        <span className="text-[10px] font-black uppercase text-indigo-600">Semester 2</span>
+                                        <Badge className="bg-indigo-50 text-indigo-600 border-none text-[8px] font-black uppercase">{selectedCourseForReview?.roadmap?.semester2?.midTermDate || "TBD"} Mid-term</Badge>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-700 leading-relaxed min-h-[60px]">
+                                        {selectedCourseForReview?.roadmap?.semester2?.chapters || "No chapters listed for this semester."}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-8 border-t border-slate-100 flex gap-4 bg-slate-50/50 flex-shrink-0">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsReviewModalOpen(false)
+                                openRejectModal(selectedCourseForReview._id || selectedCourseForReview.id)
+                            }}
+                            className="flex-1 rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100 transition-all"
+                        >
+                            Request Revisions
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setIsReviewModalOpen(false)
+                                handleApprove(selectedCourseForReview._id || selectedCourseForReview.id)
+                            }}
+                            className="flex-[1.5] bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            <CheckCircle2 className="w-5 h-5" /> Authorize Framework
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -679,6 +840,7 @@ export default function CourseManagement() {
                         </Button>
                     </div>
                 </DialogContent>
+            </Dialog>
             {/* Rejection Feedback Modal */}
             <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
                 <DialogContent className="sm:max-w-[500px] bg-white rounded-[40px] p-10 border-0 shadow-3xl">
@@ -687,11 +849,46 @@ export default function CourseManagement() {
                         <p className="text-slate-400 font-medium text-sm mt-2"> Provide constructive feedback to the tutor on how to improve this course framework.</p>
                     </DialogHeader>
                     <div className="space-y-6 py-8">
+                        <div className="flex flex-wrap gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-9 rounded-xl text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                onClick={() => appendFeedback("Please decrease the price of the course")}
+                            >
+                                <TrendingDown className="w-3.5 h-3.5 mr-1.5" /> Decrease Price
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-9 rounded-xl text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
+                                onClick={() => appendFeedback("The price seems low, please increase it")}
+                            >
+                                <TrendingUp className="w-3.5 h-3.5 mr-1.5" /> Increase Price
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-9 rounded-xl text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition-all"
+                                onClick={() => appendFeedback("Please add more detailed content/chapters")}
+                            >
+                                <ListPlus className="w-3.5 h-3.5 mr-1.5" /> Add Contents
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-9 rounded-xl text-[9px] font-black uppercase tracking-widest border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                onClick={() => setRejectionFeedback("The framework is not up to our institutional standards. Please completely re-evaluate the roadmap and goals.")}
+                            >
+                                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Reject Totally
+                            </Button>
+                        </div>
+
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Manager Recommendations</Label>
                             <textarea
-                                className="w-full bg-slate-50 border border-slate-100 min-h-[150px] rounded-2xl focus:ring-rose-500/30 text-slate-800 font-bold p-4 text-sm"
-                                placeholder="e.g. Please decrease the price or add more detailed chapters in Semester 1..."
+                                className="w-full bg-slate-50 border border-slate-200 min-h-[120px] rounded-2xl focus:ring-rose-500/30 text-slate-800 font-bold p-4 text-sm"
+                                placeholder="Details on required revisions..."
                                 value={rejectionFeedback}
                                 onChange={(e) => setRejectionFeedback(e.target.value)}
                             />

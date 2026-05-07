@@ -135,7 +135,7 @@ export const courseApi = {
     }),
     update: (id: string, data: any) => fetchWithAuth(`/courses/${id}`, {
         method: "PATCH",
-        body: JSON.stringify(data)
+        body: data instanceof FormData ? data : JSON.stringify(data)
     }),
     delete: (id: string) => fetchWithAuth(`/courses/${id}`, {
         method: "DELETE"

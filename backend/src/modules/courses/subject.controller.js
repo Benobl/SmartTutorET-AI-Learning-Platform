@@ -27,8 +27,14 @@ export class SubjectController {
 
     static async update(req, res, next) {
         try {
-            const subject = await SubjectService.updateSubject(req.params.subjectId, req.body);
-            res.json({ success: true, message: "Subject updated successfully", data: subject });
+            const updateData = { ...req.body };
+            if (req.file) {
+                updateData.syllabusUrl = `/uploads/syllabus/${req.file.filename}`;
+                // When modifying a rejected framework, reset status to pending for re-review
+                updateData.status = "pending";
+            }
+            const subject = await SubjectService.updateSubject(req.params.subjectId, updateData);
+            res.json({ success: true, message: "Subject framework updated and resubmitted", data: subject });
         } catch (error) {
             next(error);
         }

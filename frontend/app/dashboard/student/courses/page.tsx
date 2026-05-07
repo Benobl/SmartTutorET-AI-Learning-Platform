@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { courseApi } from "@/lib/api"
 import { exportToPDF } from "@/lib/manager-utils"
+import { getCurrentUser } from "@/lib/auth-utils"
 
 // ── Static Constants ──────────────────────────────────────────
 const CATEGORIES = ["All", "Science", "Mathematics", "Humanities", "Language", "National Exam Prep"]
@@ -110,9 +111,12 @@ const CATALOG_COURSES = [
 // ── Main Component ────────────────────────────────────────────
 export default function StudentCourses() {
     const router = useRouter()
+    const currentUser = getCurrentUser()
+    const initialGrade = currentUser?.grade ? `Grade ${currentUser.grade}` : "All Grades"
+
     const [activeTab, setActiveTab] = useState<"enrolled" | "catalog">("enrolled")
     const [activeCategory, setActiveCategory] = useState("All")
-    const [activeGrade, setActiveGrade] = useState("All Grades")
+    const [activeGrade, setActiveGrade] = useState(initialGrade)
     const [activeSemester, setActiveSemester] = useState("All Semesters")
     const [sortBy, setSortBy] = useState("recent")
     const [searchQuery, setSearchQuery] = useState("")
@@ -136,7 +140,7 @@ export default function StudentCourses() {
                 if (all.status === "fulfilled") {
                     setCatalogCourses(all.value.data.map((c: any) => ({
                         id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
-                        price: c.price === 0 ? "Free" : "Premium", rating: 4.8,
+                        price: c.price === 0 ? "Free" : `${c.price} ETB`, rating: 4.8,
                         students: c.students?.length || 0,
                         image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
                         tags: [c.category || "General", `Grade ${c.grade || 12}`],
@@ -213,7 +217,7 @@ export default function StudentCourses() {
     }
 
     const handleEnroll = async (course: any) => {
-        if (course.price === "Premium") {
+        if (course.price !== "Free") {
             toast({ title: "Premium Course", description: `Redirecting to enrollment for ${course.name}...`, duration: 2000 })
             router.push(`/dashboard/student/courses/${course.id}?enroll=premium`)
             return
@@ -579,10 +583,10 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
             </div>
 
             {/* Content */}
-            <div className="p-8 flex-1 flex flex-col">
-                <div className="mb-5">
+            <div className="p-8 flex-1 flex flex-col min-w-0">
+                <div className="mb-5 min-w-0">
                     <h4 className="text-xl font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug mb-1">{course.name}</h4>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{course.tutor}</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest truncate">{course.tutor}</p>
                 </div>
 
                 {/* Enrolled: Progress */}

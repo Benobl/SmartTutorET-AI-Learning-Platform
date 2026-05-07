@@ -8,7 +8,7 @@ import { uploadSyllabus } from "../../middleware/upload.middleware.js";
 const router = express.Router();
 
 router.post("/", verifyToken, allowRoles("tutor", "admin", "manager"), uploadSyllabus.single("syllabus"), SubjectController.createSubject);
-router.patch("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.update);
+router.patch("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), uploadSyllabus.single("syllabus"), SubjectController.update);
 router.delete("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.delete);
 router.get("/", verifyToken, SubjectController.getAll);
 router.get("/recommendations", verifyToken, SubjectController.getRecommendations);

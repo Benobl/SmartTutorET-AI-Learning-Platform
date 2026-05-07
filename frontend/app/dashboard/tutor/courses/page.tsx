@@ -6,12 +6,11 @@ import {
     MoreVertical, Users, Clock, Video,
     Sparkles, ArrowUpRight, GraduationCap,
     LayoutGrid, List, CheckCircle2, ChevronRight,
-    PenTool, Trash2, Activity, Download
+    PenTool, Trash2, Activity, Download, AlertCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { tutorCourses } from "@/lib/mock-data"
 import {
     Dialog, DialogContent, DialogHeader,
     DialogTitle, DialogTrigger, DialogFooter
@@ -21,7 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { courseApi } from "@/lib/api"
 
 export default function TeacherCourses() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -60,17 +59,18 @@ export default function TeacherCourses() {
         isPremium: false,
         price: 0
     })
+    const [editingCourseId, setEditingCourseId] = useState<string | null>(null)
 
     const [syllabusFile, setSyllabusFile] = useState<File | null>(null)
 
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleCreateCourse = async () => {
+        console.log("[TutorCourses] Attempting to create/update course:", newCourse);
         if (!newCourse.name) {
             toast({ title: "Title Required", description: "Please provide a course title.", variant: "destructive" })
             return
         }
-        if (!newCourse.grade) return
 
         try {
             setIsSubmitting(true)
@@ -85,24 +85,46 @@ export default function TeacherCourses() {
                 formData.append("syllabus", syllabusFile)
             }
 
-            await courseApi.create(formData)
+            if (editingCourseId) {
+                await courseApi.update(editingCourseId, formData)
+                toast({
+                    title: "Framework Updated",
+                    description: `Successfully updated ${newCourse.name}. Sent back for review.`,
+                })
+            } else {
+                await courseApi.create(formData)
+                toast({
+                    title: "Course Framework Submitted",
+                    description: `Successfully initialized ${newCourse.name}. Sent to manager for approval.`,
+                })
+            }
+
             setIsCreateModalOpen(false)
+            setEditingCourseId(null)
             setNewCourse({ name: "", grade: "9", semester: "1", isPremium: false, price: 0 })
             setSyllabusFile(null)
-            toast({
-                title: "Course Framework Submitted",
-                description: `Successfully initialized ${newCourse.name}. Sent to manager for approval.`,
-            })
             loadCourses()
         } catch (error: any) {
             toast({
-                title: "Creation Error",
+                title: "Operation Failed",
                 description: error.message,
                 variant: "destructive"
             })
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    const openEditModal = (course: any) => {
+        setEditingCourseId(course._id || course.id)
+        setNewCourse({
+            name: course.title || course.name,
+            grade: String(course.grade),
+            semester: String(course.semester),
+            isPremium: course.isPremium || false,
+            price: course.price || 0
+        })
+        setIsCreateModalOpen(true)
     }
 
     const filteredCourses = courses.filter(course => {
@@ -169,12 +191,16 @@ export default function TeacherCourses() {
                                     <Plus className="w-4 h-4" /> Create New Course
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px] rounded-[32px] border-slate-100 bg-white p-10">
-                                <DialogHeader>
-                                    <DialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900">New Academic Course</DialogTitle>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Ethiopian Curriculum Standards</p>
-                                </DialogHeader>
-                                <div className="space-y-6 py-8">
+                            <DialogContent className="sm:max-w-[480px] rounded-[28px] border-slate-100 bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
+                                <div className="px-8 pt-8 pb-4 border-b border-slate-50 flex-shrink-0">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
+                                            {editingCourseId ? "Modify Framework" : "New Academic Course"}
+                                        </DialogTitle>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ethiopian Curriculum Standards</p>
+                                    </DialogHeader>
+                                </div>
+                                <div className="overflow-y-auto flex-1 px-8 py-6">
                                     <div className="space-y-3">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course Title</Label>
                                         <Input
@@ -263,17 +289,17 @@ export default function TeacherCourses() {
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">Upload Syllabus/Outline (PDF)</p>
                                             </>
                                         )}
-                                    </div>
                                 </div>
-                                <DialogFooter className="px-6 pb-6 pt-0">
+                                </div>
+                                <div className="px-8 pb-8 pt-4 border-t border-slate-50 flex-shrink-0">
                                     <Button 
                                         disabled={isSubmitting}
                                         onClick={handleCreateCourse} 
                                         className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-500/10 disabled:opacity-50"
                                     >
-                                        {isSubmitting ? "Submitting Framework..." : "Submit for Manager Approval"}
+                                        {isSubmitting ? "Processing..." : editingCourseId ? "Update Framework" : "Submit for Manager Approval"}
                                     </Button>
-                                </DialogFooter>
+                                </div>
                             </DialogContent>
                         </Dialog>
                     </div>
@@ -333,106 +359,97 @@ export default function TeacherCourses() {
                 )}>
                     {filteredCourses.map(course => (
                         <div
-                            key={course._id}
+                            key={course._id || course.id}
                             className={cn(
-                                "group bg-white rounded-[48px] border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-700 relative overflow-hidden",
-                                viewMode === "list" ? "p-6 lg:p-10 flex flex-col lg:flex-row items-center gap-8" : "p-10"
+                                "group bg-white rounded-[48px] border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-700 relative overflow-hidden flex flex-col",
+                                viewMode === "list" ? "p-6 lg:p-10 lg:flex-row items-center gap-8" : "p-10"
                             )}
                         >
-                        <div className="absolute top-0 right-0 p-8 flex flex-col items-end gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-500 text-[8px] font-black uppercase tracking-widest border border-sky-100">Grade {course.grade}</span>
-                            {course.status === "pending" && (
-                                <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100 flex items-center gap-1.5 shadow-sm">
-                                    <Clock className="w-3 h-3" /> Under Review
-                                </span>
-                            )}
-                            {course.status === "approved" && (
-                                <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5 shadow-sm">
-                                    <CheckCircle2 className="w-3 h-3" /> Approved
-                                </span>
-                            )}
-                            {course.status === "rejected" && (
-                                <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest border border-rose-100 flex items-center gap-1.5 shadow-sm">
-                                    <Activity className="w-3 h-3" /> Action Required
-                                </span>
-                            )}
-                        </div>
-
-                        <div className={cn("space-y-6 relative z-10 w-full", viewMode === "list" && "flex-1")}>
-                            <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 rounded-[28px] bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
-                                    <BookOpen className="w-8 h-8" />
-                                </div>
-                                 <div>
-                                     <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors">{course.title}</h3>
-                                     <div className="flex items-center gap-3 mt-1">
-                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                             <Users className="w-3.5 h-3.5" /> {course.students?.length || 0} Students
-                                         </p>
-                                         <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semester {course.semester}</p>
-                                     </div>
-                                 </div>
-                             </div>
- 
-                             {course.status === "rejected" && course.managerFeedback && (
-                                 <div className="p-6 rounded-3xl bg-rose-50/50 border border-rose-100/50 animate-in fade-in slide-in-from-top-2">
-                                     <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                         <PenTool className="w-3.5 h-3.5" /> Manager Feedback
-                                     </p>
-                                     <p className="text-xs text-slate-600 font-medium leading-relaxed italic">"{course.managerFeedback}"</p>
-                                 </div>
-                             )}
-
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <Activity className="w-3.5 h-3.5 text-sky-400" />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Avg Pulse</span>
-                                    </div>
-                                    <p className="text-sm font-black text-slate-900">72% Active</p>
-                                </div>
-                                <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Exercises</span>
-                                    </div>
-                                    <p className="text-sm font-black text-slate-900">24 Ready</p>
+                            {/* Header: Status Badges (Inline) */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-500 text-[8px] font-black uppercase tracking-widest border border-sky-100">Grade {course.grade}</span>
+                                    {course.status === "pending" && (
+                                        <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100 flex items-center gap-1.5 shadow-sm">
+                                            <Clock className="w-3 h-3" /> Reviewing
+                                        </span>
+                                    )}
+                                    {course.status === "approved" && (
+                                        <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+                                            <CheckCircle2 className="w-3 h-3" /> Approved
+                                        </span>
+                                    )}
+                                    {course.status === "rejected" && (
+                                        <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest border border-rose-100 flex items-center gap-1.5 shadow-sm">
+                                            <Activity className="w-3 h-3" /> Rejected
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                                <div className="flex -space-x-3">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-9 h-9 rounded-xl bg-slate-50 border-2 border-white flex items-center justify-center shadow-sm">
-                                            <Users className="w-4 h-4 text-slate-300" />
+                            <div className={cn("space-y-6 relative z-10 w-full", viewMode === "list" && "flex-1")}>
+                                <div className="flex items-center gap-5">
+                                    <div className="w-16 h-16 rounded-[28px] bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm flex-shrink-0">
+                                        <BookOpen className="w-8 h-8" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors line-clamp-2">{course.title || course.name}</h3>
+                                        <div className="flex items-center gap-3 mt-1.5">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                <Users className="w-3.5 h-3.5" /> {course.students?.length || 0}
+                                            </p>
+                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sem {course.semester}</p>
                                         </div>
-                                    ))}
-                                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-white text-[9px] font-black flex items-center justify-center border-2 border-white">
-                                        +42
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 w-full">
-                                    <Button size="sm" variant="outline" className="h-12 w-12 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all flex-shrink-0">
-                                        <PenTool className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                        onClick={() => {
-                                            setSelectedCourseForModules(course)
-                                            setIsModuleManagerOpen(true)
-                                        }}
-                                        className="flex-1 h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-sky-500/20"
-                                    >
-                                        Manage Content
-                                    </Button>
+
+                                {/* Manager Feedback for Rejected Courses */}
+                                {course.status === "rejected" && course.managerFeedback && (
+                                    <div className="p-5 rounded-3xl bg-rose-50/50 border border-rose-100/50 animate-in fade-in slide-in-from-top-2">
+                                        <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                            <PenTool className="w-3.5 h-3.5" /> Manager Feedback
+                                        </p>
+                                        <p className="text-xs text-slate-600 font-medium leading-relaxed italic">"{course.managerFeedback}"</p>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                    {course.status === "rejected" ? (
+                                        <Button
+                                            onClick={() => openEditModal(course)}
+                                            className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-500/20"
+                                        >
+                                            <PenTool className="w-4 h-4" /> Modify Framework
+                                        </Button>
+                                    ) : (
+                                        <>
+                                            <Button
+                                                onClick={() => {
+                                                    setSelectedCourseForModules(course)
+                                                    setIsModuleManagerOpen(true)
+                                                }}
+                                                className="flex-1 h-12 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-sky-500/20"
+                                            >
+                                                Manage Content
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => openEditModal(course)}
+                                                className="h-12 w-12 rounded-2xl p-0 border-slate-200 text-slate-400 hover:text-sky-600 hover:border-sky-100 transition-all flex items-center justify-center shrink-0"
+                                            >
+                                                <PenTool className="w-4 h-4" />
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Background Decoration */}
-                        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-sky-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    </div>
-                ))}
+                            {/* Background Decoration */}
+                            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-sky-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        </div>
+                    ))}
                 </div>
             )}
 
