@@ -14,9 +14,18 @@ export class PaymentController {
 
     static async verify(req, res, next) {
         try {
-            const { transactionId } = req.params;
-            const payment = await PaymentService.verifyPayment(transactionId);
-            res.json({ success: true, message: "Payment verified", data: payment });
+            const { tx_ref } = req.params;
+            const payment = await PaymentService.verifyPayment(tx_ref);
+            res.json({ success: true, message: "Payment verified successfully", data: payment });
+        } catch (error) {
+            next(error);
+        }
+    }
+    static async getPayments(req, res, next) {
+        try {
+            const { subjectId } = req.params;
+            const payments = await PaymentService.getSubjectPayments(subjectId);
+            res.json({ success: true, data: payments });
         } catch (error) {
             next(error);
         }

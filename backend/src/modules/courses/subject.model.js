@@ -25,7 +25,16 @@ const subjectSchema = new mongoose.Schema({
         }
     },
     syllabusUrl: { type: String },
-    managerFeedback: { type: String }
+    managerFeedback: { type: String },
+    startDate: { type: Date },
+    isLive: { type: Boolean, default: false },
+    lessons: [{
+        title: { type: String, required: true },
+        duration: { type: String, default: "15 min" },
+        type: { type: String, enum: ["video", "exercise", "quiz"], default: "video" },
+        videoUrl: { type: String },
+        completed: { type: Boolean, default: false }
+    }]
 }, { timestamps: true, collection: "subjects" });
 
 const Subject = mongoose.model("Subject", subjectSchema);

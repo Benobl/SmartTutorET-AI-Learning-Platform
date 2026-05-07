@@ -23,10 +23,16 @@ export class LiveService {
         return session;
     }
 
-    static async endSession(sessionId, hostId) {
+    static async endSession(sessionId, hostId, recordingUrl) {
+        const finalRecordingUrl = recordingUrl || `https://storage.smarttutoret.com/recordings/${sessionId}.mp4`;
+        
         const session = await LiveSession.findOneAndUpdate(
             { _id: sessionId, host: hostId },
-            { isActive: false, endTime: new Date() },
+            { 
+                isActive: false, 
+                endTime: new Date(),
+                recordingUrl: finalRecordingUrl
+            },
             { new: true }
         );
         if (!session) throw new ApiError(404, "Active session not found or you are not the host");

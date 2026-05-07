@@ -142,6 +142,15 @@ export const courseApi = {
     }),
 };
 
+export const paymentApi = {
+    initialize: (data: { amount: number, subjectId: string, method: string }) => 
+        fetchWithAuth("/payments/initialize", {
+            method: "POST",
+            body: JSON.stringify(data)
+        }),
+    verify: (tx_ref: string) => fetchWithAuth(`/payments/verify/${tx_ref}`),
+};
+
 export const groupApi = {
     getAll: () => fetchWithAuth("/groups"),
     getMyGroups: () => fetchWithAuth("/groups/mine"),
@@ -307,13 +316,7 @@ export const adminApi = {
     getStudentProgress: (studentId: string) => fetchWithAuth(`/admin/student-progress/${studentId}`),
 };
 
-export const paymentApi = {
-    initialize: (data: { amount: number, subjectId: string, method: string }) => fetchWithAuth("/payments/initialize", {
-        method: "POST",
-        body: JSON.stringify(data)
-    }),
-    verify: (transactionId: string) => fetchWithAuth(`/payments/verify/${transactionId}`),
-};
+
 
 export const notificationApi = {
     getMine: () => fetchWithAuth("/notifications/mine"),

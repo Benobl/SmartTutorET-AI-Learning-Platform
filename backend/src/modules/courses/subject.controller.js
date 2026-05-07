@@ -143,4 +143,12 @@ export class SubjectController {
             next(error);
         }
     }
+    static async addLesson(req, res, next) {
+        try {
+            const subject = await SubjectService.addLesson(req.params.subjectId, req.body);
+            res.json({ success: true, message: "Lesson added successfully", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

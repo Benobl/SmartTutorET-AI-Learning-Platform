@@ -132,6 +132,16 @@ app.get("/", (req, res) => {
 // Centralized Error Handling
 app.use(errorHandler);
 
+process.on("uncaughtException", (err) => {
+  logger.error("UNCAUGHT EXCEPTION! 💥 Shutting down...", { error: err.message, stack: err.stack });
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (err) => {
+  logger.error("UNHANDLED REJECTION! 💥 Shutting down...", { error: err.message, stack: err.stack });
+  process.exit(1);
+});
+
 // Connect to Database
 await connectDB();
 

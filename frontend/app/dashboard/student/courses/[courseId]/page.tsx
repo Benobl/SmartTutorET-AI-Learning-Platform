@@ -5,15 +5,15 @@ import { useState, useEffect } from "react"
 import {
     ArrowLeft, PlayCircle, Clock, Users, Star, CheckCircle,
     BookOpen, Video, MonitorPlay, Calendar, Zap, Lock,
-    ChevronRight, GraduationCap, Sparkles, BrainCircuit
+    ChevronRight, GraduationCap, Sparkles, BrainCircuit, FileDown,
+    Youtube, Book, ExternalLink, Library
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { courseApi } from "@/lib/api"
+import { courseApi, paymentApi, aiApi } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
-import { PaymentModal } from "@/components/dashboard/courses/payment-modal"
 import { AIQuiz } from "@/components/dashboard/courses/ai-quiz"
 
 
@@ -59,6 +59,14 @@ export default function CourseDetailPage() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
     const [showQuiz, setShowQuiz] = useState(false)
     const [lessons, setLessons] = useState<any[]>(MOCK_LESSONS)
+    const [aiResources, setAiResources] = useState<any>(null)
+    const [isAiLoading, setIsAiLoading] = useState(false)
+    const [currentUser, setCurrentUser] = useState<any>(null)
+
+    useEffect(() => {
+        const userStr = localStorage.getItem("user")
+        if (userStr) setCurrentUser(JSON.parse(userStr))
+    }, [])
 
     useEffect(() => {
         const loadCourse = async () => {
@@ -79,9 +87,10 @@ export default function CourseDetailPage() {
                     progress: 0,
                     lessonsCount: data.lessons?.length || MOCK_LESSONS.length,
                     completed: 0,
-                    priceValue: data.price || 499,
-                    isPremium: data.isPremium || false,
-                    enrolled: data.students?.includes("current-user-id") // Mock check
+                    priceValue: data.price || 0,
+                    isPremium: (data.price > 0) || data.isPremium || false,
+                    syllabusUrl: data.syllabusUrl,
+                    enrolled: data.students?.includes(currentUser?._id) || data.students?.some((s: any) => s._id === currentUser?._id || s === currentUser?._id)
                 }
                 setCourse(courseData)
                 let currentLessons = MOCK_LESSONS
@@ -95,37 +104,77 @@ export default function CourseDetailPage() {
                     const firstIncomplete = currentLessons.find(l => !l.completed) || currentLessons[0]
                     setActiveLesson(firstIncomplete)
                 }
+
+                // Load AI Resources
+                loadAiResources(courseData.name, data.gradeLevel)
             } catch {
                 setCourse({
                     ...MOCK_COURSE,
                     id: courseId,
-                    priceValue: 499,
-                    isPremium: isPremiumEnroll,
-                    enrolled: false
+                    name: "Unknown Course",
                 })
             } finally {
                 setIsLoading(false)
             }
         }
         loadCourse()
-    }, [courseId, isPremiumEnroll, searchParams])
+    }, [courseId, searchParams])
+
+    const loadAiResources = async (subject: string, grade: number) => {
+        setIsAiLoading(true)
+        try {
+            const res = await aiApi.getResourceSuggestions(subject, grade)
+            setAiResources(res.data)
+        } catch (error) {
+            console.error("AI Error:", error)
+        } finally {
+            setIsAiLoading(false)
+        }
+    }
 
 
-    const handleEnroll = async (paymentId?: string) => {
+    const handleEnroll = async () => {
         if (!course) return
-
-        if (course.isPremium && !paymentId) {
-            setIsPaymentModalOpen(true)
+        
+        // Only trigger payment if it's premium AND has a price > 0
+        if (course.isPremium && course.priceValue > 0) {
+            try {
+                setEnrolling(true)
+                const res = await paymentApi.initialize({
+                    amount: course.priceValue,
+                    subjectId: courseId,
+                    method: "chapa"
+                })
+                
+                if (res.data?.checkout_url) {
+                    toast({ title: "Redirecting to Chapa", description: "Opening secure gateway..." })
+                    window.location.href = res.data.checkout_url
+                } else {
+                    throw new Error("Failed to initialize payment gateway")
+                }
+            } catch (error: any) {
+                toast({
+                    title: "Enrollment Error",
+                    description: error.message || "Could not initialize payment.",
+                    variant: "destructive"
+                })
+            } finally {
+                setEnrolling(false)
+            }
             return
         }
 
         setEnrolling(true)
         try {
-            await courseApi.enroll(courseId, paymentId ? { paymentId, provider: "telebir" } : {})
-            toast({ title: "Enrollment Successful!", description: `You are now enrolled in ${course.name}.` })
+            await courseApi.enroll(courseId)
+            toast({ 
+                title: "Enrollment Successful!", 
+                description: `You now have access to ${course.name}.`,
+                className: "bg-emerald-500 text-white border-none"
+            })
             setCourse((prev: any) => ({ ...prev, enrolled: true }))
         } catch (error: any) {
-            toast({ title: "Enrollment Failed", description: error.response?.data?.message || error.message || "Please try again.", variant: "destructive" })
+            toast({ title: "Enrollment Error", description: error.message, variant: "destructive" })
         } finally {
             setEnrolling(false)
         }
@@ -353,10 +402,185 @@ export default function CourseDetailPage() {
                         </div>
                     )}
 
-                    {/* Description */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
-                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">About This Course</h3>
+                    {/* AI Smart Resources (Available before course start) */}
+                    {aiResources && (
+                        <div className="bg-gradient-to-br from-indigo-50/50 to-white rounded-[40px] border border-indigo-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8">
+                                <Sparkles className="w-12 h-12 text-indigo-200/50" />
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest">AI Academic Bridge</span>
+                                        <BrainCircuit className="w-4 h-4 text-indigo-500" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 uppercase italic leading-none">
+                                        Starting Live <span className="text-indigo-600">Soon!</span>
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight max-w-md">
+                                        While we prepare the live classroom, dive into these specific {course?.grade} {course?.name} resources curated just for you.
+                                    </p>
+                                </div>
+                                <div className="bg-white p-4 rounded-3xl border border-indigo-100 shadow-sm flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                                        <Clock className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Status</p>
+                                        <p className="text-[9px] font-bold text-amber-600 uppercase">Class Begins Soon</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* YouTube Multilingual */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Youtube className="w-4 h-4 text-rose-500" /> Specific Video Lectures
+                                        </h4>
+                                        <span className="text-[8px] font-black text-indigo-500 uppercase italic">Grade {course?.grade} Specialized</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {aiResources.videos?.map((vid: any, i: number) => (
+                                            <div 
+                                                key={i}
+                                                onClick={() => window.open(vid.url, '_blank')}
+                                                className="group/vid bg-white p-5 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:shadow-xl transition-all text-left space-y-3 cursor-pointer relative overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 -mr-10 -mt-10 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all" />
+                                                <div className="flex items-center justify-between relative z-10">
+                                                    <span className={cn(
+                                                        "px-2.5 py-1 rounded-lg text-[7px] font-black uppercase tracking-tighter",
+                                                        vid.language === "Amharic" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                                                        vid.language === "Afaan Oromo" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                                                        "bg-sky-50 text-sky-600 border border-sky-100"
+                                                    )}>
+                                                        {vid.language} Version
+                                                    </span>
+                                                    <PlayCircle className="w-4 h-4 text-slate-300 group-hover/vid:text-indigo-500 transition-colors" />
+                                                </div>
+                                                <p className="text-[11px] font-black text-slate-800 line-clamp-2 leading-relaxed group-hover/vid:text-indigo-600 transition-colors uppercase italic relative z-10">{vid.title}</p>
+                                                <div className="flex items-center gap-2 pt-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
+                                                    <span className="text-[7px] font-black text-indigo-500 uppercase tracking-widest">Watch Now →</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Reading Materials */}
+                                <div className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Book className="w-4 h-4 text-indigo-500" /> Digital Library
+                                    </h4>
+                                    <div className="space-y-3">
+                                        {aiResources.books?.map((book: any, i: number) => (
+                                            <div 
+                                                key={i}
+                                                onClick={() => window.open(book.url, '_blank')}
+                                                className="w-full group/book bg-white p-4 rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer"
+                                            >
+                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 group-hover/book:bg-indigo-50 transition-colors">
+                                                    <BookOpen className="w-4 h-4 text-slate-400 group-hover/book:text-indigo-500" />
+                                                </div>
+                                                <div className="text-left min-w-0">
+                                                    <p className="text-[10px] font-black text-slate-800 truncate uppercase">{book.title}</p>
+                                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{book.type}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-1">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">More Books Loading...</p>
+                                            <p className="text-[7px] font-bold text-slate-400 uppercase">Stay tuned, we'll be back!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Resources Section (Manual) */}
+                    <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">About This Course</h3>
+                            {course?.syllabusUrl && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => window.open(course.syllabusUrl, '_blank')}
+                                    className="h-9 px-4 rounded-xl border-sky-100 text-sky-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-sky-50 transition-all"
+                                >
+                                    <FileDown className="w-3.5 h-3.5" /> Download Syllabus
+                                </Button>
+                            )}
+                        </div>
                         <p className="text-slate-500 text-sm leading-relaxed font-medium">{course?.description}</p>
+                    </div>
+
+                    {/* Resources Section */}
+                    <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                                <Library className="w-6 h-6 text-indigo-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none mb-1">Learning Resources</h3>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Curated materials for this subject</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Video Resources */}
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Youtube className="w-4 h-4 text-rose-500" /> Video Lectures
+                                </h4>
+                                <div className="space-y-3">
+                                    {[
+                                        { title: "National Exam Prep Series", provider: "SmartTutorET YouTube", url: "https://youtube.com" },
+                                        { title: "Concept Deep Dive: Unit 4", provider: "Academic Excellence", url: "https://youtube.com" }
+                                    ].map((res, i) => (
+                                        <div 
+                                            key={i}
+                                            onClick={() => window.open(res.url, '_blank')}
+                                            className="w-full group/res bg-slate-50/50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-md transition-all flex items-center justify-between cursor-pointer"
+                                        >
+                                            <div className="text-left">
+                                                <p className="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">{res.title}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.provider}</p>
+                                            </div>
+                                            <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Book Resources */}
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Book className="w-4 h-4 text-sky-500" /> Recommended Books
+                                </h4>
+                                <div className="space-y-3">
+                                    {[
+                                        { title: "Ethiopian Grade 12 Textbook", type: "PDF Reference", url: "#" },
+                                        { title: "Modern Science Encyclopedia", type: "Digital Library", url: "#" }
+                                    ].map((res, i) => (
+                                        <div 
+                                            key={i}
+                                            onClick={() => window.open(res.url, '_blank')}
+                                            className="w-full group/res bg-slate-50/50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-md transition-all flex items-center justify-between cursor-pointer"
+                                        >
+                                            <div className="text-left">
+                                                <p className="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">{res.title}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.type}</p>
+                                            </div>
+                                            <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -409,38 +633,30 @@ export default function CourseDetailPage() {
                                     <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-50">
                                         <BookOpen className="w-5 h-5 text-sky-500" />
                                     </div>
-                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Free Enrollment</h3>
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Free Access</h3>
                                 </div>
-                                <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest bg-sky-50 px-2 py-1 rounded-lg">Open</span>
                             </div>
                             <p className="text-slate-500 text-[11px] font-medium leading-relaxed">
-                                Join this course for free and start your learning journey with our core curriculum.
+                                Join this course for free and start your learning journey with our expert tutors today.
                             </p>
                             <Button
                                 onClick={() => handleEnroll()}
                                 disabled={enrolling}
-                                className="w-full h-12 rounded-xl bg-white border border-slate-200 hover:border-sky-500 hover:bg-sky-50 text-slate-600 hover:text-sky-600 font-black text-[10px] uppercase tracking-widest shadow-sm transition-all"
+                                className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-200 transition-all"
                             >
-                                {enrolling ? "Processing..." : "Enroll for Free"}
+                                {enrolling ? "Enrolling..." : "Enroll for Free"}
                             </Button>
                         </div>
                     )}
 
+                    {/* Real Lessons List */}
+                    <div className="bg-white rounded-[32px] border border-slate-100 p-6 shadow-sm space-y-6">
+                        <div className="flex items-center justify-between px-2">
+                            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Course Content</h3>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">{lessons.length} Lessons</span>
+                        </div>
 
-
-
-                    {/* Lesson List */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 p-6 shadow-sm">
-                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5 px-2">Course Lessons</h3>
                         <div className="space-y-2">
-                            {lessons.map((lesson, idx) => (
-                                <button
-                                    key={lesson.id}
-                                    onClick={() => {
-                                        if (!course?.enrolled && idx > 0) {
-                                            toast({
-                                                title: "Lesson Locked",
-                                                description: "Please enroll to access this lesson.",
                                                 variant: "destructive"
                                             })
                                             return
@@ -450,7 +666,7 @@ export default function CourseDetailPage() {
                                         toast({ title: `Playing: ${lesson.title}`, description: `Lesson ${idx + 1} of ${lessons.length}`, duration: 2000 })
                                     }}
                                     className={cn(
-                                        "w-full flex items-center gap-4 p-4 rounded-[20px] text-left transition-all group/lesson",
+                                        "w-full flex items-center gap-4 p-4 rounded-[20px] text-left transition-all group/lesson cursor-pointer",
                                         activeLesson?.id === lesson.id
                                             ? "bg-sky-50 border border-sky-200"
                                             : "hover:bg-slate-50 border border-transparent"
@@ -495,7 +711,10 @@ export default function CourseDetailPage() {
                                         <Button
                                             variant="ghost"
                                             className="h-8 px-3 rounded-lg text-[9px] font-black uppercase text-sky-600 hover:bg-sky-50"
-                                            onClick={() => setActiveLesson(lesson)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveLesson(lesson);
+                                            }}
                                         >
                                             Review
                                         </Button>
@@ -506,22 +725,13 @@ export default function CourseDetailPage() {
                                         )} />
                                     )}
 
-                                </button>
+                                </div>
                             ))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ── Payment Modal ── */}
-            <PaymentModal
-                isOpen={isPaymentModalOpen}
-                onClose={() => setIsPaymentModalOpen(false)}
-                courseName={course?.name || ""}
-                price={course?.priceValue || 499}
-                courseId={courseId}
-                onSuccess={(id) => handleEnroll(id)}
-            />
         </div>
     )
 }

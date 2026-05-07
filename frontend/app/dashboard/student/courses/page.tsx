@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { courseApi } from "@/lib/api"
+import { courseApi, paymentApi } from "@/lib/api"
 import { exportToPDF } from "@/lib/manager-utils"
 import { getCurrentUser } from "@/lib/auth-utils"
 
@@ -117,6 +117,7 @@ export default function StudentCourses() {
     const [activeTab, setActiveTab] = useState<"enrolled" | "catalog">("enrolled")
     const [activeCategory, setActiveCategory] = useState("All")
     const [activeGrade, setActiveGrade] = useState(initialGrade)
+    const [isVerifying, setIsVerifying] = useState(false)
     const [activeSemester, setActiveSemester] = useState("All Semesters")
     const [sortBy, setSortBy] = useState("recent")
     const [searchQuery, setSearchQuery] = useState("")
@@ -128,57 +129,93 @@ export default function StudentCourses() {
     const [showSortMenu, setShowSortMenu] = useState(false)
     const { toast } = useToast()
 
+    const loadData = async () => {
+        setIsLoading(true)
+        try {
+            const [all, mine, recs] = await Promise.allSettled([
+                courseApi.getAll(),
+                courseApi.getMyCourses(),
+                courseApi.getRecommendations()
+            ])
+            
+            if (all.status === "fulfilled" && all.value.success) {
+                setCatalogCourses(all.value.data.map((c: any) => ({
+                    id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
+                    price: c.price === 0 ? "Free" : `${c.price} ETB`, rating: 4.8,
+                    students: c.students?.length || 0,
+                    image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+                    tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                    grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
+                    category: c.category || "All", delivery: "Live",
+                    isPopular: (c.students?.length || 0) > 10,
+                })))
+            } else { setCatalogCourses(CATALOG_COURSES) }
+
+            if (mine.status === "fulfilled" && mine.value.success) {
+                setMyCourses(mine.value.data.map((c: any) => ({
+                    id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
+                    progress: Math.floor(Math.random() * 60),
+                    lessons: 20, completed: 0, lastAccessed: "Recently",
+                    image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+                    tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                    grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
+                    category: c.category || "All", delivery: "Live",
+                    nextClass: "Available now", rating: 4.8,
+                })))
+            } else { setMyCourses(MY_COURSES) }
+
+            if (recs.status === "fulfilled" && recs.value.success) {
+                setRecommendations(recs.value.data.map((c: any) => ({
+                    id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
+                    price: c.price === 0 ? "Free" : "Premium", rating: 4.9,
+                    students: c.students?.length || 0,
+                    image: c.thumbnail || "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80",
+                    tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                    grade: `Grade ${c.grade || 12}`,
+                })))
+            }
+        } catch (error) {
+            console.error("[StudentCourses] Load Error:", error)
+            setCatalogCourses(CATALOG_COURSES)
+            setMyCourses(MY_COURSES)
+        } finally { setIsLoading(false) }
+    }
+
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true)
-            try {
-                const [all, mine, recs] = await Promise.allSettled([
-                    courseApi.getAll(),
-                    courseApi.getMyCourses(),
-                    courseApi.getRecommendations()
-                ])
-                if (all.status === "fulfilled") {
-                    setCatalogCourses(all.value.data.map((c: any) => ({
-                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
-                        price: c.price === 0 ? "Free" : `${c.price} ETB`, rating: 4.8,
-                        students: c.students?.length || 0,
-                        image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
-                        grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
-                        category: c.category || "All", delivery: "Live",
-                        isPopular: (c.students?.length || 0) > 10,
-                    })))
-                } else { setCatalogCourses(CATALOG_COURSES) }
-
-                if (mine.status === "fulfilled") {
-                    setMyCourses(mine.value.data.map((c: any) => ({
-                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
-                        progress: 0, lessons: 20, completed: 0, lastAccessed: "Recently",
-                        image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
-                        grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
-                        category: c.category || "All", delivery: "Live",
-                        nextClass: "Available now", rating: 4.8,
-                    })))
-                } else { setMyCourses(MY_COURSES) }
-
-                if (recs.status === "fulfilled") {
-                    setRecommendations(recs.value.data.map((c: any) => ({
-                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
-                        price: c.price === 0 ? "Free" : "Premium", rating: 4.9,
-                        students: c.students?.length || 0,
-                        image: c.thumbnail || "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80",
-                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
-                        grade: `Grade ${c.grade || 12}`,
-                    })))
-                }
-            } catch {
-                setCatalogCourses(CATALOG_COURSES)
-                setMyCourses(MY_COURSES)
-            } finally { setIsLoading(false) }
-        }
         loadData()
     }, [])
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+        const txRef = urlParams.get('tx_ref');
+        
+        if (txRef) {
+            const verifyPayment = async () => {
+                setIsVerifying(true);
+                try {
+                    await paymentApi.verify(txRef);
+                    toast({
+                        title: "Payment Successful",
+                        description: "You have been successfully enrolled in the course.",
+                    });
+                    // Clear query params
+                    if (typeof window !== "undefined") {
+                        window.history.replaceState({}, '', window.location.pathname);
+                    }
+                    loadData();
+                } catch (error: any) {
+                    toast({
+                        title: "Verification Failed",
+                        description: error.message || "Could not verify your payment.",
+                        variant: "destructive"
+                    });
+                } finally {
+                    setIsVerifying(false);
+                }
+            };
+            verifyPayment();
+        }
+    }, []);
 
     // ── Filter & Sort Logic ─────────────────────────────────
     const filteredCourses = useMemo(() => {
@@ -218,8 +255,32 @@ export default function StudentCourses() {
 
     const handleEnroll = async (course: any) => {
         if (course.price !== "Free") {
-            toast({ title: "Premium Course", description: `Redirecting to enrollment for ${course.name}...`, duration: 2000 })
-            router.push(`/dashboard/student/courses/${course.id}?enroll=premium`)
+            try {
+                setEnrollingId(course.id)
+                const amountStr = course.price.replace(" ETB", "")
+                const amount = parseFloat(amountStr)
+                
+                const response = await paymentApi.initialize({
+                    amount,
+                    subjectId: course.id,
+                    method: "chapa"
+                })
+                
+                if (response.success && response.data.checkout_url) {
+                    toast({ title: "Redirecting", description: "Opening Chapa payment gateway..." })
+                    window.location.href = response.data.checkout_url
+                } else {
+                    throw new Error("Failed to initialize payment gateway")
+                }
+            } catch (error: any) {
+                toast({
+                    title: "Enrollment Error",
+                    description: error.message || "Could not initialize payment.",
+                    variant: "destructive"
+                })
+            } finally {
+                setEnrollingId(null)
+            }
             return
         }
         setEnrollingId(course.id)
@@ -457,6 +518,13 @@ export default function StudentCourses() {
             )}
 
             {/* ── Main Course Grid ── */}
+            {isVerifying && (
+                <div className="fixed inset-0 bg-white/80 backdrop-blur-md z-50 flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-500">
+                    <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-black text-slate-900 uppercase tracking-widest animate-pulse">Verifying Transaction...</p>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {Array(6).fill(0).map((_, i) => (
@@ -591,17 +659,17 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
 
                 {/* Enrolled: Progress */}
                 {tab === "enrolled" ? (
-                    <div className="space-y-3 mb-6">
-                        <div className="flex justify-between items-center">
+                    <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center mb-1">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5 text-sky-500 fill-sky-500" /> Mastery Level
+                                <Zap className="w-3.5 h-3.5 text-sky-500 fill-sky-500" /> Course Progress
                             </span>
                             <span className="text-xs font-black text-sky-600">{course.progress}%</span>
                         </div>
-                        <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
-                            <div
-                                className="h-full bg-gradient-to-r from-sky-400 to-sky-600 rounded-full transition-all duration-1000"
-                                style={{ width: `${course.progress}%` }}
+                        <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                            <div 
+                                className="h-full bg-gradient-to-r from-sky-400 to-sky-600 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(14,165,233,0.3)]" 
+                                style={{ width: `${course.progress}%` }} 
                             />
                         </div>
                         <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">

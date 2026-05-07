@@ -30,7 +30,8 @@ export class LiveController {
 
     static async end(req, res, next) {
         try {
-            const session = await LiveService.endSession(req.params.sessionId, req.user._id);
+            const { recordingUrl } = req.body;
+            const session = await LiveService.endSession(req.params.sessionId, req.user._id, recordingUrl);
             res.json({ success: true, message: "Session ended", data: session });
         } catch (error) {
             next(error);

@@ -37,6 +37,9 @@ const liveSessionSchema = new mongoose.Schema(
             enum: ["class", "group_call"],
             default: "group_call",
         },
+        recordingUrl: {
+            type: String,
+        },
     },
     {
         timestamps: true,

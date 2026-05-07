@@ -9,8 +9,6 @@ const getGenAI = () => {
     const key = process.env.GEMINI_API_KEY;
     if (!key || key === "your_gemini_api_key_here") {
         console.error("❌ GEMINI_API_KEY is not set or still has placeholder value");
-    } else {
-        console.log(`✅ GEMINI_API_KEY detected (Masked): ${key.substring(0, 4)}...***`);
     }
     return new GoogleGenerativeAI(key);
 };
@@ -75,15 +73,36 @@ Format your response in a clear, structured way using markdown formatting when h
     static async suggestResources(subject, grade) {
         const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Suggest high-quality educational resources for a Grade ${grade} student studying "${subject}" in Ethiopia. 
-        Include:
-        1. Open-source textbooks (like Ministry of Education books)
-        2. Educational YouTube channels
-        3. Specific websites for practice (e.g., Khan Academy, local exam prep sites)
-        4. Mobile apps helpful for this subject.
-        Return as a structured list with brief descriptions of why each resource is helpful.`;
+        
+        CRITICAL REQUIREMENTS:
+        1. Find best YouTube links specifically for:
+           - Amharic (e.g., "Grade ${grade} ${subject} Amharic Ethiopian Curriculum")
+           - Afaan Oromo (e.g., "Grade ${grade} ${subject} Afaan Oromo Ethiopian Curriculum")
+           - English (e.g., "Grade ${grade} ${subject} Ethiopian National Exam Prep")
+        2. Ensure these are SPECIFIC to the Ethiopian Ministry of Education curriculum for Grade ${grade}.
+        3. Include official Ministry of Education textbooks (PDF sources).
+        4. Include specific websites for localized practice.
+        
+        Return ONLY a JSON object with this schema:
+        {
+          "videos": [
+            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Amharic", "url": "..." },
+            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Afaan Oromo", "url": "..." },
+            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "English", "url": "..." }
+          ],
+          "books": [
+            { "title": "Official Grade ${grade} ${subject} Textbook", "type": "Textbook", "url": "..." }
+          ],
+          "websites": [
+            { "name": "...", "url": "..." }
+          ]
+        }`;
 
         const result = await model.generateContent(prompt);
-        return result.response.text();
+        let text = result.response.text();
+        // Manual JSON extraction in case model adds markdown
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        return JSON.parse(text);
     }
 
     static async generateFullCurriculum(grade, stream) {

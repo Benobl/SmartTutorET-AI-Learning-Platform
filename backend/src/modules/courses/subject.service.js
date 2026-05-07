@@ -98,4 +98,12 @@ export class SubjectService {
         
         return Array.from(studentMap.values());
     }
+    static async addLesson(subjectId, lessonData) {
+        const subject = await Subject.findById(subjectId);
+        if (!subject) throw new ApiError(404, "Subject not found");
+        
+        subject.lessons.push(lessonData);
+        await subject.save();
+        return subject;
+    }
 }
