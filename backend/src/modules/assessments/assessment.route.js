@@ -1,0 +1,18 @@
+import express from "express";
+import { AssessmentController } from "./assessment.controller.js";
+import { verifyToken } from "../../middleware/auth.middleware.js";
+import { allowRoles } from "../../middleware/rbac.middleware.js";
+
+const router = express.Router();
+
+router.use(verifyToken);
+
+router.post("/", allowRoles("tutor", "admin", "manager"), AssessmentController.create);
+router.post("/generate-ai", allowRoles("tutor", "admin", "manager"), AssessmentController.generateAI);
+router.get("/", AssessmentController.getAll);
+router.get("/submissions", AssessmentController.getSubmissions);
+router.get("/:id", AssessmentController.getById);
+router.patch("/:id/publish", allowRoles("tutor", "admin", "manager"), AssessmentController.publish);
+router.post("/:id/submit", allowRoles("student"), AssessmentController.submit);
+
+export default router;

@@ -5,7 +5,21 @@ const assessmentSchema = new mongoose.Schema(
     subject: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Subject",
-      required: true,
+      required: false, // Optional for "General" quizzes
+    },
+    grade: {
+      type: String,
+      enum: ["9", "10", "11", "12", "General"],
+      default: "General",
+    },
+    stream: {
+      type: String,
+      enum: ["Natural Science", "Social Science", "Common"],
+      default: "Common",
+    },
+    lesson: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lesson",
     },
     title: {
       type: String,
@@ -30,6 +44,10 @@ const assessmentSchema = new mongoose.Schema(
     duration: {
       type: Number, // in minutes
     },
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
     totalMarks: {
       type: Number,
       required: true,
@@ -42,6 +60,14 @@ const assessmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    creationMethod: {
+      type: String,
+      enum: ["ai", "manual", "document"],
+      default: "manual",
+    },
+    documentUrl: {
+      type: String,
     },
   },
   {

@@ -19,6 +19,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getCurrentUser } from "@/lib/auth-utils"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 export default function TeacherCourses() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -26,9 +29,10 @@ export default function TeacherCourses() {
     const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
     const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
     const [courses, setCourses] = useState(tutorCourses)
-    const [searchQuery, setSearchQuery] = useState("")
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
     const { toast } = useToast()
+    const currentUser = getCurrentUser()
+    const isApproved = currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.tutorStatus === 'approved'
 
     // Form state for new course
     const [newCourse, setNewCourse] = useState({
@@ -68,6 +72,26 @@ export default function TeacherCourses() {
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
+            {/* Status Warning for Pending Tutors */}
+            {!isApproved && (
+                <div className="bg-amber-50 border border-amber-100 rounded-[32px] p-8 flex items-start gap-6 animate-in slide-in-from-top-4 duration-700">
+                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-amber-500 shadow-sm shrink-0">
+                        <AlertCircle className="w-7 h-7" />
+                    </div>
+                    <div className="space-y-2">
+                        <h4 className="text-lg font-black text-amber-900 uppercase tracking-tight">Institutional Review in Progress</h4>
+                        <p className="text-sm text-amber-700 font-medium leading-relaxed">
+                            Welcome, <span className="font-black underline">{currentUser?.name}</span>! Your tutor application is currently being reviewed by our academic board. 
+                            While in pending status, you can explore the platform but <span className="font-black italic">course creation and live sessions</span> are temporarily disabled.
+                        </p>
+                        <div className="pt-2 flex items-center gap-4">
+                            <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-[8px] font-black uppercase tracking-tighter">Status: Pending Verification</span>
+                            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest italic underline decoration-2 underline-offset-4">Learn about our approval process →</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header Section */}
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
                 <div className="space-y-6">
@@ -85,9 +109,26 @@ export default function TeacherCourses() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                        <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
+                            if (!isApproved && open) {
+                                toast({
+                                    title: "Verification Required",
+                                    description: "Your tutor account is currently pending approval. You will be able to create courses once our team verifies your credentials.",
+                                    variant: "destructive"
+                                })
+                                return
+                            }
+                            setIsCreateModalOpen(open)
+                        }}>
                             <DialogTrigger asChild>
-                                <Button className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:scale-105 transition-all">
+                                <Button 
+                                    className={cn(
+                                        "h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl transition-all",
+                                        isApproved 
+                                            ? "bg-sky-600 text-white shadow-sky-500/20 hover:scale-105" 
+                                            : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                    )}
+                                >
                                     <Plus className="w-4 h-4" /> Create New Course
                                 </Button>
                             </DialogTrigger>

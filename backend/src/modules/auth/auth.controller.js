@@ -4,11 +4,7 @@ import logger from "../../config/logger.js";
 export class AuthController {
     static async signup(req, res, next) {
         try {
-            const user = await AuthService.signup(req.body);
-            const { accessToken, refreshToken } = AuthService.generateTokens(user._id);
-
-            user.refreshTokens.push(refreshToken);
-            await user.save();
+            const { user, accessToken, refreshToken } = await AuthService.signup(req.body);
 
             res.cookie("jwt", accessToken, {
                 maxAge: 15 * 60 * 1000,
@@ -35,13 +31,7 @@ export class AuthController {
                 success: true,
                 message: "Registration successful. Please verify your email.",
                 token: accessToken,
-                data: {
-                    _id: user._id,
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role
-                }
+                data: user
             });
         } catch (error) {
             next(error);

@@ -9,6 +9,8 @@ router.post("/", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectCo
 router.patch("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.update);
 router.delete("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.delete);
 router.get("/", verifyToken, SubjectController.getAll);
+router.get("/recommendations", verifyToken, SubjectController.getRecommendations);
+router.get("/my-courses", verifyToken, SubjectController.getMyCourses);
 router.get("/:subjectId", verifyToken, SubjectController.getSubject);
 router.post("/:subjectId/enroll", verifyToken, SubjectController.enroll);
 

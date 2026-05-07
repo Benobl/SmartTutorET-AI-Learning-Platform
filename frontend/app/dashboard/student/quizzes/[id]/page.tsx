@@ -1,0 +1,218 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { assessmentApi } from "@/lib/api"
+import { 
+    Clock, Timer, CheckCircle2, 
+    AlertCircle, ChevronRight, Brain,
+    Send, Sparkles, Trophy
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/hooks/use-toast"
+
+export default function StudentQuizView() {
+    const { id } = useParams()
+    const router = useRouter()
+    const { toast } = useToast()
+    
+    const [quiz, setQuiz] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+    const [answers, setAnswers] = useState<Record<string, string>>({})
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isCompleted, setIsCompleted] = useState(false)
+    const [result, setResult] = useState<any>(null)
+
+    useEffect(() => {
+        const loadQuiz = async () => {
+            try {
+                setLoading(true)
+                const res = await assessmentApi.getById(id as string)
+                setQuiz(res.data)
+            } catch (error: any) {
+                toast({ title: "Error", description: error.message, variant: "destructive" })
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadQuiz()
+    }, [id])
+
+    const handleSelectOption = (option: string) => {
+        const qId = quiz.questions[currentQuestionIndex]._id
+        setAnswers(prev => ({ ...prev, [qId]: option }))
+    }
+
+    const handleSubmit = async () => {
+        setIsSubmitting(true)
+        try {
+            const formattedAnswers = Object.entries(answers).map(([qId, val]) => ({
+                questionId: qId,
+                selectedAnswer: val
+            }))
+            
+            const res = await assessmentApi.submit(id as string, { answers: formattedAnswers })
+            setResult(res.data)
+            setIsCompleted(true)
+            toast({ title: "Assessment Submitted!", description: "Check your results below." })
+        } catch (error: any) {
+            toast({ title: "Submission failed", description: error.message, variant: "destructive" })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="space-y-4 text-center">
+                <Brain className="w-12 h-12 text-sky-500 animate-pulse mx-auto" />
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Calibrating Assessment...</p>
+            </div>
+        </div>
+    )
+
+    if (isCompleted) return (
+        <div className="min-h-screen p-6 lg:p-20 bg-slate-50 animate-in fade-in duration-1000">
+            <div className="max-w-4xl mx-auto space-y-12">
+                <div className="text-center space-y-4">
+                    <div className="w-24 h-24 rounded-[32px] bg-sky-600 text-white flex items-center justify-center mx-auto shadow-2xl shadow-sky-600/20 mb-8">
+                        <Trophy className="w-12 h-12" />
+                    </div>
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tight italic">
+                        Assessment <span className="text-sky-600">Complete!</span>
+                    </h1>
+                    <p className="text-slate-500 font-medium">You've successfully finished {quiz?.title}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { label: "Score", value: `${result?.percentage}%`, sub: `${result?.score}/${quiz?.totalMarks} pts`, color: "sky" },
+                        { label: "Result", value: result?.passed ? "PASSED" : "FAILED", sub: "Based on 60% threshold", color: result?.passed ? "emerald" : "rose" },
+                        { label: "Rank", value: "Top 12%", sub: "Among Grade 9 students", color: "amber" }
+                    ].map((stat, i) => (
+                        <div key={i} className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/10 text-center space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                            <h3 className={cn("text-4xl font-black", `text-${stat.color}-600`)}>{stat.value}</h3>
+                            <p className="text-xs font-bold text-slate-400">{stat.sub}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex justify-center gap-4">
+                    <Button 
+                        onClick={() => router.push("/dashboard/student")}
+                        className="h-16 px-10 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-sky-600 transition-all"
+                    >
+                        Back to Dashboard
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )
+
+    const currentQuestion = quiz.questions[currentQuestionIndex]
+    const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100
+
+    return (
+        <div className="min-h-screen p-6 lg:p-20 bg-slate-50">
+            <div className="max-w-4xl mx-auto space-y-12">
+                {/* Quiz Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">
+                                {quiz.subject?.title || "General"}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900 uppercase italic leading-none">{quiz.title}</h2>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-slate-100 shadow-sm">
+                        <Timer className="w-5 h-5 text-sky-500" />
+                        <span className="text-xl font-black text-slate-900 tabular-nums">14:52</span>
+                    </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <span>Progress</span>
+                        <span>{Math.round(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-3 rounded-full bg-slate-200 [&>div]:bg-sky-500 transition-all" />
+                </div>
+
+                {/* Question Card */}
+                <div className="p-10 lg:p-16 rounded-[64px] bg-white border border-slate-100 shadow-2xl shadow-slate-200/20 space-y-10 animate-in slide-in-from-right-4 duration-500">
+                    <h3 className="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
+                        {currentQuestion.question}
+                    </h3>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        {currentQuestion.options.map((option: string, i: number) => {
+                            const isSelected = answers[currentQuestion._id] === option
+                            return (
+                                <button
+                                    key={i}
+                                    onClick={() => handleSelectOption(option)}
+                                    className={cn(
+                                        "group flex items-center justify-between p-6 rounded-[32px] border-2 transition-all text-left",
+                                        isSelected 
+                                            ? "bg-sky-50 border-sky-600 text-sky-900 shadow-xl shadow-sky-500/10" 
+                                            : "bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-slate-200"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all",
+                                            isSelected ? "bg-sky-600 text-white" : "bg-white text-slate-400 group-hover:text-sky-600"
+                                        )}>
+                                            {String.fromCharCode(65 + i)}
+                                        </div>
+                                        <span className="font-bold text-lg">{option}</span>
+                                    </div>
+                                    {isSelected && <CheckCircle2 className="w-6 h-6 text-sky-600" />}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="h-14 px-8 rounded-2xl text-slate-400 font-black text-xs uppercase tracking-widest hover:text-sky-600"
+                    >
+                        Previous
+                    </Button>
+                    
+                    {currentQuestionIndex === quiz.questions.length - 1 ? (
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={isSubmitting || !answers[currentQuestion._id]}
+                            className="h-16 px-12 rounded-[24px] bg-sky-600 text-white font-black text-xs uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-700 transition-all"
+                        >
+                            {isSubmitting ? "Submitting..." : "Submit Assessment"}
+                            <Send className="ml-3 w-4 h-4" />
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                            disabled={!answers[currentQuestion._id]}
+                            className="h-16 px-12 rounded-[24px] bg-slate-900 text-white font-black text-xs uppercase tracking-widest hover:bg-sky-600 transition-all"
+                        >
+                            Next Question
+                            <ChevronRight className="ml-2 w-4 h-4" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}

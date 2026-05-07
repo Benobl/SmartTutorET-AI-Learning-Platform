@@ -30,6 +30,7 @@ import questionRoutes from "./src/modules/questions/question.route.js";
 import inviteRoutes from "./src/modules/invites/invite.route.js";
 import chatRoutes from "./src/modules/chat/chat.route.js";
 import uploadRoutes from "./src/modules/upload/upload.route.js";
+import assessmentRoutes from "./src/modules/assessments/assessment.route.js";
 import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route.js";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -109,6 +110,7 @@ app.use("/api/live", liveRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/assessments", assessmentRoutes);
 app.use("/api/scheduling", masterScheduleRoutes);
 
 // Health Check

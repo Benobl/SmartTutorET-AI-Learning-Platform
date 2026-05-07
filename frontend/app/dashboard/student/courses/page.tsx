@@ -120,6 +120,7 @@ export default function StudentCourses() {
     const [isLoading, setIsLoading] = useState(true)
     const [myCourses, setMyCourses] = useState<any[]>([])
     const [catalogCourses, setCatalogCourses] = useState<any[]>([])
+    const [recommendations, setRecommendations] = useState<any[]>([])
     const [showSortMenu, setShowSortMenu] = useState(false)
     const { toast } = useToast()
 
@@ -127,33 +128,46 @@ export default function StudentCourses() {
         const loadData = async () => {
             setIsLoading(true)
             try {
-                const [all, mine] = await Promise.allSettled([
+                const [all, mine, recs] = await Promise.allSettled([
                     courseApi.getAll(),
-                    courseApi.getMyCourses()
+                    courseApi.getMyCourses(),
+                    courseApi.getRecommendations()
                 ])
                 if (all.status === "fulfilled") {
-                    setCatalogCourses(all.value.map((c: any) => ({
-                        id: c._id, name: c.title, tutor: c.instructor?.name || "Expert Tutor",
+                    setCatalogCourses(all.value.data.map((c: any) => ({
+                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
                         price: c.price === 0 ? "Free" : "Premium", rating: 4.8,
                         students: c.students?.length || 0,
                         image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                        tags: [c.subject || "General", `Grade ${c.gradeLevel || 12}`],
-                        grade: `Grade ${c.gradeLevel || 12}`, semester: "Semester 1",
-                        category: c.subject || "All", delivery: c.deliveryMethod || "Recorded",
-                        isPopular: c.students?.length > 10,
+                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                        grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
+                        category: c.category || "All", delivery: "Live",
+                        isPopular: (c.students?.length || 0) > 10,
                     })))
                 } else { setCatalogCourses(CATALOG_COURSES) }
+
                 if (mine.status === "fulfilled") {
-                    setMyCourses(mine.value.map((c: any) => ({
-                        id: c._id, name: c.title, tutor: c.instructor?.name || "Expert Tutor",
+                    setMyCourses(mine.value.data.map((c: any) => ({
+                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
                         progress: 0, lessons: 20, completed: 0, lastAccessed: "Recently",
                         image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                        tags: [c.subject || "General", `Grade ${c.gradeLevel || 12}`],
-                        grade: `Grade ${c.gradeLevel || 12}`, semester: "Semester 1",
-                        category: c.subject || "All", delivery: c.deliveryMethod || "Recorded",
+                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                        grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
+                        category: c.category || "All", delivery: "Live",
                         nextClass: "Available now", rating: 4.8,
                     })))
                 } else { setMyCourses(MY_COURSES) }
+
+                if (recs.status === "fulfilled") {
+                    setRecommendations(recs.value.data.map((c: any) => ({
+                        id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
+                        price: c.price === 0 ? "Free" : "Premium", rating: 4.9,
+                        students: c.students?.length || 0,
+                        image: c.thumbnail || "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80",
+                        tags: [c.category || "General", `Grade ${c.grade || 12}`],
+                        grade: `Grade ${c.grade || 12}`,
+                    })))
+                }
             } catch {
                 setCatalogCourses(CATALOG_COURSES)
                 setMyCourses(MY_COURSES)
@@ -409,7 +423,36 @@ export default function StudentCourses() {
                 </div>
             </div>
 
-            {/* ── Course Grid ── */}
+            {/* ── Recommendations Section (Catalog Only) ── */}
+            {activeTab === "catalog" && recommendations.length > 0 && !hasActiveFilters && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-amber-50 border border-amber-100">
+                            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Personalized Tracks</h3>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI-curated based on your profile</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-8 no-scrollbar -mx-2 px-2">
+                        {recommendations.map(course => (
+                            <div key={course.id} className="min-w-[340px] max-w-[340px] shrink-0">
+                                <CourseCard
+                                    course={course}
+                                    tab="catalog"
+                                    enrollingId={enrollingId}
+                                    onContinue={handleContinue}
+                                    onEnroll={handleEnroll}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="h-px bg-slate-100 w-full" />
+                </div>
+            )}
+
+            {/* ── Main Course Grid ── */}
             {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {Array(6).fill(0).map((_, i) => (

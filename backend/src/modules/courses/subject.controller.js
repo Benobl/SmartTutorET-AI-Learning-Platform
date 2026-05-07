@@ -4,9 +4,15 @@ import { ApiError } from "../../middleware/error.middleware.js";
 export class SubjectController {
     static async createSubject(req, res, next) {
         try {
-            if (req.user.role !== "tutor" && req.user.role !== "admin" && req.user.role !== "manager") {
-                throw new ApiError(403, "Only tutors, admins, and managers can create subjects");
+            // Rule: Only approved tutors (or staff) can create subjects
+            if (req.user.role === "tutor" && req.user.tutorStatus !== "approved") {
+                throw new ApiError(403, "Your tutor account is pending approval. You cannot create subjects yet.");
             }
+            
+            if (req.user.role === "student") {
+                throw new ApiError(403, "Students cannot create subjects.");
+            }
+
             const subject = await SubjectService.createSubject(req.user._id, req.body);
             res.status(201).json({ success: true, data: subject });
         } catch (error) {
@@ -36,7 +42,7 @@ export class SubjectController {
         try {
             const { subjectId } = req.params;
             const subject = await SubjectService.enrollStudent(subjectId, req.user._id);
-            res.json({ success: true, message: "Enrolled successfully", data: subject });
+            res.json({ success: true, message: "Enrolled successfully in " + subject.title, data: subject });
         } catch (error) {
             next(error);
         }
@@ -54,9 +60,43 @@ export class SubjectController {
 
     static async getAll(req, res, next) {
         try {
-            // Managers and admins see everything, others see only approved
-            const filter = (req.user.role === "manager" || req.user.role === "admin") ? {} : { status: "approved" };
+            const { category, grade, search, isPremium } = req.query;
+            const filter = {};
+            
+            // Non-staff can only see approved subjects
+            if (req.user.role !== "manager" && req.user.role !== "admin") {
+                filter.status = "approved";
+            }
+            
+            if (category) filter.category = category;
+            if (grade) filter.grade = grade;
+            if (isPremium) filter.isPremium = isPremium === "true";
+            if (search) {
+                filter.$or = [
+                    { title: { $regex: search, $options: "i" } },
+                    { description: { $regex: search, $options: "i" } }
+                ];
+            }
+
             const subjects = await SubjectService.getAllSubjects(filter);
+            res.json({ success: true, data: subjects });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getRecommendations(req, res, next) {
+        try {
+            const subjects = await SubjectService.getRecommended(req.user);
+            res.json({ success: true, data: subjects });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getMyCourses(req, res, next) {
+        try {
+            const subjects = await SubjectService.getMySubjects(req.user._id, req.user.role);
             res.json({ success: true, data: subjects });
         } catch (error) {
             next(error);

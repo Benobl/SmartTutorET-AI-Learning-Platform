@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://smarttutoret-ai-learning-platform.onrender.com/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
@@ -111,12 +111,15 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 }
 
 export const courseApi = {
-    getAll: () => fetchWithAuth("/courses"),
+    getAll: (params?: any) => {
+        const query = params ? "?" + new URLSearchParams(params).toString() : "";
+        return fetchWithAuth("/courses" + query);
+    },
+    getRecommendations: () => fetchWithAuth("/courses/recommendations"),
     getMyCourses: () => fetchWithAuth("/courses/my-courses"),
     getById: (courseId: string) => fetchWithAuth(`/courses/${courseId}`),
-    enroll: (courseId: string, data: any = {}) => fetchWithAuth(`/courses/enroll/${courseId}`, {
-        method: "POST",
-        body: JSON.stringify(data)
+    enroll: (courseId: string) => fetchWithAuth(`/courses/${courseId}/enroll`, {
+        method: "POST"
     }),
     create: (data: any) => fetchWithAuth("/courses", {
         method: "POST",
@@ -332,3 +335,26 @@ export const uploadApi = {
     },
 };
 
+export const assessmentApi = {
+    getAll: (params?: any) => {
+        const query = params ? "?" + new URLSearchParams(params).toString() : "";
+        return fetchWithAuth("/assessments" + query);
+    },
+    getById: (id: string) => fetchWithAuth(`/assessments/${id}`),
+    create: (data: any) => fetchWithAuth("/assessments", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    generateAI: (data: any) => fetchWithAuth("/assessments/generate-ai", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    submit: (id: string, data: any) => fetchWithAuth(`/assessments/${id}/submit`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getSubmissions: (assessmentId?: string) => {
+        const query = assessmentId ? `?assessmentId=${assessmentId}` : "";
+        return fetchWithAuth(`/assessments/submissions${query}`);
+    },
+};

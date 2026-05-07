@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { AITutorModal } from "@/components/dashboards/student/ai-tutor-modal"
 import { CollaborationModals } from "@/components/dashboards/student/collaboration-modals"
 import { ActivityHistoryModal } from "@/components/dashboards/student/activity-history-modal"
+import { AssessmentList } from "@/components/dashboards/student/assessment-list"
 
 import { getCurrentUser } from "@/lib/auth-utils"
 
@@ -273,10 +274,13 @@ export default function StudentOverview() {
                 <div className="w-2 h-6 bg-rose-500 rounded-full" />
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500 uppercase">Deliverables</h2>
               </div>
-              <Link href="/dashboard/student/assignments" className="h-10 px-4 rounded-xl text-slate-400 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
-                Assignments <ChevronRight className="w-4 h-4" />
+              <Link href="/dashboard/student/quizzes" className="h-10 px-4 rounded-xl text-slate-400 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
+                All Quizzes <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
+            
+            <AssessmentList />
+
             <div className="grid grid-cols-1 gap-4">
               {upcomingDeadlines.map((d, i) => (
                 <div key={i} className="flex items-center gap-5 p-5 rounded-[28px] bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all duration-500 group relative overflow-hidden">

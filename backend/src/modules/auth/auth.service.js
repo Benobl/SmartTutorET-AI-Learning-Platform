@@ -10,8 +10,9 @@ import logger from "../../config/logger.js";
 export class AuthService {
     static async signup(userData) {
         const { email, password, name, role } = userData;
+        const normalizedEmail = email.trim().toLowerCase();
 
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             throw new ApiError(400, "Email already registered");
         }
@@ -25,9 +26,10 @@ export class AuthService {
 
         const newUser = await User.create({
             ...userData,
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             role: userRole,
             isApproved: userRole !== "tutor", // Tutor is false, others are true
+            isVerified: userRole !== "tutor", // Auto-verify non-tutors for now to ease login
             profile: {
                 avatar: userData.avatar || defaultAvatar,
                 bio: userData.bio || "",
@@ -38,30 +40,43 @@ export class AuthService {
             tutorStatus: userRole === "tutor" ? "pending" : "none"
         });
 
+        const { accessToken, refreshToken } = this.generateTokens(newUser._id);
+        newUser.refreshTokens.push(refreshToken);
+        await newUser.save();
+
         // Stream & Email integration (async)
         upsertStreamUser({
             id: newUser._id.toString(),
             name: newUser.name,
             image: newUser.profile.avatar || "",
-        }).catch(err => console.error("Stream sync error:", err));
+        }).catch(err => logger.error("Stream sync error:", err));
 
-        sendEmail(newUser.email, verificationToken).catch(err => console.error("Email send error:", err));
+        if (userRole === "tutor") {
+            sendEmail(newUser.email, verificationToken).catch(err => logger.error("Email send error:", err));
+        }
 
-        return newUser;
+        return { user: newUser, accessToken, refreshToken };
     }
 
     static async login(email, password) {
-        logger.info(`[AuthService] Attempting login for ${email}`);
-        const user = await User.findOne({ email: email.toLowerCase() });
+        const normalizedEmail = email.trim().toLowerCase();
+        logger.info(`[AuthService] Attempting login for ${normalizedEmail}`);
+        
+        const user = await User.findOne({ email: normalizedEmail }).select("+password");
         if (!user) {
-            logger.warn(`[AuthService] User not found: ${email}`);
-            throw new ApiError(401, "Invalid credentials");
+            logger.warn(`[AuthService] User not found: ${normalizedEmail}`);
+            throw new ApiError(401, "Invalid email or password");
+        }
+
+        if (!user.password) {
+            logger.warn(`[AuthService] User has no password (likely Google Auth): ${normalizedEmail}`);
+            throw new ApiError(401, "Please use Google Login for this account");
         }
 
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
-            logger.warn(`[AuthService] Password mismatch for ${email}`);
-            throw new ApiError(401, "Invalid credentials");
+            logger.warn(`[AuthService] Password mismatch for ${normalizedEmail}`);
+            throw new ApiError(401, "Invalid email or password");
         }
 
         // Check approval status

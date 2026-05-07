@@ -93,8 +93,8 @@ export default function ScheduleMaster() {
 
     const handleAddEntry = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newEntry.courseId || !newEntry.tutorId) {
-            toast.error("Please fill in all required fields.")
+        if (!newEntry.courseId) {
+            toast.error("Please select a course component.")
             return
         }
 
@@ -121,38 +121,40 @@ export default function ScheduleMaster() {
     }
 
     const handleAISyncSchedule = async () => {
-        if (tutors.length === 0) {
-            toast.error("No tutors registered. Please approve at least one faculty member first.")
-            return
-        }
         try {
             setLoading(true)
-            const result = await generateGradeSchedule(selectedGrade, "Common", courses)
+            // 1. Filter courses by the currently selected grade to ensure pedagogical accuracy
+            const gradeSpecificCourses = courses.filter((c: any) => String(c.grade) === String(selectedGrade))
+            
+            if (gradeSpecificCourses.length === 0) {
+                toast.error(`No courses registered for Grade ${selectedGrade}. Please add curriculum first.`)
+                return
+            }
+
+            const result = await generateGradeSchedule(selectedGrade, "Common", gradeSpecificCourses)
             if (result && result.length > 0) {
-                let skippedSlots = 0;
+                let announcedSoonCount = 0;
                 const newlyAssigned: any[] = [];
                 
                 for (const item of result) {
-                    const subject = courses.find((c: any) => {
+                    const subject = gradeSpecificCourses.find((c: any) => {
                         const title = (c.title || c.name || "").toLowerCase();
                         const target = item.subjectTitle.toLowerCase();
                         return title.includes(target) || target.includes(title);
                     });
                     
                     if (subject) {
-                        // 1. Find all busy tutors for this specific time slot
+                        // 1. Find all busy tutors for this specific time slot to avoid overlapping
                         const busyTutorIds = new Set();
                         
-                        // Check global schedule
                         scheduleData.forEach(s => {
-                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime) {
+                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime && s.tutor) {
                                 busyTutorIds.add(s.tutor?._id || s.tutor?.id);
                             }
                         });
                         
-                        // Check newly assigned this batch
                         newlyAssigned.forEach(s => {
-                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime) {
+                            if (s.dayOfWeek === item.dayOfWeek && s.startTime === item.startTime && s.tutorId) {
                                 busyTutorIds.add(s.tutorId);
                             }
                         });
@@ -160,18 +162,17 @@ export default function ScheduleMaster() {
                         // 2. Filter available tutors
                         const availableTutors = tutors.filter(t => !busyTutorIds.has(t._id || t.id));
                         
-                        if (availableTutors.length === 0) {
-                            skippedSlots++;
-                            continue; // No tutor available for this slot, skip it to prevent overlap
+                        let tutorId = null;
+                        if (availableTutors.length > 0) {
+                            // 3. Match by subject specialty if possible
+                            let selectedTutor = availableTutors.find(t => 
+                                t.subjects && t.subjects.some((s: string) => s.toLowerCase() === (subject.title || subject.name || "").toLowerCase())
+                            );
+                            if (!selectedTutor) selectedTutor = availableTutors[0];
+                            tutorId = selectedTutor._id || selectedTutor.id;
+                        } else {
+                            announcedSoonCount++;
                         }
-
-                        // 3. Try to find a subject-expert tutor, otherwise fallback to any available
-                        let selectedTutor = availableTutors.find(t => 
-                            t.subjects && t.subjects.some((s: string) => s.toLowerCase() === (subject.title || subject.name || "").toLowerCase())
-                        );
-                        if (!selectedTutor) selectedTutor = availableTutors[0]; // fallback
-
-                        const tutorId = selectedTutor._id || selectedTutor.id;
 
                         await addScheduleEntry({
                             grade: selectedGrade,
@@ -179,21 +180,23 @@ export default function ScheduleMaster() {
                             semester: selectedSemester,
                             section: selectedSection,
                             subject: subject._id || subject.id,
-                            tutor: tutorId,
+                            tutor: tutorId, // Can be null (TBD)
                             dayOfWeek: item.dayOfWeek,
                             startTime: item.startTime,
                             endTime: item.endTime,
                             type: "regular"
                         });
                         
-                        newlyAssigned.push({ dayOfWeek: item.dayOfWeek, startTime: item.startTime, tutorId });
+                        if (tutorId) {
+                            newlyAssigned.push({ dayOfWeek: item.dayOfWeek, startTime: item.startTime, tutorId });
+                        }
                     }
                 }
                 
-                if (skippedSlots > 0) {
-                    toast.warning(`Gemini created ${result.length - skippedSlots} slots. ${skippedSlots} slots skipped due to teacher overlaps!`)
+                if (announcedSoonCount > 0) {
+                    toast.warning(`Schedule generated! ${announcedSoonCount} slots have no available teachers and are marked as 'TBD'.`)
                 } else {
-                    toast.success(`Gemini successfully created all ${result.length} weekly slots without overlaps!`)
+                    toast.success(`Pedagogical schedule for Grade ${selectedGrade} generated successfully!`)
                 }
                 await refreshData()
             }
@@ -434,7 +437,7 @@ export default function ScheduleMaster() {
                                                         <div className="flex flex-col gap-2 pt-1 relative z-10">
                                                             <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white/40 w-fit px-2 py-1 rounded-lg">
                                                                 <User className="w-3 h-3 text-blue-500" />
-                                                                {tutor?.name || 'Staff Member'}
+                                                                {tutor?.name || "👨‍🏫 Staff Announced Soon"}
                                                             </span>
                                                             <div className="flex items-center justify-between">
                                                                 <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -508,7 +511,6 @@ export default function ScheduleMaster() {
                                 className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
                                 value={newEntry.tutorId}
                                 onChange={(e) => setNewEntry({ ...newEntry, tutorId: e.target.value })}
-                                required
                             >
                                 <option value="">Select Faculty Member...</option>
                                 {tutors.map((t: any) => (
@@ -556,9 +558,12 @@ export default function ScheduleMaster() {
                                 required
                             >
                                 <option value="">Select Course...</option>
-                                {courses.map((c: any) => (
-                                    <option key={c._id || c.id} value={c._id || c.id}>{c.title || c.name} ({c.code || 'N/A'})</option>
-                                ))}
+                                {courses
+                                    .filter((c: any) => String(c.grade) === String(selectedGrade))
+                                    .map((c: any) => (
+                                        <option key={c._id || c.id} value={c._id || c.id}>{c.title || c.name} ({c.code || 'N/A'})</option>
+                                    ))
+                                }
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-6">

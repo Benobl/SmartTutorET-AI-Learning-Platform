@@ -50,7 +50,7 @@ Instructions:
 Format your response in a clear, structured way using markdown formatting when helpful.`;
 
         const model = getGenAI().getGenerativeModel({
-            model: "models/gemini-2.5-flash",
+            model: "gemini-1.5-flash",
         });
 
         const result = await model.generateContent(prompt);
@@ -59,7 +59,7 @@ Format your response in a clear, structured way using markdown formatting when h
     }
 
     static async generateCourseOutline(subject, grade) {
-        const model = getGenAI().getGenerativeModel({ model: "models/gemini-2.5-flash" });
+        const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Act as an Ethiopian Curriculum Expert. Create a detailed course syllabus/outline for a Grade ${grade} course on "${subject}". 
         Include:
         1. 5-8 Main Modules
@@ -72,7 +72,7 @@ Format your response in a clear, structured way using markdown formatting when h
     }
 
     static async suggestResources(subject, grade) {
-        const model = getGenAI().getGenerativeModel({ model: "models/gemini-2.5-flash" });
+        const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Suggest high-quality educational resources for a Grade ${grade} student studying "${subject}" in Ethiopia. 
         Include:
         1. Open-source textbooks (like Ministry of Education books)
@@ -87,10 +87,8 @@ Format your response in a clear, structured way using markdown formatting when h
 
     static async generateFullCurriculum(grade, stream) {
         const modelsToTry = [
-            "models/gemini-2.5-flash", 
-            "models/gemini-2.5-pro", 
-            "models/gemini-2.0-flash", 
-            "models/gemini-2.0-flash-lite"
+            "gemini-1.5-flash", 
+            "gemini-1.5-pro"
         ];
         let lastError = null;
 
@@ -147,10 +145,8 @@ Format your response in a clear, structured way using markdown formatting when h
 
     static async generateWeeklySchedule(grade, stream, subjects) {
         const modelsToTry = [
-            "models/gemini-2.5-flash",
-            "models/gemini-2.0-flash",
-            "models/gemini-1.5-flash",
-            "models/gemini-2.5-pro"
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
         ];
         
         const prompt = `Act as an Ethiopian High School Registrar. Create a high-quality, professional weekly school timetable (Monday to Friday) for Grade ${grade} ${stream}.
@@ -226,10 +222,8 @@ Format your response in a clear, structured way using markdown formatting when h
 
     static async generateStudyPlan(grade, subjects) {
         const modelsToTry = [
-            "models/gemini-2.5-flash",
-            "models/gemini-2.0-flash",
-            "models/gemini-1.5-flash",
-            "models/gemini-2.5-pro"
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
         ];
         
         const subjectList = Array.isArray(subjects) ? subjects.map(s => s.title || s.name || s).join(", ") : subjects;
@@ -266,8 +260,13 @@ Format your response in a clear, structured way using markdown formatting when h
                 });
                 
                 const result = await model.generateContent(prompt);
+                const text = result.response.text();
+                // Strip markdown code blocks if present
+                const jsonMatch = text.match(/\[[\s\S]*\]/);
+                const cleanJson = jsonMatch ? jsonMatch[0] : text;
+                
                 console.log(`✅ Successfully generated study plan using ${modelName}`);
-                return JSON.parse(result.response.text());
+                return JSON.parse(cleanJson);
             } catch (error) {
                 console.warn(`⚠️ Model ${modelName} failed for study plan generation:`, error.message);
             }
@@ -282,5 +281,67 @@ Format your response in a clear, structured way using markdown formatting when h
             { dayOfWeek: "Wednesday", startTime: "16:00", endTime: "17:00", title: "English", category: "Reading" },
             { dayOfWeek: "Wednesday", startTime: "18:00", endTime: "19:00", title: "Mathematics", category: "Review" }
         ];
+    }
+
+    static async generateQuiz(subject, grade, topic, count = 5) {
+        // [REF: QUIZ_GEN_V2]
+        const modelsToTry = [
+            "gemini-1.5-flash-latest", 
+            "gemini-1.5-flash", 
+            "gemini-1.5-pro-latest", 
+            "gemini-pro"
+        ];
+        let lastError = null;
+
+        console.log(`🚀 [AI_QUIZ] Starting generation for: ${topic} (${subject}, Grade ${grade})`);
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`🔍 [AI_QUIZ] Attempting with model: ${modelName}...`);
+                const genAI = getGenAI();
+                const model = genAI.getGenerativeModel({ 
+                    model: modelName
+                });
+
+                const prompt = `Act as an Ethiopian High School Exam Preparer. Create a high-quality Multiple Choice Quiz for Grade ${grade} on the topic "${topic}" within the subject "${subject}".
+                
+                Rules:
+                1. Generate exactly ${count} questions.
+                2. Each question must have 4 options.
+                3. Questions should be aligned with the Ethiopian national curriculum level.
+                4. Include clear, unambiguous correct answers.
+                
+                Return ONLY a JSON array with this schema:
+                [
+                  {
+                    "question": "Question text here?",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
+                    "correctAnswer": "The exact string from options that is correct",
+                    "marks": 1
+                  }
+                ]
+                
+                IMPORTANT: Return ONLY the JSON array. Do not include markdown formatting or explanations.`;
+
+                const result = await model.generateContent(prompt);
+                let text = result.response.text();
+                
+                if (!text) throw new Error("Empty response from AI");
+                
+                // Clean markdown if present
+                text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+                
+                const questions = JSON.parse(text);
+                console.log(`✅ [AI_QUIZ] Successfully generated ${questions.length} questions using ${modelName}`);
+                return questions;
+            } catch (error) {
+                console.error(`❌ [AI_QUIZ] Model ${modelName} failed:`, error.message);
+                lastError = error;
+                // Continue to next model
+            }
+        }
+        
+        console.error(`💥 [AI_QUIZ] All models failed for topic: ${topic}`);
+        throw new Error(`AI Quiz generation failed. Last error: ${lastError?.message}`);
     }
 }

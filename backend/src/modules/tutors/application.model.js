@@ -11,18 +11,32 @@ const tutorApplicationSchema = new mongoose.Schema({
         ref: "TutorJob",
         required: true
     },
-    expertise: {
+    coverLetter: {
         type: String,
-        required: true
     },
-    experience: {
-        type: String,
-        required: true
+    qualifications: [{
+        degree: String,
+        institution: String,
+        year: Number,
+    }],
+    degreeAttachments: [{
+        fileName: String,
+        fileUrl: String,
+    }],
+    teachingPhilosophy: {
+        type: String
     },
     status: {
         type: String,
         enum: ["pending", "approved", "rejected"],
         default: "pending"
+    },
+    reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
+    rejectionReason: {
+        type: String
     }
 }, { timestamps: true });
 

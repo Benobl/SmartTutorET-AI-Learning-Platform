@@ -125,7 +125,7 @@ function SlotCard({ slot, isStudy = false, onJoin, onDelete }: {
                 <div className="flex items-center gap-2">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                        {isStudy ? "Self Guided" : slot.tutor}
+                        {isStudy ? "Self Guided" : (slot.tutor?.name || slot.tutor || "👨‍🏫 Staff Announced Soon")}
                     </p>
                 </div>
                 <div className={cn(
@@ -216,14 +216,14 @@ export default function StudentTimetable() {
 
 
 
-    // Combine academic schedule with personal study plan
-    const fullSchedule = useMemo(() => {
-        return [...academicSlots, ...studySlots]
-    }, [academicSlots, studySlots])
+    // Separate academic schedule and personal study plan
+    const currentViewSlots = useMemo(() => {
+        return viewMode === "class" ? academicSlots : studySlots
+    }, [academicSlots, studySlots, viewMode])
 
     const byDay: Record<string, TimetableSlot[]> = {}
     DAYS.forEach((d) => { byDay[d] = [] })
-    fullSchedule.forEach((slot) => { 
+    currentViewSlots.forEach((slot) => { 
         const dayMatch = DAYS.find(d => d.toLowerCase() === (slot.day || "").toLowerCase())
         if (dayMatch) byDay[dayMatch].push(slot)
     })
@@ -251,7 +251,7 @@ export default function StudentTimetable() {
                     color: "indigo"
                 }))
                 
-                setStudySlots(prev => [...prev, ...aiSlots])
+                setStudySlots(aiSlots)
                 toast({
                     title: "Smart Plan Generated! 🚀",
                     description: `Gemini has added ${aiSlots.length} optimized study sessions to your week.`
@@ -272,7 +272,7 @@ export default function StudentTimetable() {
     const handleAddStudyTrigger = (day: string, time: string) => {
         if (viewMode !== "study") return
 
-        const existing = fullSchedule.find(s => s.day === day && s.startTime === time)
+        const existing = currentViewSlots.find(s => s.day === day && s.startTime === time)
         if (existing) {
             toast({
                 title: "Slot Occupied",
@@ -488,8 +488,16 @@ export default function StudentTimetable() {
                 <div className="grid grid-cols-[140px_repeat(5,1fr)] bg-slate-50 border-b border-slate-100">
                     <div className="p-10" />
                     {DAYS.map((day) => (
-                        <div key={day} className={cn("p-10 text-center border-l border-slate-100 relative group", day === currentDay && "bg-sky-50/50")}>
-                            {day === currentDay && <div className="absolute top-0 left-0 right-0 h-1.5 bg-sky-500" />}
+                        <div key={day} className={cn(
+                            "p-10 text-center border-l border-slate-100 relative group transition-colors",
+                            day === currentDay ? "bg-sky-500/5 shadow-inner" : "hover:bg-slate-50/50"
+                        )}>
+                            {day === currentDay && (
+                                <>
+                                    <div className="absolute top-0 left-0 right-0 h-2 bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
+                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-sky-500 text-[8px] font-black text-white uppercase tracking-tighter">Today</div>
+                                </>
+                            )}
                             <p className={cn("text-[10px] font-black uppercase tracking-widest mb-1", day === currentDay ? "text-sky-600" : "text-slate-400")}>{day.slice(0, 3)}</p>
                             <p className={cn("text-lg font-black tracking-tight", day === currentDay ? "text-slate-900" : "text-slate-200 group-hover:text-slate-300 transition-colors")}>{day}</p>
                         </div>
@@ -512,7 +520,7 @@ export default function StudentTimetable() {
                                     className={cn(
                                         "p-4 border-l border-slate-50 min-h-[160px] transition-all relative overflow-hidden cursor-default",
                                         viewMode === "study" && !slot && "hover:bg-indigo-50/40 group/slot-empty cursor-pointer active:scale-95",
-                                        day === currentDay && "bg-sky-50/10"
+                                        day === currentDay && "bg-sky-500/[0.03] border-l-sky-100/50"
                                     )}
                                 >
 
@@ -600,8 +608,19 @@ export default function StudentTimetable() {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900 transition-colors">Personal Study</span>
                             </div>
                         </div>
-                        <Button variant="ghost" className="rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-red-50">
-                            Reset All Sessions
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => {
+                                if (viewMode === "study") {
+                                    setStudySlots([])
+                                    toast({ title: "Study Plan Cleared", description: "All personal sessions have been removed." })
+                                } else {
+                                    toast({ title: "Academic Schedule", description: "You cannot clear official classes.", variant: "destructive" })
+                                }
+                            }}
+                            className="rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-red-50"
+                        >
+                            {viewMode === "study" ? "Clear Study Plan" : "Reset View"}
                         </Button>
                     </div>
                 </div>

@@ -14,6 +14,10 @@ export class SubjectService {
         const subject = await Subject.findById(subjectId);
         if (!subject) throw new ApiError(404, "Subject not found");
 
+        if (subject.status !== "approved") {
+            throw new ApiError(400, "This subject is pending review and cannot accept enrollments yet.");
+        }
+
         if (subject.students.some(s => s.toString() === studentId.toString())) {
             throw new ApiError(400, "Student already enrolled in this subject");
         }
@@ -47,5 +51,28 @@ export class SubjectService {
         const subject = await Subject.findByIdAndDelete(subjectId);
         if (!subject) throw new ApiError(404, "Subject not found");
         return subject;
+    }
+
+    static async getRecommended(user) {
+        const query = { status: "approved" };
+        
+        if (user.grade) {
+            query.grade = user.grade;
+        }
+        
+        // Return premium and common subjects for their grade
+        return await Subject.find(query)
+            .sort({ isPremium: -1, createdAt: -1 })
+            .limit(10)
+            .populate("tutor", "name profile.avatar");
+    }
+
+    static async getMySubjects(userId, role) {
+        if (role === "student") {
+            return await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
+        } else if (role === "tutor") {
+            return await Subject.find({ tutor: userId }).populate("tutor", "name profile.avatar");
+        }
+        return [];
     }
 }

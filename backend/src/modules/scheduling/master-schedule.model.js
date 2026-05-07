@@ -27,7 +27,7 @@ const masterScheduleSchema = new mongoose.Schema({
     tutor: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User", 
-        required: true 
+        required: false 
     },
     dayOfWeek: { 
         type: String, 

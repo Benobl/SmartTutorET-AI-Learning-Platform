@@ -37,6 +37,7 @@ const signupSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 
   grade: z.string().optional(),
+  stream: z.string().optional(),
 
   // Tutor fields
   degree: z.string().optional(),
@@ -53,6 +54,14 @@ const signupSchema = z.object({
 }, {
   message: "Class is required",
   path: ["grade"]
+}).refine((data) => {
+  if (data.role === "student" && ["11", "12"].includes(data.grade || "")) {
+    return !!data.stream
+  }
+  return true
+}, {
+  message: "Stream is required for Grade 11 & 12",
+  path: ["stream"]
 }).refine((data) => {
   if (data.role === "tutor") {
     return (!!data.degree || !!data.degreeFile) && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
@@ -463,6 +472,33 @@ export default function SignupPage() {
                         <p className="text-red-400 text-xs mt-1 ml-1">{errors.grade.message}</p>
                       )}
                     </div>
+
+                    {["11", "12"].includes(watch("grade") || "") && (
+                      <div className="space-y-2 animate-in fade-in duration-300">
+                        <Label className="ml-1 text-white/80">Stream</Label>
+                        <Controller
+                          name="stream"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className={cn(
+                                "w-full rounded-xl border-white/10 bg-white/5 py-6 text-white focus:ring-sky-500/50",
+                                errors.stream && "border-red-500/50"
+                              )}>
+                                <SelectValue placeholder="Select Stream" />
+                              </SelectTrigger>
+                              <SelectContent className="border-white/10 bg-slate-900 text-white">
+                                <SelectItem value="Natural Science">Natural Science</SelectItem>
+                                <SelectItem value="Social Science">Social Science</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {errors.stream && (
+                          <p className="text-red-400 text-xs mt-1 ml-1">{errors.stream.message}</p>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>

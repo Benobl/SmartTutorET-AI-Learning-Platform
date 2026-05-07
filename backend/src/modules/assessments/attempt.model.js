@@ -26,13 +26,23 @@ const attemptSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    status: {
+    percentage: {
+      type: Number,
+      default: 0,
+    },
+    passed: {
+      type: Boolean,
+      default: false,
+    },
+    gradedAt: {
+      type: Date,
+    },
+    feedback: {
       type: String,
-      enum: ["submitted", "pending"],
-      default: "pending",
     },
     submittedAt: {
       type: Date,
+      default: Date.now,
     },
   },
   {
