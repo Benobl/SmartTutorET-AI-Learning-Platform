@@ -30,6 +30,7 @@ export default function TeacherCourses() {
     const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
     const [courses, setCourses] = useState(tutorCourses)
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
+    const [searchQuery, setSearchQuery] = useState("")
     const { toast } = useToast()
     const currentUser = getCurrentUser()
     const isApproved = currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.tutorStatus === 'approved'
@@ -109,6 +110,16 @@ export default function TeacherCourses() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <Input 
+                                placeholder="Search courses..." 
+                                className="h-14 pl-12 pr-6 w-[300px] rounded-2xl bg-white border-slate-100 font-bold text-sm shadow-sm focus:border-sky-300 transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
                         <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
                             if (!isApproved && open) {
                                 toast({

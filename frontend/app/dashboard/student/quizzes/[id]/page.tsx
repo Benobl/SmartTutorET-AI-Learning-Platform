@@ -26,32 +26,37 @@ export default function StudentQuizView() {
     const [isCompleted, setIsCompleted] = useState(false)
     const [result, setResult] = useState<any>(null)
     const [showFeedback, setShowFeedback] = useState<Record<string, boolean>>({})
+    const [timeLeft, setTimeLeft] = useState<number | null>(null)
+    const [timerActive, setTimerActive] = useState(false)
 
     useEffect(() => {
         const loadQuiz = async () => {
             try {
                 setLoading(true)
-                // 1. Load Quiz Data
                 const res = await assessmentApi.getById(id as string)
                 setQuiz(res.data)
-
-                // 2. Check for existing submission
+                
+                // Initialize timer if not completed
                 const subRes = await assessmentApi.getSubmissions(id as string)
                 if (subRes.data && subRes.data.length > 0) {
                     const latestSubmission = subRes.data[0]
                     setResult(latestSubmission)
                     setIsCompleted(true)
-                    // Pre-fill answers from submission if available
                     if (latestSubmission.responses) {
                         const savedAnswers: Record<string, string> = {}
                         latestSubmission.responses.forEach((r: any) => {
                             savedAnswers[r.question] = r.selectedOption
                         })
                         setAnswers(savedAnswers)
-                        // In review mode, show all feedback
                         const feedback: Record<string, boolean> = {}
                         res.data.questions.forEach((q: any) => feedback[q._id] = true)
                         setShowFeedback(feedback)
+                    }
+                } else {
+                    // Start timer for new attempts
+                    if (res.data.duration) {
+                        setTimeLeft(res.data.duration * 60)
+                        setTimerActive(true)
                     }
                 }
             } catch (error: any) {
@@ -62,6 +67,28 @@ export default function StudentQuizView() {
         }
         loadQuiz()
     }, [id])
+
+    // Timer Logic
+    useEffect(() => {
+        if (!timerActive || timeLeft === null || timeLeft <= 0) {
+            if (timeLeft === 0 && !isCompleted && !isSubmitting) {
+                handleSubmit() // Auto-submit when time is up
+            }
+            return
+        }
+
+        const timer = setInterval(() => {
+            setTimeLeft(prev => (prev !== null ? prev - 1 : null))
+        }, 1000)
+
+        return () => clearInterval(timer)
+    }, [timerActive, timeLeft])
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60)
+        const s = seconds % 60
+        return `${m}:${s < 10 ? '0' : ''}${s}`
+    }
 
 
 
@@ -201,9 +228,17 @@ export default function StudentQuizView() {
                         </div>
                         <h2 className="text-3xl font-black text-slate-900 uppercase italic leading-none">{quiz.title}</h2>
                     </div>
-                    <div className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-slate-100 shadow-sm">
-                        <Timer className="w-5 h-5 text-sky-500" />
-                        <span className="text-xl font-black text-slate-900 tabular-nums">14:52</span>
+                    <div className={cn(
+                        "flex items-center gap-4 p-4 rounded-3xl bg-white border transition-all duration-500 shadow-sm",
+                        timeLeft !== null && timeLeft < 60 ? "border-rose-200 bg-rose-50 shadow-rose-100 animate-pulse" : "border-slate-100"
+                    )}>
+                        <Clock className={cn("w-5 h-5", timeLeft !== null && timeLeft < 60 ? "text-rose-500" : "text-sky-500")} />
+                        <span className={cn(
+                            "text-xl font-black tabular-nums",
+                            timeLeft !== null && timeLeft < 60 ? "text-rose-600" : "text-slate-900"
+                        )}>
+                            {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
+                        </span>
                     </div>
                 </div>
 

@@ -14,14 +14,26 @@ import Link from "next/link"
 export function AssessmentList() {
     const [assessments, setAssessments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [submissions, setSubmissions] = useState<Record<string, any>>({})
 
     useEffect(() => {
         const loadQuizzes = async () => {
             try {
                 setLoading(true)
-                const res = await assessmentApi.getAll()
-                console.log("🔍 [STUDENT_QUIZZES] Loaded:", res.data?.length, "assessments");
+                const [res, subRes] = await Promise.all([
+                    assessmentApi.getAll(),
+                    assessmentApi.getSubmissions()
+                ])
+                
                 setAssessments(res.data || [])
+                
+                const subMap: Record<string, any> = {}
+                if (subRes.data) {
+                    subRes.data.forEach((s: any) => {
+                        subMap[s.assessment._id || s.assessment] = s
+                    })
+                }
+                setSubmissions(subMap)
             } catch (error) {
                 console.error("Failed to load assessments:", error)
             } finally {
@@ -62,23 +74,39 @@ export function AssessmentList() {
                         {quiz.creationMethod === 'ai' && <Sparkles className="w-4 h-4 text-sky-400" />}
                     </div>
 
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
-                        <ListChecks className="w-6 h-6" />
-                    </div>
+                    {submissions[quiz._id] ? (
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex flex-col items-center justify-center border border-emerald-100 shadow-sm shrink-0">
+                            <span className="text-[10px] font-black leading-none">{submissions[quiz._id].percentage}%</span>
+                            <CheckCircle2 className="w-3 h-3 mt-1" />
+                        </div>
+                    ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm shrink-0">
+                            <ListChecks className="w-6 h-6" />
+                        </div>
+                    )}
 
                     <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-black text-slate-900 truncate uppercase tracking-tight group-hover:text-sky-600 transition-colors">
                             {quiz.title}
                         </h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            {quiz.subject?.title || "General"} • {quiz.questions?.length} Questions
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                                {quiz.subject?.title || "General Science"}
+                            </p>
+                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
+                                {quiz.questions?.length || 0} Qs
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center gap-2">
-                         <Button variant="ghost" size="icon" className="rounded-xl group-hover:bg-sky-50 group-hover:text-sky-600">
-                            <ChevronRight className="w-4 h-4" />
-                         </Button>
+                    <div className="shrink-0">
+                         <div className={cn(
+                             "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                             submissions[quiz._id] ? "bg-slate-50 text-slate-400" : "bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white"
+                         )}>
+                            <ChevronRight className="w-5 h-5" />
+                         </div>
                     </div>
                 </Link>
             ))}

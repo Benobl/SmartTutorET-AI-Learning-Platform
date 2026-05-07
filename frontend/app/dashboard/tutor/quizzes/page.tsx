@@ -54,14 +54,19 @@ export default function TeacherQuizzes() {
     const [submissions, setSubmissions] = useState<any[]>([])
     const [loadingSubmissions, setLoadingSubmissions] = useState(false)
 
+    const [assessmentType, setAssessmentType] = useState("quiz")
+    const [duration, setDuration] = useState(20)
+    const [allStudents, setAllStudents] = useState<any[]>([])
+
     useEffect(() => {
         loadData()
     }, [])
 
     const loadSubmissions = async (quizId: string) => {
         try {
+            setSubmissions([])
             setLoadingSubmissions(true)
-            const res = await assessmentApi.getSubmissions({ assessment: quizId })
+            const res = await assessmentApi.getSubmissions(quizId)
             setSubmissions(res.data || [])
         } catch (error: any) {
             console.error("Failed to load submissions:", error)
@@ -73,12 +78,14 @@ export default function TeacherQuizzes() {
     const loadData = async () => {
         try {
             setLoading(true)
-            const [qRes, cRes] = await Promise.all([
+            const [qRes, cRes, sRes] = await Promise.all([
                 assessmentApi.getAll(),
-                courseApi.getAll()   // fetch all approved subjects for grade filtering
+                courseApi.getAll(),
+                userApi.getAllStudents()
             ])
             setQuizzes(qRes.data || [])
             setCourses(cRes.data || [])
+            setAllStudents(sRes.data || [])
         } catch (error: any) {
             toast({ title: "Failed to load data", description: error.message, variant: "destructive" })
         } finally {
@@ -244,6 +251,32 @@ export default function TeacherQuizzes() {
                                             <SelectItem key={c._id} value={c.title}>{c.title}</SelectItem>
                                         ))}
                                         <SelectItem value="General">General/Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Type</Label>
+                                <Select value={assessmentType} onValueChange={setAssessmentType}>
+                                    <SelectTrigger className="h-12 w-full rounded-xl bg-slate-50 border-slate-100 text-slate-900 font-bold text-[10px] uppercase tracking-widest outline-none focus:ring-sky-500/20">
+                                        <SelectValue placeholder="Quiz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="quiz">Quiz</SelectItem>
+                                        <SelectItem value="mid-term">Mid-term</SelectItem>
+                                        <SelectItem value="final">Final Exam</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Time Limit</Label>
+                                <Select value={duration.toString()} onValueChange={(v) => setDuration(parseInt(v))}>
+                                    <SelectTrigger className="h-12 w-full rounded-xl bg-slate-50 border-slate-100 text-slate-900 font-bold text-[10px] uppercase tracking-widest outline-none focus:ring-sky-500/20">
+                                        <SelectValue placeholder="20 min" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[10, 20, 30, 45, 60, 90, 120].map(m => (
+                                            <SelectItem key={m} value={m.toString()}>{m} Minutes</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -545,9 +578,24 @@ export default function TeacherQuizzes() {
                         {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-6">
                             {[
-                                { label: "Pass Rate", value: "88%", icon: CheckCircle2, color: "text-emerald-500" },
-                                { label: "High Score", value: "98/100", icon: Trophy, color: "text-amber-500" },
-                                { label: "Time Taken", value: "18m", icon: Clock, color: "text-sky-500" }
+                                { 
+                                    label: "Pass Rate", 
+                                    value: submissions.length > 0 ? `${Math.round((submissions.filter(s => s.passed).length / submissions.length) * 100)}%` : "0%", 
+                                    icon: CheckCircle2, 
+                                    color: "text-emerald-500" 
+                                },
+                                { 
+                                    label: "Average Score", 
+                                    value: submissions.length > 0 ? `${Math.round(submissions.reduce((acc, s) => acc + s.percentage, 0) / submissions.length)}%` : "0%", 
+                                    icon: Trophy, 
+                                    color: "text-amber-500" 
+                                },
+                                { 
+                                    label: "Participation", 
+                                    value: `${submissions.length}/${allStudents.filter(s => s.profile?.grade === selectedQuiz?.grade).length || 0}`, 
+                                    icon: Users, 
+                                    color: "text-sky-500" 
+                                }
                             ].map((stat, i) => (
                                 <div key={i} className="p-6 rounded-[32px] bg-white border border-slate-100 shadow-sm text-center space-y-2">
                                     <stat.icon className={cn("w-6 h-6 mx-auto", stat.color)} />
@@ -557,63 +605,59 @@ export default function TeacherQuizzes() {
                             ))}
                         </div>
 
-                        {/* Difficulty Distribution */}
-                        <div className="space-y-6">
-                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Difficulty Distribution</h5>
-                            <div className="space-y-4">
-                                {[
-                                    { level: "Easy", count: 12, width: "w-[85%]", color: "bg-emerald-500" },
-                                    { level: "Medium", count: 18, width: "w-[60%]", color: "bg-sky-500" },
-                                    { level: "Hard", count: 5, width: "w-[25%]", color: "bg-rose-500" }
-                                ].map((row, i) => (
-                                    <div key={i} className="space-y-2">
-                                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-500">
-                                            <span>{row.level} Questions</span>
-                                            <span>{row.count} Students struggle</span>
-                                        </div>
-                                        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                                            <div className={cn("h-full rounded-full transition-all duration-1000", row.color, row.width)} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
                         {/* Student Submissions Section */}
                         <div className="space-y-6">
-                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Submissions</h5>
-                            <div className="space-y-3">
+                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Performance & Participation</h5>
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                                 {loadingSubmissions ? (
                                     <div className="text-center py-10 space-y-3">
                                         <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fetching student data...</p>
                                     </div>
-                                ) : submissions.length === 0 ? (
-                                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No submissions yet</p>
-                                    </div>
                                 ) : (
-                                    submissions.map((sub, i) => (
-                                        <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-sky-200 transition-all shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 uppercase text-xs overflow-hidden border border-slate-100">
-                                                    {sub.user?.profile?.avatar ? (
-                                                        <img src={sub.user.profile.avatar} className="w-full h-full object-cover" alt="Avatar" />
-                                                    ) : (
-                                                        sub.user?.name?.charAt(0) || "S"
-                                                    )}
+                                    <>
+                                        {/* Completed */}
+                                        {submissions.map((sub, i) => (
+                                            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-sky-200 transition-all shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 uppercase text-xs overflow-hidden border border-slate-100">
+                                                        {sub.user?.profile?.avatar ? (
+                                                            <img src={sub.user.profile.avatar} className="w-full h-full object-cover" alt="Avatar" />
+                                                        ) : (
+                                                            sub.user?.name?.charAt(0) || "S"
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-900">{sub.user?.name || "Unknown Student"}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Completed: {new Date(sub.createdAt).toLocaleDateString()}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-900">{sub.user?.name || "Unknown Student"}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(sub.createdAt).toLocaleDateString()}</p>
+                                                <div className="text-right">
+                                                    <p className={cn("text-lg font-black", sub.passed ? "text-emerald-600" : "text-rose-600")}>{sub.percentage}%</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{sub.score}/{selectedQuiz?.totalMarks} PTS</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={cn("text-lg font-black", sub.passed ? "text-emerald-600" : "text-rose-600")}>{sub.percentage}%</p>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{sub.score}/{selectedQuiz?.totalMarks} PTS</p>
-                                            </div>
-                                        </div>
-                                    ))
+                                        ))}
+
+                                        {/* Missing Students */}
+                                        {allStudents
+                                            .filter(s => s.profile?.grade === selectedQuiz?.grade)
+                                            .filter(s => !submissions.find(sub => sub.user?._id === s._id))
+                                            .map((student, i) => (
+                                                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-dashed border-slate-200 opacity-60">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center font-black text-slate-300 text-xs">
+                                                            {student.name?.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-slate-500">{student.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">No Attempt Yet</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Pending</div>
+                                                </div>
+                                            ))}
+                                    </>
                                 )}
                             </div>
                         </div>
