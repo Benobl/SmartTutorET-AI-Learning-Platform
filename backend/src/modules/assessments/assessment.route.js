@@ -13,6 +13,7 @@ router.get("/", AssessmentController.getAll);
 router.get("/submissions", AssessmentController.getSubmissions);
 router.get("/:id", AssessmentController.getById);
 router.patch("/:id/publish", allowRoles("tutor", "admin", "manager"), AssessmentController.publish);
+router.delete("/:id", allowRoles("tutor", "admin", "manager"), AssessmentController.delete);
 router.post("/:id/submit", allowRoles("student"), AssessmentController.submit);
 
 export default router;

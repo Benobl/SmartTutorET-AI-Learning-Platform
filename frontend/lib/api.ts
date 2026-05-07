@@ -357,4 +357,7 @@ export const assessmentApi = {
         const query = assessmentId ? `?assessmentId=${assessmentId}` : "";
         return fetchWithAuth(`/assessments/submissions${query}`);
     },
+    delete: (id: string) => fetchWithAuth(`/assessments/${id}`, {
+        method: "DELETE"
+    }),
 };

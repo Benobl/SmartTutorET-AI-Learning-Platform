@@ -106,4 +106,13 @@ export class AssessmentController {
             next(error);
         }
     }
+
+    static async delete(req, res, next) {
+        try {
+            await AssessmentService.deleteAssessment(req.params.id, req.user._id);
+            res.json({ success: true, message: "Assessment deleted successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

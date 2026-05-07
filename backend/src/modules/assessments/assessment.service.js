@@ -139,4 +139,10 @@ export class AssessmentService {
         if (!assessment) throw new ApiError(404, "Assessment not found or unauthorized");
         return assessment;
     }
+
+    static async deleteAssessment(assessmentId, tutorId) {
+        const assessment = await Assessment.findOneAndDelete({ _id: assessmentId, createdBy: tutorId });
+        if (!assessment) throw new ApiError(404, "Assessment not found or unauthorized");
+        return assessment;
+    }
 }

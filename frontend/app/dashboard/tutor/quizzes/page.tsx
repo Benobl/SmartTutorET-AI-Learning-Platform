@@ -1,12 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
-    Brain, Plus, Search, Sparkles, LayoutGrid,
-    CheckCircle2, AlertCircle, Clock, Timer,
-    GraduationCap, BookOpen, Users, BarChart3,
-    ArrowUpRight, ChevronRight, ListChecks,
-    History, PenTool, Activity, Send, Filter, Trophy
+    Plus, 
+    Sparkles, 
+    ListChecks, 
+    Users, 
+    BarChart3, 
+    Filter, 
+    PenTool, 
+    FileUp, 
+    Trash2,
+    ChevronLeft,
+    Brain,
+    Clock,
+    Timer,
+    Activity,
+    Send,
+    Trophy,
+    ArrowUpRight,
+    ChevronRight,
+    CheckCircle2,
+    History
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,13 +35,6 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { assessmentApi, courseApi } from "@/lib/api"
-import { useEffect } from "react"
-
-const MOCK_QUIZZES = [
-    { id: "q1", title: "Intro to Particles", type: "AI-Generated", course: "Physics G12", questions: 10, completed: 42, avgScore: "84%", status: "active" },
-    { id: "q2", title: "Mid-Term Mock Test", type: "Teacher-Made", course: "Math G11", questions: 30, completed: 52, avgScore: "72%", status: "active" },
-    { id: "q3", title: "Biology Unit 1 Quiz", type: "Teacher-Made", course: "Biology G10", questions: 15, completed: 38, avgScore: "91%", status: "completed" },
-]
 
 export default function TeacherQuizzes() {
     const { toast } = useToast()
@@ -53,7 +61,7 @@ export default function TeacherQuizzes() {
             setLoading(true)
             const [qRes, cRes] = await Promise.all([
                 assessmentApi.getAll(),
-                courseApi.getMyCourses()
+                courseApi.getAll()   // fetch all approved subjects for grade filtering
             ])
             setQuizzes(qRes.data || [])
             setCourses(cRes.data || [])
@@ -63,6 +71,21 @@ export default function TeacherQuizzes() {
             setLoading(false)
         }
     }
+
+    const handleDelete = async (id: string) => {
+        try {
+            await assessmentApi.delete(id)
+            toast({ title: "Assessment deleted" })
+            loadData()
+        } catch (error: any) {
+            toast({ title: "Failed to delete", description: error.message, variant: "destructive" })
+        }
+    }
+
+    const filteredCourses = courses.filter(c => {
+        if (selectedGrade === "General") return true;
+        return c.grade?.toString() === selectedGrade;
+    })
 
     const handleGenerate = async () => {
         if (!prompt) {
@@ -76,7 +99,7 @@ export default function TeacherQuizzes() {
         setIsGenerating(true)
         try {
             const course = courses.find(c => c.title === selectedCourse);
-            await assessmentApi.generateAI({
+            const res = await assessmentApi.generateAI({
                 subject: selectedCourse,
                 grade: selectedGrade,
                 stream: selectedStream,
@@ -89,6 +112,8 @@ export default function TeacherQuizzes() {
                 description: `A new quiz has been created and published for Grade ${selectedGrade} students.`,
             })
             setPrompt("")
+            setSelectedQuiz(res.data)
+            setIsPreviewOpen(true)
             loadData()
         } catch (error: any) {
             toast({ title: "Generation failed", description: error.message, variant: "destructive" })
@@ -201,7 +226,7 @@ export default function TeacherQuizzes() {
                                         <SelectValue placeholder="Select Course" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {courses.map(c => (
+                                        {filteredCourses.map(c => (
                                             <SelectItem key={c._id} value={c.title}>{c.title}</SelectItem>
                                         ))}
                                         <SelectItem value="General">General/Other</SelectItem>
@@ -303,6 +328,11 @@ export default function TeacherQuizzes() {
                                 )}>
                                     {quiz.isPublished ? "Published" : "Draft"}
                                 </span>
+                                {new Date(quiz.createdAt).getTime() > Date.now() - 120000 && (
+                                    <span className="px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-500 border border-amber-100 animate-pulse">
+                                        New
+                                    </span>
+                                )}
                                 <span className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[7px] font-black uppercase tracking-widest">
                                     G{quiz.grade} {quiz.stream !== 'Common' && quiz.stream}
                                 </span>
@@ -336,19 +366,38 @@ export default function TeacherQuizzes() {
                                     </div>
                                 </div>
 
-                                <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{quiz.creationMethod || 'manual'}</span>
-                                    <Button
-                                        onClick={() => {
-                                            setSelectedQuiz(quiz)
-                                            setIsPreviewOpen(true)
-                                        }}
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-10 px-4 rounded-xl border-slate-200 text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-sky-600 transition-all"
-                                    >
-                                        View Qs
-                                    </Button>
+                                <div className="pt-6 border-t border-slate-50 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            onClick={async () => {
+                                                if (confirm("Are you sure you want to delete this quiz?")) {
+                                                    try {
+                                                        await assessmentApi.delete(quiz._id)
+                                                        toast({ title: "Quiz Deleted" })
+                                                        loadData()
+                                                    } catch (error: any) {
+                                                        toast({ title: "Delete failed", description: error.message, variant: "destructive" })
+                                                    }
+                                                }
+                                            }}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setSelectedQuiz(quiz)
+                                                setIsPreviewOpen(true)
+                                            }}
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-10 px-4 rounded-xl border-slate-200 text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-sky-600 transition-all"
+                                        >
+                                            View Qs
+                                        </Button>
+                                    </div>
                                     <Button
                                         onClick={() => {
                                             setSelectedQuiz(quiz)
@@ -388,6 +437,31 @@ export default function TeacherQuizzes() {
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quiz Title</Label>
                             <Input placeholder="e.g. Unit 3: Thermodynamics Final" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Grade</Label>
+                                <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {["9", "10", "11", "12"].map(g => <SelectItem key={g} value={g}>Grade {g}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Subject</Label>
+                                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {filteredCourses.map(c => <SelectItem key={c._id} value={c.title}>{c.title}</SelectItem>)}
+                                        <SelectItem value="General">General/Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-3">
@@ -553,10 +627,21 @@ export default function TeacherQuizzes() {
                         ))}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="flex flex-row gap-4">
+                        <Button 
+                            variant="outline"
+                            onClick={() => {
+                                setPrompt(`Topic: ${selectedQuiz?.title}. Please generate different questions for the same topic.`);
+                                setIsPreviewOpen(false);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-400 font-black uppercase tracking-widest hover:text-sky-600 transition-all"
+                        >
+                            Re-generate
+                        </Button>
                         <Button 
                             onClick={() => setIsPreviewOpen(false)}
-                            className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-sky-600 transition-all"
+                            className="flex-1 h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-sky-600 transition-all"
                         >
                             Close Preview
                         </Button>
