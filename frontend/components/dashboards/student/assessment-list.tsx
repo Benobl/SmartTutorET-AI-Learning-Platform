@@ -20,6 +20,7 @@ export function AssessmentList() {
             try {
                 setLoading(true)
                 const res = await assessmentApi.getAll()
+                console.log("🔍 [STUDENT_QUIZZES] Loaded:", res.data?.length, "assessments");
                 setAssessments(res.data || [])
             } catch (error) {
                 console.error("Failed to load assessments:", error)

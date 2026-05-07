@@ -110,6 +110,13 @@ const studentNavItems: NavItem[] = [
         badge: 3,
         activeColor: "orange",
     },
+    {
+        title: "Quizzes",
+        url: "/dashboard/student/quizzes",
+        icon: GraduationCap,
+        activeColor: "sky",
+        badge: 2,
+    },
 ]
 
 /**

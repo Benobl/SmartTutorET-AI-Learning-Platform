@@ -22,21 +22,26 @@ export class AssessmentController {
             if (req.user.role === "student") {
                 filters.isPublished = true;
                 
-                // If student has a grade, filter by it (or 'General')
-                if (req.user.grade) {
+                // Flexible grade matching (String or Number)
+                const userGrade = req.user.grade?.toString();
+                if (userGrade) {
                     filters.$or = [
-                        { grade: req.user.grade },
-                        { grade: "General" }
+                        { grade: userGrade },
+                        { grade: "General" },
+                        { grade: "" } // Handle missing grade field
                     ];
                 }
-
-                // If grade 11/12 and has stream, filter by it
-                if (req.user.stream && ["11", "12"].includes(req.user.grade)) {
+                
+                // Only filter by stream for higher grades where it's strictly enforced
+                if (req.user.stream && ["11", "12"].includes(userGrade)) {
+                    // This will be combined with $or above if we use $and
                     filters.stream = { $in: [req.user.stream, "Common"] };
                 }
+
+                console.log(`🔍 [ASSESSMENT_FILTER] Student: ${req.user.email}, Grade: ${userGrade}, Filters:`, JSON.stringify(filters));
             } else {
-                // Tutors/Admins can filter by grade explicitly via query
-                if (grade) filters.grade = grade;
+                // Tutors/Admins can filter by grade/stream explicitly via query
+                if (grade) filters.grade = grade.toString();
                 if (stream) filters.stream = stream;
             }
 

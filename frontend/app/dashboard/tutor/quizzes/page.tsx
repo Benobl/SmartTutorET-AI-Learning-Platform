@@ -51,10 +51,24 @@ export default function TeacherQuizzes() {
     const [prompt, setPrompt] = useState("")
     const [selectedCourse, setSelectedCourse] = useState("General")
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+    const [submissions, setSubmissions] = useState<any[]>([])
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false)
 
     useEffect(() => {
         loadData()
     }, [])
+
+    const loadSubmissions = async (quizId: string) => {
+        try {
+            setLoadingSubmissions(true)
+            const res = await assessmentApi.getSubmissions({ assessment: quizId })
+            setSubmissions(res.data || [])
+        } catch (error: any) {
+            console.error("Failed to load submissions:", error)
+        } finally {
+            setLoadingSubmissions(false)
+        }
+    }
 
     const loadData = async () => {
         try {
@@ -402,6 +416,7 @@ export default function TeacherQuizzes() {
                                         onClick={() => {
                                             setSelectedQuiz(quiz)
                                             setIsAnalysisOpen(true)
+                                            loadSubmissions(quiz._id)
                                         }}
                                         size="sm"
                                         className="h-10 px-6 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-500/20"
@@ -526,7 +541,8 @@ export default function TeacherQuizzes() {
                         </DialogHeader>
                     </div>
 
-                    <div className="p-10 space-y-10">
+                    <div className="p-10 space-y-10 overflow-y-auto max-h-[60vh]">
+                        {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-6">
                             {[
                                 { label: "Pass Rate", value: "88%", icon: CheckCircle2, color: "text-emerald-500" },
@@ -541,6 +557,7 @@ export default function TeacherQuizzes() {
                             ))}
                         </div>
 
+                        {/* Difficulty Distribution */}
                         <div className="space-y-6">
                             <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Difficulty Distribution</h5>
                             <div className="space-y-4">
@@ -559,6 +576,45 @@ export default function TeacherQuizzes() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+
+                        {/* Student Submissions Section */}
+                        <div className="space-y-6">
+                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Submissions</h5>
+                            <div className="space-y-3">
+                                {loadingSubmissions ? (
+                                    <div className="text-center py-10 space-y-3">
+                                        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fetching student data...</p>
+                                    </div>
+                                ) : submissions.length === 0 ? (
+                                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No submissions yet</p>
+                                    </div>
+                                ) : (
+                                    submissions.map((sub, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-sky-200 transition-all shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 uppercase text-xs overflow-hidden border border-slate-100">
+                                                    {sub.user?.profile?.avatar ? (
+                                                        <img src={sub.user.profile.avatar} className="w-full h-full object-cover" alt="Avatar" />
+                                                    ) : (
+                                                        sub.user?.name?.charAt(0) || "S"
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900">{sub.user?.name || "Unknown Student"}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(sub.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={cn("text-lg font-black", sub.passed ? "text-emerald-600" : "text-rose-600")}>{sub.percentage}%</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{sub.score}/{selectedQuiz?.totalMarks} PTS</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>

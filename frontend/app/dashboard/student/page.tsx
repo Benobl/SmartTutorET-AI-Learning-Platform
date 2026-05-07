@@ -79,31 +79,31 @@ export default function StudentOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           {
-            label: "Academic Mastery",
-            value: "78%",
+            label: "Assessment Score",
+            value: "82%",
             icon: Target,
             color: "sky",
-            sub: "12/15 Modules",
-            trend: "+4% this week",
+            sub: "Overall Rank: 14",
+            trend: "+2% Today",
             bg: "from-sky-50 to-white"
           },
           {
-            label: "Time Invested",
-            value: "42.5h",
-            icon: Clock,
+            label: "Quizzes Taken",
+            value: "14",
+            icon: GraduationCap,
             color: "indigo",
-            sub: "Avg 2.4h / day",
-            trend: "+5.2h session",
+            sub: "Last: Photosynthesis",
+            trend: "Active Student",
             bg: "from-indigo-50 to-white"
           },
           {
-            label: "Attendance Rate",
-            value: "96%",
-            icon: Calendar,
-            color: "emerald",
-            sub: "Perfect in Math",
-            trend: "Top 1% Rank",
-            bg: "from-emerald-50 to-white"
+            label: "Learning Streak",
+            value: "12",
+            icon: Zap,
+            color: "amber",
+            sub: "Days active",
+            trend: "Master Level",
+            bg: "from-amber-50 to-white"
           },
           {
             label: "Current GPA",
@@ -122,35 +122,26 @@ export default function StudentOverview() {
               stat.bg
             )}
           >
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
             <div className="relative z-10">
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className={cn(
-                  "p-3.5 rounded-2xl border transition-all duration-500 group-hover:rotate-6 shadow-sm bg-white",
-                  `text-${stat.color}-500 border-${stat.color}-100 group-hover:bg-${stat.color}-500 group-hover:text-white`
+                  "p-3 rounded-2xl border bg-white shadow-sm",
+                  `text-${stat.color}-500 border-${stat.color}-100`
                 )}>
                   <stat.icon className="w-5 h-5" />
                 </div>
-                <div className={cn("px-2.5 py-1 rounded-lg bg-white/80 border text-[9px] font-black uppercase tracking-tighter", `text-${stat.color}-600 border-${stat.color}-100`)}>
+                <div className={cn("px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest", `text-${stat.color}-600 border-${stat.color}-100`)}>
                   {stat.trend}
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
                 <div className="flex items-baseline gap-2">
-                  <h3 className="text-4xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</span>
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
                 </div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</p>
               </div>
             </div>
-
-            {/* Background Decoration */}
-            <div className={cn(
-              "absolute -right-6 -bottom-6 w-32 h-32 rounded-full opacity-5 blur-3xl transition-all duration-700 group-hover:opacity-20 group-hover:scale-150",
-              `bg-${stat.color}-500`
-            )} />
           </div>
         ))}
       </div>

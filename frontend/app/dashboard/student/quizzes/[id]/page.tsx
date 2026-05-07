@@ -25,15 +25,37 @@ export default function StudentQuizView() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isCompleted, setIsCompleted] = useState(false)
     const [result, setResult] = useState<any>(null)
+    const [showFeedback, setShowFeedback] = useState<Record<string, boolean>>({})
 
     useEffect(() => {
         const loadQuiz = async () => {
             try {
                 setLoading(true)
+                // 1. Load Quiz Data
                 const res = await assessmentApi.getById(id as string)
                 setQuiz(res.data)
+
+                // 2. Check for existing submission
+                const subRes = await assessmentApi.getSubmissions(id as string)
+                if (subRes.data && subRes.data.length > 0) {
+                    const latestSubmission = subRes.data[0]
+                    setResult(latestSubmission)
+                    setIsCompleted(true)
+                    // Pre-fill answers from submission if available
+                    if (latestSubmission.responses) {
+                        const savedAnswers: Record<string, string> = {}
+                        latestSubmission.responses.forEach((r: any) => {
+                            savedAnswers[r.question] = r.selectedOption
+                        })
+                        setAnswers(savedAnswers)
+                        // In review mode, show all feedback
+                        const feedback: Record<string, boolean> = {}
+                        res.data.questions.forEach((q: any) => feedback[q._id] = true)
+                        setShowFeedback(feedback)
+                    }
+                }
             } catch (error: any) {
-                toast({ title: "Error", description: error.message, variant: "destructive" })
+                toast({ title: "Status", description: error.message })
             } finally {
                 setLoading(false)
             }
@@ -41,9 +63,25 @@ export default function StudentQuizView() {
         loadQuiz()
     }, [id])
 
+
+
+    const currentQuestion = quiz?.questions?.[currentQuestionIndex]
+    const progress = quiz ? ((currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0
+    const hasAnsweredCurrent = currentQuestion ? !!showFeedback[currentQuestion._id] : false
+
     const handleSelectOption = (option: string) => {
-        const qId = quiz.questions[currentQuestionIndex]._id
+        if (!currentQuestion || showFeedback[currentQuestion._id]) return
+        
+        const qId = currentQuestion._id
         setAnswers(prev => ({ ...prev, [qId]: option }))
+        setShowFeedback(prev => ({ ...prev, [qId]: true }))
+        
+        const isCorrect = option === currentQuestion.correctAnswer
+        if (isCorrect) {
+            toast({ title: "Correct!", description: "Well done!" })
+        } else {
+            toast({ title: "Incorrect", description: `The correct answer was: ${currentQuestion.correctAnswer}`, variant: "destructive" })
+        }
     }
 
     const handleSubmit = async () => {
@@ -149,9 +187,6 @@ export default function StudentQuizView() {
         </div>
     )
 
-    const currentQuestion = quiz.questions[currentQuestionIndex]
-    const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100
-
     return (
         <div className="min-h-screen p-6 lg:p-20 bg-slate-50">
             <div className="max-w-4xl mx-auto space-y-12">
@@ -190,31 +225,57 @@ export default function StudentQuizView() {
                     <div className="grid grid-cols-1 gap-4">
                         {currentQuestion.options.map((option: string, i: number) => {
                             const isSelected = answers[currentQuestion._id] === option
+                            const isCorrect = option === currentQuestion.correctAnswer
+                            const isRevealed = showFeedback[currentQuestion._id]
+                            
+                            let stateStyles = "bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-slate-200"
+                            if (isRevealed) {
+                                if (isCorrect) stateStyles = "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-lg"
+                                else if (isSelected) stateStyles = "bg-rose-50 border-rose-500 text-rose-900 shadow-lg"
+                                else stateStyles = "bg-slate-50 border-transparent text-slate-300 opacity-50"
+                            } else if (isSelected) {
+                                stateStyles = "bg-sky-50 border-sky-600 text-sky-900 shadow-xl shadow-sky-500/10"
+                            }
+
                             return (
                                 <button
                                     key={i}
+                                    disabled={isRevealed}
                                     onClick={() => handleSelectOption(option)}
                                     className={cn(
-                                        "group flex items-center justify-between p-6 rounded-[32px] border-2 transition-all text-left",
-                                        isSelected 
-                                            ? "bg-sky-50 border-sky-600 text-sky-900 shadow-xl shadow-sky-500/10" 
-                                            : "bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-slate-200"
+                                        "group flex items-center justify-between p-6 rounded-[32px] border-2 transition-all text-left relative overflow-hidden",
+                                        stateStyles
                                     )}
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 relative z-10">
                                         <div className={cn(
                                             "w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all",
-                                            isSelected ? "bg-sky-600 text-white" : "bg-white text-slate-400 group-hover:text-sky-600"
+                                            isRevealed && isCorrect ? "bg-emerald-500 text-white" :
+                                            isRevealed && isSelected && !isCorrect ? "bg-rose-500 text-white" :
+                                            isSelected ? "bg-sky-600 text-white" : "bg-white text-slate-400"
                                         )}>
                                             {String.fromCharCode(65 + i)}
                                         </div>
                                         <span className="font-bold text-lg">{option}</span>
                                     </div>
-                                    {isSelected && <CheckCircle2 className="w-6 h-6 text-sky-600" />}
+                                    <div className="relative z-10">
+                                        {isRevealed && isCorrect && <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+                                        {isRevealed && isSelected && !isCorrect && <AlertCircle className="w-6 h-6 text-rose-600" />}
+                                    </div>
                                 </button>
                             )
                         })}
                     </div>
+
+                    {hasAnsweredCurrent && currentQuestion.explanation && (
+                         <div className="p-8 rounded-[40px] bg-sky-50 border border-sky-100 animate-in fade-in zoom-in duration-500">
+                             <div className="flex items-center gap-2 mb-3">
+                                 <Sparkles className="w-5 h-5 text-sky-600" />
+                                 <span className="text-xs font-black text-sky-600 uppercase tracking-widest">Instant Feedback</span>
+                             </div>
+                             <p className="text-lg text-sky-900 font-medium leading-relaxed italic">{currentQuestion.explanation}</p>
+                         </div>
+                    )}
                 </div>
 
                 {/* Navigation */}
