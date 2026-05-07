@@ -151,4 +151,12 @@ export class SubjectController {
             next(error);
         }
     }
+    static async autoGenerateLessons(req, res, next) {
+        try {
+            const subject = await SubjectService.autoGenerateLessons(req.params.subjectId);
+            res.json({ success: true, message: "AI has successfully populated the curriculum", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

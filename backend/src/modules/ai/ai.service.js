@@ -71,38 +71,58 @@ Format your response in a clear, structured way using markdown formatting when h
     }
 
     static async suggestResources(subject, grade) {
-        const model = getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Suggest high-quality educational resources for a Grade ${grade} student studying "${subject}" in Ethiopia. 
-        
-        CRITICAL REQUIREMENTS:
-        1. Find best YouTube links specifically for:
-           - Amharic (e.g., "Grade ${grade} ${subject} Amharic Ethiopian Curriculum")
-           - Afaan Oromo (e.g., "Grade ${grade} ${subject} Afaan Oromo Ethiopian Curriculum")
-           - English (e.g., "Grade ${grade} ${subject} Ethiopian National Exam Prep")
-        2. Ensure these are SPECIFIC to the Ethiopian Ministry of Education curriculum for Grade ${grade}.
-        3. Include official Ministry of Education textbooks (PDF sources).
-        4. Include specific websites for localized practice.
-        
-        Return ONLY a JSON object with this schema:
-        {
-          "videos": [
-            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Amharic", "url": "..." },
-            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Afaan Oromo", "url": "..." },
-            { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "English", "url": "..." }
-          ],
-          "books": [
-            { "title": "Official Grade ${grade} ${subject} Textbook", "type": "Textbook", "url": "..." }
-          ],
-          "websites": [
-            { "name": "...", "url": "..." }
-          ]
-        }`;
+        const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
+        let lastError = null;
 
-        const result = await model.generateContent(prompt);
-        let text = result.response.text();
-        // Manual JSON extraction in case model adds markdown
-        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        return JSON.parse(text);
+        for (const modelName of modelsToTry) {
+            try {
+                const model = getGenAI().getGenerativeModel({ model: modelName });
+                const prompt = `Suggest high-quality educational resources for a Grade ${grade} student studying "${subject}" in Ethiopia. 
+                
+                CRITICAL REQUIREMENTS:
+                1. Find best YouTube links specifically for:
+                   - Amharic (e.g., "Grade ${grade} ${subject} Amharic Ethiopian Curriculum")
+                   - Afaan Oromo (e.g., "Grade ${grade} ${subject} Afaan Oromo Ethiopian Curriculum")
+                   - English (e.g., "Grade ${grade} ${subject} Ethiopian National Exam Prep")
+                2. Ensure these are SPECIFIC to the Ethiopian Ministry of Education curriculum for Grade ${grade}.
+                3. Include official Ministry of Education textbooks (PDF sources).
+                4. Include specific websites for localized practice.
+                
+                Return ONLY a JSON object with this schema:
+                {
+                  "videos": [
+                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Amharic", "url": "..." },
+                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Afaan Oromo", "url": "..." },
+                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "English", "url": "..." }
+                  ],
+                  "books": [
+                    { "title": "Official Grade ${grade} ${subject} Textbook", "type": "Textbook", "url": "..." }
+                  ],
+                  "websites": [
+                    { "name": "...", "url": "..." }
+                  ]
+                }`;
+
+                const result = await model.generateContent(prompt);
+                let text = result.response.text();
+                text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+                return JSON.parse(text);
+            } catch (error) {
+                console.error(`⚠️ Resource suggestion failed with ${modelName}:`, error.message);
+                lastError = error;
+            }
+        }
+
+        // Fallback static data if AI fails
+        return {
+            videos: [
+                { title: `Introduction to Grade ${grade} ${subject}`, language: "English", url: "https://youtube.com" }
+            ],
+            books: [
+                { title: `Grade ${grade} ${subject} Reference`, type: "Textbook", url: "#" }
+            ],
+            websites: []
+        };
     }
 
     static async generateFullCurriculum(grade, stream) {

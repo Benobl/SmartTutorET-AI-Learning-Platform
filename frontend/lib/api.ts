@@ -140,6 +140,13 @@ export const courseApi = {
     delete: (id: string) => fetchWithAuth(`/courses/${id}`, {
         method: "DELETE"
     }),
+    addLesson: (courseId: string, lessonData: any) => fetchWithAuth(`/courses/${courseId}/lessons`, {
+        method: "POST",
+        body: JSON.stringify(lessonData)
+    }),
+    autoGenerateLessons: (courseId: string) => fetchWithAuth(`/courses/${courseId}/lessons/auto-generate`, {
+        method: "POST"
+    }),
 };
 
 export const paymentApi = {
@@ -149,6 +156,7 @@ export const paymentApi = {
             body: JSON.stringify(data)
         }),
     verify: (tx_ref: string) => fetchWithAuth(`/payments/verify/${tx_ref}`),
+    getAudit: (subjectId: string) => fetchWithAuth(`/payments/subject/${subjectId}`),
 };
 
 export const groupApi = {

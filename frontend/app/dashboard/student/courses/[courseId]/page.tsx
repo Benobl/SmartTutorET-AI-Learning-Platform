@@ -92,6 +92,21 @@ export default function CourseDetailPage() {
                     syllabusUrl: data.syllabusUrl,
                     enrolled: data.students?.includes(currentUser?._id) || data.students?.some((s: any) => s._id === currentUser?._id || s === currentUser?._id)
                 }
+                // Handle payment callback verification
+                const txRef = searchParams.get("tx_ref")
+                const status = searchParams.get("status")
+                
+                if (txRef && status === "success" && !courseData.enrolled) {
+                    toast({ title: "Verifying Payment", description: "Completing your enrollment..." })
+                    try {
+                        await paymentApi.verify(txRef)
+                        courseData.enrolled = true
+                        toast({ title: "Welcome to Premium!", description: "Access granted successfully.", className: "bg-emerald-500 text-white" })
+                    } catch (e) {
+                        console.error("Verification failed:", e)
+                    }
+                }
+
                 setCourse(courseData)
                 let currentLessons = MOCK_LESSONS
                 if (data.lessons && data.lessons.length > 0) {
@@ -253,26 +268,46 @@ export default function CourseDetailPage() {
                                     </button>
                                 </div>
 
-                                {/* Video Player Placeholder */}
+                                {/* Video Player / Content */}
                                 <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
-                                    <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md border border-slate-100">
-                                        <PlayCircle className="w-8 h-8 text-sky-500 fill-sky-50" />
-                                        <div className="absolute inset-0 rounded-full border-2 border-sky-100/50 animate-pulse" />
-                                    </div>
-                                    <div className="text-center space-y-1 max-w-lg">
-                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">{activeLesson.title}</h2>
-                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Physics Unit 4.2 • Mastery Level: Intermediate</p>
-                                    </div>
+                                    {activeLesson.videoUrl ? (
+                                        <div className="w-full aspect-video rounded-[32px] overflow-hidden bg-black border-4 border-white shadow-2xl relative">
+                                            <iframe
+                                                width="100%"
+                                                height="100%"
+                                                src={`https://www.youtube.com/embed/${(() => {
+                                                    try {
+                                                        const url = new URL(activeLesson.videoUrl);
+                                                        if (url.hostname === 'youtu.be') return url.pathname.substring(1);
+                                                        return url.searchParams.get('v');
+                                                    } catch (e) {
+                                                        return activeLesson.videoUrl.split('v=')[1]?.split('&')[0] || activeLesson.videoUrl;
+                                                    }
+                                                })()}`}
+                                                title={activeLesson.title}
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-500 shadow-md border border-slate-100">
+                                                <PlayCircle className="w-8 h-8 text-sky-500 fill-sky-50" />
+                                                <div className="absolute inset-0 rounded-full border-2 border-sky-100/50 animate-pulse" />
+                                            </div>
+                                            <div className="text-center space-y-1 max-w-lg">
+                                                <h2 className="text-xl font-black text-slate-900 tracking-tight">{activeLesson.title}</h2>
+                                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{course?.name} • Grade {course?.grade}</p>
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="flex gap-2.5 pt-1">
-                                        <Button className="h-10 px-6 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] uppercase tracking-widest shadow-lg shadow-sky-100 transition-all border-0">
-                                            Start Video
-                                        </Button>
                                         <Button
                                             onClick={() => setShowQuiz(true)}
-                                            variant="outline"
-                                            className="h-10 px-6 rounded-xl border-2 border-sky-100 hover:bg-sky-50 text-sky-600 font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-2"
+                                            className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-2"
                                         >
-                                            <BrainCircuit className="w-3.5 h-3.5" /> Practice Quiz
+                                            <BrainCircuit className="w-3.5 h-3.5" /> Start AI Practice Quiz
                                         </Button>
 
                                         {/* Next Lesson Button */}
@@ -385,49 +420,56 @@ export default function CourseDetailPage() {
                     </div>
 
                     {/* Progress (if enrolled) */}
-                    {course?.progress !== undefined && (
-                        <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
-                            <div className="flex justify-between items-center mb-3">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                    <Zap className="w-3.5 h-3.5 text-sky-500 fill-sky-500" /> Mastery Level
-                                </span>
-                                <span className="text-sm font-black text-sky-600">{course?.progress}%</span>
+                    {course?.enrolled && (
+                        <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm group hover:border-sky-100 transition-all">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Zap className="w-3.5 h-3.5 text-sky-500 fill-sky-500" /> Mastery Level
+                                    </span>
+                                    <h4 className="text-sm font-black text-slate-900 uppercase mt-1">Course Progress</h4>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-2xl font-black text-sky-600 italic leading-none">{course?.progress || 0}%</span>
+                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Next Milestone at 50%</p>
+                                </div>
                             </div>
-                            <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
+                            <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
                                 <div
-                                    className="h-full bg-gradient-to-r from-sky-400 to-sky-600 rounded-full transition-all duration-1000"
-                                    style={{ width: `${course?.progress}%` }}
+                                    className="h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-sky-600 rounded-full transition-all duration-1000"
+                                    style={{ width: `${course?.progress || 0}%` }}
                                 />
                             </div>
                         </div>
                     )}
 
-                    {/* AI Smart Resources (Available before course start) */}
-                    {aiResources && (
-                        <div className="bg-gradient-to-br from-indigo-50/50 to-white rounded-[40px] border border-indigo-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8">
-                                <Sparkles className="w-12 h-12 text-indigo-200/50" />
-                            </div>
-                            
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest">AI Academic Bridge</span>
-                                        <BrainCircuit className="w-4 h-4 text-indigo-500" />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-slate-900 uppercase italic leading-none">
-                                        Starting Live <span className="text-indigo-600">Soon!</span>
-                                    </h3>
-                                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight max-w-md">
-                                        While we prepare the live classroom, dive into these specific {course?.grade} {course?.name} resources curated just for you.
-                                    </p>
+                    {/* AI Smart Resources (Prominent for all) */}
+                    <div className="bg-gradient-to-br from-indigo-50/50 to-white rounded-[40px] border border-indigo-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8">
+                            <Sparkles className="w-12 h-12 text-indigo-200/50" />
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest">AI Academic Bridge</span>
+                                    <BrainCircuit className="w-4 h-4 text-indigo-500" />
                                 </div>
-                                <div className="bg-white p-4 rounded-3xl border border-indigo-100 shadow-sm flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                                        <Clock className="w-5 h-5 animate-pulse" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Status</p>
+                                <h3 className="text-2xl font-black text-slate-900 uppercase italic leading-none">
+                                    {course?.enrolled ? "Academic" : "Starting"} <span className="text-indigo-600">{course?.enrolled ? "Resources" : "Soon!"}</span>
+                                </h3>
+                                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight max-w-md">
+                                    {course?.enrolled 
+                                        ? `Explore high-quality materials curated specifically for ${course?.grade} ${course?.name} to supplement your learning.`
+                                        : `While we prepare the live classroom, dive into these specific ${course?.grade} ${course?.name} resources curated just for you.`}
+                                </p>
+                            </div>
+                            <div className="bg-white p-4 rounded-3xl border border-indigo-100 shadow-sm flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                                    {course?.enrolled ? <Library className="w-5 h-5" /> : <Clock className="w-5 h-5 animate-pulse" />}
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Status</p>
                                         <p className="text-[9px] font-bold text-amber-600 uppercase">Class Begins Soon</p>
                                     </div>
                                 </div>
@@ -443,10 +485,20 @@ export default function CourseDetailPage() {
                                         <span className="text-[8px] font-black text-indigo-500 uppercase italic">Grade {course?.grade} Specialized</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {aiResources.videos?.map((vid: any, i: number) => (
+                                        {aiResources && aiResources.videos?.map((vid: any, i: number) => (
                                             <div 
                                                 key={i}
-                                                onClick={() => window.open(vid.url, '_blank')}
+                                                onClick={() => {
+                                                    setActiveLesson({
+                                                        title: vid.title,
+                                                        videoUrl: vid.url,
+                                                        duration: "AI Suggested",
+                                                        type: "video",
+                                                        isAI: true
+                                                    })
+                                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                                    toast({ title: "Playing AI Resource", description: vid.title })
+                                                }}
                                                 className="group/vid bg-white p-5 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:shadow-xl transition-all text-left space-y-3 cursor-pointer relative overflow-hidden"
                                             >
                                                 <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 -mr-10 -mt-10 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all" />
@@ -476,7 +528,7 @@ export default function CourseDetailPage() {
                                         <Book className="w-4 h-4 text-indigo-500" /> Digital Library
                                     </h4>
                                     <div className="space-y-3">
-                                        {aiResources.books?.map((book: any, i: number) => (
+                                        {aiResources && aiResources.books?.map((book: any, i: number) => (
                                             <div 
                                                 key={i}
                                                 onClick={() => window.open(book.url, '_blank')}
@@ -499,7 +551,7 @@ export default function CourseDetailPage() {
                                 </div>
                             </div>
                         </div>
-                    )}
+
 
                     {/* Resources Section (Manual) */}
                     <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
@@ -537,10 +589,9 @@ export default function CourseDetailPage() {
                                     <Youtube className="w-4 h-4 text-rose-500" /> Video Lectures
                                 </h4>
                                 <div className="space-y-3">
-                                    {[
-                                        { title: "National Exam Prep Series", provider: "SmartTutorET YouTube", url: "https://youtube.com" },
-                                        { title: "Concept Deep Dive: Unit 4", provider: "Academic Excellence", url: "https://youtube.com" }
-                                    ].map((res, i) => (
+                                    {isAiLoading ? (
+                                        [1, 2].map(i => <Skeleton key={i} className="h-16 rounded-2xl w-full" />)
+                                    ) : aiResources?.videos?.map((res: any, i: number) => (
                                         <div 
                                             key={i}
                                             onClick={() => window.open(res.url, '_blank')}
@@ -548,7 +599,7 @@ export default function CourseDetailPage() {
                                         >
                                             <div className="text-left">
                                                 <p className="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">{res.title}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.provider}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.language || 'English'}</p>
                                             </div>
                                             <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 transition-colors" />
                                         </div>
@@ -562,10 +613,9 @@ export default function CourseDetailPage() {
                                     <Book className="w-4 h-4 text-sky-500" /> Recommended Books
                                 </h4>
                                 <div className="space-y-3">
-                                    {[
-                                        { title: "Ethiopian Grade 12 Textbook", type: "PDF Reference", url: "#" },
-                                        { title: "Modern Science Encyclopedia", type: "Digital Library", url: "#" }
-                                    ].map((res, i) => (
+                                    {isAiLoading ? (
+                                        [1, 2].map(i => <Skeleton key={i} className="h-16 rounded-2xl w-full" />)
+                                    ) : aiResources?.books?.map((res: any, i: number) => (
                                         <div 
                                             key={i}
                                             onClick={() => window.open(res.url, '_blank')}
@@ -573,7 +623,7 @@ export default function CourseDetailPage() {
                                         >
                                             <div className="text-left">
                                                 <p className="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">{res.title}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.type}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{res.type || 'PDF Reference'}</p>
                                             </div>
                                             <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 transition-colors" />
                                         </div>
@@ -657,81 +707,80 @@ export default function CourseDetailPage() {
                         </div>
 
                         <div className="space-y-2">
-                                                variant: "destructive"
-                                            })
-                                            return
-                                        }
-                                        setActiveLesson(lesson)
-                                        setShowQuiz(false)
-                                        toast({ title: `Playing: ${lesson.title}`, description: `Lesson ${idx + 1} of ${lessons.length}`, duration: 2000 })
-                                    }}
-                                    className={cn(
-                                        "w-full flex items-center gap-4 p-4 rounded-[20px] text-left transition-all group/lesson cursor-pointer",
-                                        activeLesson?.id === lesson.id
-                                            ? "bg-sky-50 border border-sky-200"
-                                            : "hover:bg-slate-50 border border-transparent"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0 transition-colors",
-                                        lesson.completed
-                                            ? "bg-emerald-50 border border-emerald-100"
-                                            : activeLesson?.id === lesson.id
-                                                ? "bg-sky-100 border border-sky-200"
-                                                : "bg-slate-50 border border-slate-100"
-                                    )}>
-                                        {lesson.completed ? (
-                                            <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                        ) : !course?.enrolled && idx > 0 ? (
-                                            <Lock className="w-4 h-4 text-slate-300" />
-                                        ) : (
-                                            <PlayCircle className={cn("w-4 h-4", activeLesson?.id === lesson.id ? "text-sky-500" : "text-slate-300")} />
+                            {lessons.map((lesson, idx) => {
+                                const isLocked = !course?.enrolled && idx > 0;
+                                return (
+                                    <div
+                                        key={lesson.id || idx}
+                                        onClick={() => {
+                                            if (isLocked) {
+                                                toast({
+                                                    title: "Lesson Locked",
+                                                    description: "Please enroll to access this lesson.",
+                                                    variant: "destructive"
+                                                })
+                                                return
+                                            }
+                                            setActiveLesson(lesson)
+                                            setShowQuiz(false)
+                                            toast({ title: `Playing: ${lesson.title}`, description: `Lesson ${idx + 1} of ${lessons.length}`, duration: 2000 })
+                                        }}
+                                        className={cn(
+                                            "w-full flex items-center gap-4 p-4 rounded-[20px] text-left transition-all group/lesson cursor-pointer",
+                                            activeLesson?.id === lesson.id || activeLesson?.title === lesson.title
+                                                ? "bg-sky-50 border border-sky-200"
+                                                : "hover:bg-slate-50 border border-transparent"
                                         )}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <p className={cn(
-                                            "text-xs font-black truncate transition-colors",
-                                            lesson.completed ? "text-emerald-600" : activeLesson?.id === lesson.id ? "text-sky-600" : "text-slate-800"
+                                    >
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0 transition-colors",
+                                            lesson.completed
+                                                ? "bg-emerald-50 border border-emerald-100"
+                                                : (activeLesson?.id === lesson.id || activeLesson?.title === lesson.title)
+                                                    ? "bg-sky-100 border border-sky-200"
+                                                    : "bg-slate-50 border border-slate-100"
                                         )}>
-                                            {lesson.title}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lesson.duration}</p>
-                                            {lesson.completed && (
-                                                <span className="text-[7px] font-black text-sky-600 uppercase tracking-widest bg-white border border-sky-100 px-1.5 py-0.5 rounded shadow-sm">Review Available</span>
-                                            )}
-                                            {activeLesson?.id === lesson.id && (
-                                                <span className="text-[7px] font-black text-indigo-600 uppercase tracking-widest bg-white border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm animate-pulse">Now Playing</span>
+                                            {lesson.completed ? (
+                                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                            ) : isLocked ? (
+                                                <Lock className="w-4 h-4 text-slate-300" />
+                                            ) : (
+                                                <PlayCircle className={cn("w-4 h-4", (activeLesson?.id === lesson.id || activeLesson?.title === lesson.title) ? "text-sky-500" : "text-slate-300")} />
                                             )}
                                         </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <p className={cn(
+                                                "text-xs font-black truncate transition-colors",
+                                                lesson.completed ? "text-emerald-600" : (activeLesson?.id === lesson.id || activeLesson?.title === lesson.title) ? "text-sky-600" : "text-slate-800"
+                                            )}>
+                                                {lesson.title}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lesson.duration}</p>
+                                                {lesson.completed && (
+                                                    <span className="text-[7px] font-black text-sky-600 uppercase tracking-widest bg-white border border-sky-100 px-1.5 py-0.5 rounded shadow-sm">Review Available</span>
+                                                )}
+                                                {(activeLesson?.id === lesson.id || activeLesson?.title === lesson.title) && (
+                                                    <span className="text-[7px] font-black text-indigo-600 uppercase tracking-widest bg-white border border-indigo-100 px-1.5 py-0.5 rounded shadow-sm animate-pulse">Now Playing</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {lesson.completed ? (
+                                            <div className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Completed</div>
+                                        ) : isLocked ? (
+                                            <Lock className="w-3.5 h-3.5 text-slate-200" />
+                                        ) : (
+                                            <ChevronRight className="w-4 h-4 text-slate-200 group-hover/lesson:text-sky-400 group-hover/lesson:translate-x-1 transition-all" />
+                                        )}
                                     </div>
-
-                                    {lesson.completed ? (
-                                        <Button
-                                            variant="ghost"
-                                            className="h-8 px-3 rounded-lg text-[9px] font-black uppercase text-sky-600 hover:bg-sky-50"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveLesson(lesson);
-                                            }}
-                                        >
-                                            Review
-                                        </Button>
-                                    ) : (
-                                        <ChevronRight className={cn(
-                                            "w-4 h-4 transition-colors shrink-0",
-                                            activeLesson?.id === lesson.id ? "text-sky-500" : "text-slate-200 group-hover/lesson:text-sky-400"
-                                        )} />
-                                    )}
-
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     )
 }

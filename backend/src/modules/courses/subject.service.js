@@ -24,6 +24,14 @@ export class SubjectService {
 
         subject.students.push(studentId);
         await subject.save();
+
+        // Notify Tutor
+        const { NotificationService } = await import("../notifications/notification.service.js");
+        await NotificationService.notifyEnrolledStudents({ 
+            students: [subject.tutor], 
+            title: subject.title 
+        }, `A new student has enrolled in your course: ${subject.title}`, "new_enrollment");
+
         return subject;
     }
 
@@ -104,6 +112,43 @@ export class SubjectService {
         
         subject.lessons.push(lessonData);
         await subject.save();
+
+        // Notify students
+        const { NotificationService } = await import("../notifications/notification.service.js");
+        await NotificationService.notifyEnrolledStudents(
+            subject, 
+            `New lesson added to ${subject.title}: "${lessonData.title}"`,
+            "new_lesson"
+        );
+
+        return subject;
+    }
+
+    static async autoGenerateLessons(subjectId) {
+        const subject = await Subject.findById(subjectId);
+        if (!subject) throw new ApiError(404, "Subject not found");
+        
+        const { AIService } = await import("../ai/ai.service.js");
+        const resources = await AIService.suggestResources(subject.title, subject.grade);
+        
+        const newLessons = resources.videos.map(vid => ({
+            title: vid.title,
+            videoUrl: vid.url,
+            duration: "20 min",
+            type: "video"
+        }));
+        
+        subject.lessons.push(...newLessons);
+        await subject.save();
+
+        // Notify students
+        const { NotificationService } = await import("../notifications/notification.service.js");
+        await NotificationService.notifyEnrolledStudents(
+            subject, 
+            `AI has curated ${newLessons.length} new lessons for ${subject.title}! Check them out now.`,
+            "ai_curation"
+        );
+
         return subject;
     }
 }

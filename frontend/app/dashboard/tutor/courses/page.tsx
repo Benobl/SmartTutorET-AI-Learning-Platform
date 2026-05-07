@@ -6,7 +6,8 @@ import {
     MoreVertical, Users, Clock, Video,
     Sparkles, ArrowUpRight, GraduationCap,
     LayoutGrid, List, CheckCircle2, ChevronRight,
-    PenTool, Trash2, Activity, Download, AlertCircle
+    PenTool, Trash2, Activity, Download, AlertCircle,
+    BrainCircuit, Library, FileDown, Eye
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -20,13 +21,71 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { courseApi } from "@/lib/api"
+import { courseApi, paymentApi } from "@/lib/api"
 
 export default function TeacherCourses() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
     const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
+    const [lessons, setLessons] = useState<any[]>([])
+    const [isLessonsLoading, setIsLessonsLoading] = useState(false)
+    const [lessonForm, setLessonForm] = useState({
+        title: "",
+        duration: "15 min",
+        type: "video" as "video" | "exercise" | "quiz",
+        videoUrl: ""
+    })
+
+    useEffect(() => {
+        if (selectedCourseForModules && isModuleManagerOpen) {
+            loadCourseLessons()
+        }
+    }, [selectedCourseForModules, isModuleManagerOpen])
+
+    const loadCourseLessons = async () => {
+        try {
+            setIsLessonsLoading(true)
+            const res = await courseApi.getById(selectedCourseForModules._id)
+            // Fix: the response structure for getById might be { data: { ... } } or just the object
+            const data = res.data || res
+            setLessons(data.lessons || [])
+        } catch (error: any) {
+            toast({ title: "Failed to load lessons", description: error.message, variant: "destructive" })
+        } finally {
+            setIsLessonsLoading(false)
+        }
+    }
+
+    const handleAddLesson = async () => {
+        if (!lessonForm.title) return
+        try {
+            const res = await courseApi.addLesson(selectedCourseForModules._id, lessonForm)
+            setLessons(res.data.lessons)
+            setLessonForm({ title: "", duration: "15 min", type: "video", videoUrl: "" })
+            toast({ title: "Lesson Added", description: "Successfully added new lesson to curriculum." })
+        } catch (error: any) {
+            toast({ title: "Failed to add lesson", description: error.message, variant: "destructive" })
+        }
+    }
+
+    const [isAuditOpen, setIsAuditOpen] = useState(false)
+    const [selectedCourseForAudit, setSelectedCourseForAudit] = useState<any>(null)
+    const [auditData, setAuditData] = useState<any[]>([])
+    const [isAuditLoading, setIsAuditLoading] = useState(false)
+
+    const loadAudit = async (courseId: string) => {
+        try {
+            setIsAuditLoading(true)
+            const res = await paymentApi.getAudit(courseId)
+            setAuditData(res.data || [])
+        } catch (error: any) {
+            toast({ title: "Failed to load audit", description: error.message, variant: "destructive" })
+        } finally {
+            setIsAuditLoading(false)
+        }
+    }
+
     const [courses, setCourses] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
@@ -435,6 +494,17 @@ export default function TeacherCourses() {
                                                 Manage Content
                                             </Button>
                                             <Button
+                                                onClick={() => {
+                                                    setSelectedCourseForAudit(course)
+                                                    setIsAuditOpen(true)
+                                                    loadAudit(course._id)
+                                                }}
+                                                variant="outline"
+                                                className="h-12 w-12 rounded-2xl p-0 border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-100 transition-all flex items-center justify-center shrink-0"
+                                            >
+                                                <Activity className="w-4 h-4" />
+                                            </Button>
+                                            <Button
                                                 variant="outline"
                                                 onClick={() => openEditModal(course)}
                                                 className="h-12 w-12 rounded-2xl p-0 border-slate-200 text-slate-400 hover:text-sky-600 hover:border-sky-100 transition-all flex items-center justify-center shrink-0"
@@ -457,67 +527,227 @@ export default function TeacherCourses() {
 
             {/* Module Manager Dialog */}
             <Dialog open={isModuleManagerOpen} onOpenChange={setIsModuleManagerOpen}>
-                <DialogContent className="sm:max-w-[800px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
-                    <div className="p-10 bg-slate-50 border-b border-slate-100">
+                <DialogContent className="sm:max-w-[800px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl max-h-[90vh] flex flex-col">
+                    <div className="p-10 bg-slate-50 border-b border-slate-100 flex-shrink-0">
                         <DialogHeader>
                             <div className="flex items-center gap-2 mb-3">
-                                <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[8px] font-black uppercase tracking-widest border border-sky-100">Content Modules</span>
+                                <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[8px] font-black uppercase tracking-widest border border-sky-100">Curriculum Editor</span>
                                 <BookOpen className="w-4 h-4 text-sky-400" />
                             </div>
-                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Module <span className="text-sky-600">Manager</span></DialogTitle>
-                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForModules?.title} • Grade {selectedCourseForModules?.grade}</p>
+                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Lesson <span className="text-sky-600">Builder</span></DialogTitle>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForModules?.title || selectedCourseForModules?.name}</p>
                         </DialogHeader>
                     </div>
 
-                    <div className="p-10 space-y-8 max-h-[500px] overflow-y-auto">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Active Curriculum Units</h4>
-                            <Button size="sm" className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest">
-                                <Plus className="w-3.5 h-3.5 mr-2" /> Add Module
-                            </Button>
+                    <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                        {/* Left: Add Lesson Form */}
+                        <div className="w-full lg:w-80 p-8 border-r border-slate-50 space-y-6 overflow-y-auto">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Add New Lesson</h4>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Lesson Title</Label>
+                                    <Input 
+                                        placeholder="e.g. Intro to Mechanics"
+                                        className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
+                                        value={lessonForm.title}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Video URL (YouTube)</Label>
+                                    <Input 
+                                        placeholder="https://youtube.com/..."
+                                        className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
+                                        value={lessonForm.videoUrl}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Duration</Label>
+                                        <Input 
+                                            placeholder="15 min"
+                                            className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
+                                            value={lessonForm.duration}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Type</Label>
+                                        <select 
+                                            className="w-full h-11 rounded-xl bg-slate-50 border border-slate-100 font-black text-[9px] uppercase px-2"
+                                            value={lessonForm.type}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value as any })}
+                                        >
+                                            <option value="video">Video</option>
+                                            <option value="exercise">Exercise</option>
+                                            <option value="quiz">Quiz</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <Button 
+                                    onClick={handleAddLesson}
+                                    className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[9px] uppercase tracking-widest shadow-lg shadow-sky-500/10 mt-2"
+                                >
+                                    Append to Curriculum
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Right: Lessons List */}
+                        <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-slate-50/30">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Lessons ({lessons.length})</h4>
+                                <div className="flex items-center gap-2">
+                                    <Button 
+                                        size="sm"
+                                        disabled={isLessonsLoading}
+                                        onClick={async () => {
+                                            try {
+                                                setIsLessonsLoading(true)
+                                                const res = await courseApi.autoGenerateLessons(selectedCourseForModules._id)
+                                                setLessons(res.data.lessons)
+                                                toast({ title: "AI Generation Success", description: "Curriculum has been auto-populated with specialized videos." })
+                                            } catch (error: any) {
+                                                toast({ title: "AI Generation Failed", description: error.message, variant: "destructive" })
+                                            } finally {
+                                                setIsLessonsLoading(false)
+                                            }
+                                        }}
+                                        className="h-8 px-4 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-100 font-black text-[8px] uppercase tracking-widest flex items-center gap-2"
+                                    >
+                                        {isLessonsLoading ? <div className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
+                                        AI Auto-Populate
+                                    </Button>
+                                    {isLessonsLoading && <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {lessons.length === 0 ? (
+                                    <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-slate-200">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No lessons added yet</p>
+                                    </div>
+                                ) : (
+                                    lessons.map((lesson, i) => (
+                                        <div key={i} className="group p-4 rounded-2xl bg-white border border-slate-100 hover:border-sky-100 transition-all flex items-center justify-between">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center font-black text-slate-400 text-[10px] border border-slate-100 group-hover:bg-sky-50 group-hover:text-sky-600 group-hover:border-sky-100 transition-all">
+                                                    {i + 1}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h5 className="font-black text-slate-900 text-[11px] uppercase truncate">{lesson.title}</h5>
+                                                    <div className="flex items-center gap-3 mt-0.5">
+                                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                            <Clock className="w-2.5 h-2.5" /> {lesson.duration}
+                                                        </p>
+                                                        {lesson.videoUrl && (
+                                                            <p className="text-[8px] font-bold text-rose-400 uppercase tracking-widest flex items-center gap-1">
+                                                                <Video className="w-2.5 h-2.5" /> Link Attached
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0 text-slate-300 hover:text-rose-500">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsModuleManagerOpen(false)}
+                            className="h-12 px-8 rounded-xl border-slate-200 text-slate-600 font-black uppercase tracking-widest text-[9px]"
+                        >
+                            Close Manager
+                        </Button>
+                        <Button
+                            onClick={() => setIsModuleManagerOpen(false)}
+                            className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
+                        >
+                            Save Changes
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Revenue Audit Dialog */}
+            <Dialog open={isAuditOpen} onOpenChange={setIsAuditOpen}>
+                <DialogContent className="sm:max-w-[700px] rounded-[48px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl">
+                    <div className="p-10 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                        <DialogHeader>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest border border-emerald-200">Financial Audit</span>
+                                <Activity className="w-4 h-4 text-emerald-500" />
+                            </div>
+                            <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Revenue <span className="text-emerald-600">Audit</span></DialogTitle>
+                            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForAudit?.title}</p>
+                        </DialogHeader>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Total Earnings</p>
+                            <p className="text-3xl font-black text-slate-900 italic">
+                                {auditData.reduce((acc, curr) => acc + (curr.amount || 0), 0).toLocaleString()} <span className="text-sm font-black text-slate-400 uppercase not-italic">ETB</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="p-10 space-y-6 max-h-[450px] overflow-y-auto bg-white">
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Enrollments</p>
+                                <p className="text-2xl font-black text-slate-900">{auditData.length}</p>
+                            </div>
+                            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Conversion Rate</p>
+                                <p className="text-2xl font-black text-slate-900">100%</p>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
-                            {[
-                                { title: "Unit 1: Foundations", lessons: 12, progress: 85 },
-                                { title: "Unit 2: Core Principles", lessons: 8, progress: 40 },
-                                { title: "Unit 3: Advanced Applications", lessons: 15, progress: 0 },
-                            ].map((module, i) => (
-                                <div key={i} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-xl transition-all flex items-center justify-between">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center font-black text-sky-600 text-sm border border-slate-100">
-                                            {i + 1}
-                                        </div>
-                                        <div>
-                                            <h5 className="font-black text-slate-900 text-sm uppercase italic">{module.title}</h5>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{module.lessons} Lessons • Updated 2d ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-8">
-                                        <div className="text-right hidden sm:block">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                                                    <div className="h-full bg-sky-500 rounded-full" style={{ width: `${module.progress}%` }} />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-900">{module.progress}%</span>
-                                            </div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Enrollment Completion</p>
-                                        </div>
-                                        <Button variant="ghost" size="sm" className="h-10 w-10 rounded-xl p-0 border border-slate-100 text-slate-400 hover:text-sky-600">
-                                            <PenTool className="w-4 h-4" />
-                                        </Button>
-                                    </div>
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Payment History</h4>
+                            {isAuditLoading ? (
+                                <div className="text-center py-10">
+                                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading transactions...</p>
                                 </div>
-                            ))}
+                            ) : auditData.length === 0 ? (
+                                <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No payment records found</p>
+                                </div>
+                            ) : (
+                                auditData.map((payment, i) => (
+                                    <div key={i} className="p-4 rounded-2xl bg-white border border-slate-100 flex items-center justify-between hover:border-emerald-100 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center font-black text-emerald-600 text-xs">
+                                                {payment.student?.name?.charAt(0) || "S"}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black text-slate-900 uppercase">{payment.student?.name || "Anonymous Student"}</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{new Date(payment.createdAt).toLocaleDateString()} • {payment.tx_ref}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-black text-emerald-600">{payment.amount} ETB</p>
+                                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{payment.status}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
                     <div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-end">
                         <Button
-                            onClick={() => setIsModuleManagerOpen(false)}
-                            className="h-14 px-10 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px]"
+                            onClick={() => setIsAuditOpen(false)}
+                            className="h-12 px-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
                         >
-                            Sync Curriculum
+                            Close Audit
                         </Button>
                     </div>
                 </DialogContent>
