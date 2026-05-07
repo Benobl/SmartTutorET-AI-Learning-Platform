@@ -77,7 +77,11 @@ Format your response in a clear, structured way using markdown formatting when h
         for (const modelName of modelsToTry) {
             try {
                 const model = getGenAI().getGenerativeModel({ model: modelName });
-                  CRITICAL REQUIREMENTS:
+                const prompt = `Research and suggest 3 high-quality YouTube masterclass videos and 1 digital textbook for a Grade ${grade} student studying "${subject}" in Ethiopia. 
+                
+                ${outline ? `COURSE OUTLINE CONTEXT (Prioritize resources matching these topics): ${outline}` : ""}
+
+                CRITICAL REQUIREMENTS:
                 1. PRIMARY SOURCES: Prioritize links from these domains:
                    - English: https://learn-english.moe.gov.et/
                    - Science/General: https://leadstaracademy.com/
