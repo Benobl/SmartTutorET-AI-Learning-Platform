@@ -631,9 +631,13 @@ export default function TeacherQuizzes() {
                         <Button 
                             variant="outline"
                             onClick={() => {
-                                setPrompt(`Topic: ${selectedQuiz?.title}. Please generate different questions for the same topic.`);
-                                setIsPreviewOpen(false);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                // Clean the title: strip "AI Generated: " prefix
+                                const cleanTopic = (selectedQuiz?.title || "")
+                                    .replace(/^AI Generated:\s*/i, "")
+                                    .trim()
+                                setPrompt(cleanTopic)
+                                setIsPreviewOpen(false)
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                             className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-400 font-black uppercase tracking-widest hover:text-sky-600 transition-all"
                         >

@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
     },
     stream: {
       type: String,
-      enum: ["Natural Science", "Social Science"],
+      enum: ["Natural Science", "Social Science", "Common"],
     },
     section: {
       type: String,

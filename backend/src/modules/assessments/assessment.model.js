@@ -38,6 +38,7 @@ const assessmentSchema = new mongoose.Schema(
         question: { type: String, required: true },
         options: [{ type: String, required: true }],
         correctAnswer: { type: String, required: true },
+        explanation: { type: String }, // AI generated explanation
         marks: { type: Number, default: 1 },
       },
     ],

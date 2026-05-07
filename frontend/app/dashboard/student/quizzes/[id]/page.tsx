@@ -101,10 +101,46 @@ export default function StudentQuizView() {
                     ))}
                 </div>
 
-                <div className="flex justify-center gap-4">
+                {/* Detailed Review */}
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">Review Your Answers</h2>
+                    <div className="space-y-4">
+                        {quiz.questions.map((q: any, i: number) => {
+                            const userAnswer = answers[q._id];
+                            const isCorrect = userAnswer === q.correctAnswer;
+                            return (
+                                <div key={i} className="p-8 rounded-[32px] bg-white border border-slate-100 shadow-sm space-y-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <h4 className="font-bold text-slate-900">{i + 1}. {q.question}</h4>
+                                        {isCorrect ? (
+                                            <div className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">Correct</div>
+                                        ) : (
+                                            <div className="px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black uppercase">Incorrect</div>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                        <p className="text-slate-500">Your Answer: <span className={isCorrect ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>{userAnswer || "Skipped"}</span></p>
+                                        <p className="text-slate-500">Correct Answer: <span className="text-emerald-600 font-bold">{q.correctAnswer}</span></p>
+                                    </div>
+                                    {q.explanation && (
+                                        <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 mt-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Brain className="w-4 h-4 text-sky-600" />
+                                                <span className="text-[10px] font-black text-sky-600 uppercase">Tutor Explanation</span>
+                                            </div>
+                                            <p className="text-sm text-sky-900 font-medium leading-relaxed">{q.explanation}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="flex justify-center gap-4 pt-10">
                     <Button 
                         onClick={() => router.push("/dashboard/student")}
-                        className="h-16 px-10 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-sky-600 transition-all"
+                        className="h-16 px-10 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-sky-600 transition-all shadow-xl"
                     >
                         Back to Dashboard
                     </Button>
