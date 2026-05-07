@@ -225,9 +225,9 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify({ subject, grade })
     }),
-    getResourceSuggestions: (subject: string, grade: number) => fetchWithAuth("/ai/resource-suggestions", {
+    getResourceSuggestions: (subject: string, grade: number, outline?: string) => fetchWithAuth("/ai/resource-suggestions", {
         method: "POST",
-        body: JSON.stringify({ subject, grade })
+        body: JSON.stringify({ subject, grade, outline })
     }),
     generateGradeCurriculum: (grade: string, stream: string) => fetchWithAuth("/ai/generate-grade-curriculum", {
         method: "POST",

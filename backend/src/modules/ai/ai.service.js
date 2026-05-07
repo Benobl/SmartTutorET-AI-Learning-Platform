@@ -70,36 +70,31 @@ Format your response in a clear, structured way using markdown formatting when h
         return result.response.text();
     }
 
-    static async suggestResources(subject, grade) {
+    static async suggestResources(subject, grade, outline = "") {
         const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
         let lastError = null;
 
         for (const modelName of modelsToTry) {
             try {
                 const model = getGenAI().getGenerativeModel({ model: modelName });
-                const prompt = `Suggest high-quality educational resources for a Grade ${grade} student studying "${subject}" in Ethiopia. 
-                
-                CRITICAL REQUIREMENTS:
-                1. Find best YouTube links specifically for:
-                   - Amharic (e.g., "Grade ${grade} ${subject} Amharic Ethiopian Curriculum")
-                   - Afaan Oromo (e.g., "Grade ${grade} ${subject} Afaan Oromo Ethiopian Curriculum")
-                   - English (e.g., "Grade ${grade} ${subject} Ethiopian National Exam Prep")
-                2. Ensure these are SPECIFIC to the Ethiopian Ministry of Education curriculum for Grade ${grade}.
-                3. Include official Ministry of Education textbooks (PDF sources).
-                4. Include specific websites for localized practice.
+                  CRITICAL REQUIREMENTS:
+                1. PRIMARY SOURCES: Prioritize links from these domains:
+                   - English: https://learn-english.moe.gov.et/
+                   - Science/General: https://leadstaracademy.com/
+                   - Study Portals: https://study.moe.gov.et/
+                2. Find REAL, SPECIFIC YouTube links from reputable Ethiopian channels. 
+                3. Include start timestamps for deep-dive topics (e.g., https://youtu.be/VIDEO_ID?t=120).
+                4. Languages: Amharic, Afaan Oromo, and English.
                 
                 Return ONLY a JSON object with this schema:
                 {
                   "videos": [
-                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Amharic", "url": "..." },
-                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "Afaan Oromo", "url": "..." },
-                    { "title": "Specific Topic - Grade ${grade} ${subject}", "language": "English", "url": "..." }
+                    { "title": "...", "language": "Amharic", "url": "https://youtu.be/..." },
+                    { "title": "...", "language": "Afaan Oromo", "url": "https://youtu.be/..." },
+                    { "title": "...", "language": "English", "url": "https://youtu.be/..." }
                   ],
                   "books": [
-                    { "title": "Official Grade ${grade} ${subject} Textbook", "type": "Textbook", "url": "..." }
-                  ],
-                  "websites": [
-                    { "name": "...", "url": "..." }
+                    { "title": "Grade ${grade} ${subject} Digital Textbook", "type": "Official PDF", "url": "http://213.55.93.9/index.php/s/search?q=${encodeURIComponent(subject)}+Grade+${grade}" }
                   ]
                 }`;
 
@@ -113,15 +108,17 @@ Format your response in a clear, structured way using markdown formatting when h
             }
         }
 
-        // Fallback static data if AI fails
+        // Real Fallback (Search Link) instead of static
+        const safeSubject = subject || "Educational";
+        const safeGrade = grade || "";
+        
         return {
             videos: [
-                { title: `Introduction to Grade ${grade} ${subject}`, language: "English", url: "https://youtube.com" }
+                { title: `Mastering Grade ${safeGrade} ${safeSubject} - Ethiopian Curriculum`, language: "English", url: `https://www.youtube.com/results?search_query=Grade+${safeGrade}+${encodeURIComponent(safeSubject)}+Ethiopia+Curriculum` }
             ],
             books: [
-                { title: `Grade ${grade} ${subject} Reference`, type: "Textbook", url: "#" }
-            ],
-            websites: []
+                { title: `Official Grade ${safeGrade} ${safeSubject} Textbook`, type: "MoE Portal", url: `http://213.55.93.9/index.php/s/search?q=${encodeURIComponent(safeSubject)}+Grade+${safeGrade}` }
+            ]
         };
     }
 

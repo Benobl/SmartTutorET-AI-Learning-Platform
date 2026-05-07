@@ -121,7 +121,7 @@ export default function CourseDetailPage() {
                 }
 
                 // Load AI Resources
-                loadAiResources(courseData.name, data.gradeLevel)
+                loadAiResources(courseData.name, courseData.grade, data.roadmap)
             } catch {
                 setCourse({
                     ...MOCK_COURSE,
@@ -135,10 +135,11 @@ export default function CourseDetailPage() {
         loadCourse()
     }, [courseId, searchParams])
 
-    const loadAiResources = async (subject: string, grade: number) => {
+    const loadAiResources = async (subject: string, grade: number, roadmap?: any) => {
         setIsAiLoading(true)
         try {
-            const res = await aiApi.getResourceSuggestions(subject, grade)
+            const outline = roadmap ? JSON.stringify(roadmap) : ""
+            const res = await aiApi.getResourceSuggestions(subject, grade, outline)
             setAiResources(res.data)
         } catch (error) {
             console.error("AI Error:", error)

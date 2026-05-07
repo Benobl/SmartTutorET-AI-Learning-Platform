@@ -28,8 +28,8 @@ export class AIController {
 
     static async getSuggestions(req, res, next) {
         try {
-            const { subject, grade } = req.body;
-            const suggestions = await AIService.suggestResources(subject, grade);
+            const { subject, grade, outline } = req.body;
+            const suggestions = await AIService.suggestResources(subject, grade, outline);
             res.json({ success: true, data: suggestions });
         } catch (error) {
             next(error);

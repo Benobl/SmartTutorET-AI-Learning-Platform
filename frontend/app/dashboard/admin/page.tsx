@@ -405,6 +405,119 @@ export default function AdminDashboard() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── TUTORS TAB (Tutor Approvals) ── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "tutors" && (
+        <div className="space-y-6">
+          <Card className="border-0 shadow-lg rounded-[32px] overflow-hidden bg-white">
+            <CardHeader className="border-b border-slate-50 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-slate-900 text-sm font-black uppercase tracking-widest">
+                    <GraduationCap className="w-4 h-4 text-sky-500" />
+                    Tutor Applications
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-bold uppercase text-slate-400 mt-1">
+                    Review and verify new tutor registrations
+                  </CardDescription>
+                </div>
+                <Badge className="bg-sky-50 text-sky-600 border-sky-100 font-black px-3 py-1 rounded-full text-[10px] uppercase">
+                  {pendingApps.length} Pending
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/50">
+                      {["Applicant", "Subjects", "Experience", "Status", "Applied On", "Actions"].map((h) => (
+                        <th key={h} className="text-left py-4 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {applications.map((app) => (
+                      <tr key={app.id} className="group hover:bg-slate-50/30 transition-colors">
+                        <td className="py-5 px-8">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-black text-xs">
+                              {app.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{app.name}</p>
+                              <p className="text-[9px] text-slate-400 font-bold uppercase">{app.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-5 px-8">
+                          <div className="flex flex-wrap gap-1.5">
+                            {app.subjects.map((s: string) => (
+                              <span key={s} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[8px] font-black uppercase">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-5 px-8 text-[10px] font-bold text-slate-500 uppercase">
+                          {app.experience}
+                        </td>
+                        <td className="py-5 px-8">
+                          <Badge
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-0.5 rounded-lg border",
+                              app.status === "approved" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                app.status === "rejected" ? "bg-rose-50 text-rose-600 border-rose-100" :
+                                  "bg-sky-50 text-sky-600 border-sky-100"
+                            )}
+                          >
+                            {app.status}
+                          </Badge>
+                        </td>
+                        <td className="py-5 px-8 text-[10px] font-black text-slate-300 uppercase italic">
+                          {app.appliedDate}
+                        </td>
+                        <td className="py-5 px-8">
+                          {app.status === "pending" ? (
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(app.id)}
+                                className="h-7 text-[9px] font-black bg-emerald-500 hover:bg-emerald-600 rounded-lg uppercase tracking-widest px-3"
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReject(app.id)}
+                                className="h-7 text-[9px] font-black border-slate-200 hover:bg-rose-50 hover:text-rose-600 rounded-lg uppercase tracking-widest px-3"
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className={cn(
+                                "text-[9px] font-black uppercase tracking-widest",
+                                app.status === "approved" ? "text-emerald-500" : "text-rose-500"
+                            )}>
+                                {app.status === "approved" ? "Approved ✓" : "Rejected ✕"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── USERS TAB ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "users" && (
