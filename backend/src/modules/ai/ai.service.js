@@ -76,20 +76,16 @@ Format your response in a clear, structured way using markdown formatting when h
 
         for (const modelName of modelsToTry) {
             try {
-                const model = getGenAI().getGenerativeModel({ model: modelName });
                 const prompt = `Research and suggest 3 high-quality YouTube masterclass videos and 1 digital textbook for a Grade ${grade} student studying "${subject}" in Ethiopia. 
 
-                CRITICAL CONTEXT: The student is specifically studying ${subject} for Grade ${grade}. All resources MUST be about ${subject}. DO NOT suggest general curriculum overview if a specific subject like Physics, Maths, or Biology is provided.
-
-                ${outline ? `SPECIFIC CHAPTERS/TOPICS FROM TUTOR: ${outline}` : ""}
+                CRITICAL CONTEXT: The student is specifically studying ${subject} for Grade ${grade}. All resources MUST be about ${subject}.
 
                 CRITICAL REQUIREMENTS:
                 1. PRIMARY SOURCES: Prioritize links from these domains:
                    - English: https://learn-english.moe.gov.et/
                    - Science/General: https://leadstaracademy.com/
-                   - Study Portals: https://study.moe.gov.et/
-                2. Find REAL, SPECIFIC YouTube links from reputable Ethiopian channels that are strictly about ${subject}. 
-                3. Include start timestamps for deep-dive topics (e.g., https://youtu.be/VIDEO_ID?t=120).
+                2. Find REAL, SPECIFIC YouTube links (e.g., https://www.youtube.com/watch?v=VIDEO_ID). 
+                3. BOOK URL: If an official portal link is unavailable, use a high-quality search query that targets PDFs (e.g., https://www.google.com/search?q=Grade+${grade}+${encodeURIComponent(subject)}+Ethiopian+Textbook+pdf).
                 4. Languages: Amharic, Afaan Oromo, and English.
                 
                 Return ONLY a JSON object with this schema:
@@ -100,10 +96,11 @@ Format your response in a clear, structured way using markdown formatting when h
                     { "title": "...", "language": "English", "url": "https://youtu.be/..." }
                   ],
                   "books": [
-                    { "title": "Grade ${grade} ${subject} Digital Textbook", "type": "Official PDF", "url": "http://213.55.93.9/index.php/s/search?q=${encodeURIComponent(subject)}+Grade+${grade}" }
+                    { "title": "Grade ${grade} ${subject} Digital Textbook", "type": "Digital Reference", "url": "..." }
                   ]
                 }`;
 
+                const model = getGenAI().getGenerativeModel({ model: modelName });
                 const result = await model.generateContent(prompt);
                 let text = result.response.text();
                 text = text.replace(/```json/g, "").replace(/```/g, "").trim();

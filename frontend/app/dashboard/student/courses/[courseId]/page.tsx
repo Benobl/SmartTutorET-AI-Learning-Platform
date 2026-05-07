@@ -221,18 +221,31 @@ export default function CourseDetailPage() {
                                         <ArrowLeft className="w-4 h-4 mr-2" /> Exit Lesson
                                     </Button>
                                 </div>
-                                <div className="w-full h-full aspect-video">
+                                <div className="w-full h-full aspect-video bg-black relative">
                                     <iframe
                                         width="100%" height="100%"
-                                        src={`https://www.youtube.com/embed/${(() => {
-                                            try {
-                                                const url = new URL(activeLesson.videoUrl);
-                                                if (url.hostname === 'youtu.be') return url.pathname.substring(1);
-                                                return url.searchParams.get('v');
-                                            } catch (e) { return activeLesson.videoUrl?.split('v=')[1]?.split('&')[0] || activeLesson.videoUrl; }
-                                        })()}?autoplay=1&modestbranding=1&rel=0`}
-                                        frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+                                        src={`https://www.youtube-nocookie.com/embed/${(() => {
+                                            const urlStr = activeLesson.videoUrl || "";
+                                            if (urlStr.includes('youtu.be/')) return urlStr.split('youtu.be/')[1].split(/[?#]/)[0];
+                                            if (urlStr.includes('v=')) return urlStr.split('v=')[1].split('&')[0];
+                                            if (urlStr.includes('embed/')) return urlStr.split('embed/')[1].split(/[?#]/)[0];
+                                            return urlStr;
+                                        })()}?autoplay=1&modestbranding=1&rel=0&showinfo=0`}
+                                        frameBorder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen
+                                        className="w-full h-full"
                                     />
+                                    {/* Fallback for restricted videos */}
+                                    <div className="absolute bottom-6 right-6 z-30">
+                                        <Button 
+                                            variant="secondary"
+                                            onClick={() => window.open(activeLesson.videoUrl, '_blank')}
+                                            className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-md rounded-xl font-black text-[8px] uppercase h-8 px-4"
+                                        >
+                                            <ExternalLink className="w-3 h-3 mr-2" /> Open in YouTube
+                                        </Button>
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -318,8 +331,12 @@ export default function CourseDetailPage() {
                     </div>
 
                     {/* AI Academic Library */}
-                    <div className="bg-white rounded-[40px] border border-slate-100 p-10 shadow-sm space-y-10">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-50 pb-8">
+                    <div className="bg-white rounded-[40px] border border-slate-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-10 opacity-5">
+                            <Sparkles className="w-32 h-32 text-indigo-500" />
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-50 pb-8 relative z-10">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-[24px] bg-indigo-50 flex items-center justify-center border border-indigo-100/50 shadow-inner">
                                     <Library className="w-7 h-7 text-indigo-500" />
@@ -329,25 +346,44 @@ export default function CourseDetailPage() {
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Curated by Gemini • Grade {course.grade} Specialized</p>
                                 </div>
                             </div>
-                            {course.syllabusUrl && (
+                            <div className="flex items-center gap-3">
+                                {course.syllabusUrl && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => window.open(course.syllabusUrl, '_blank')}
+                                        className="h-11 px-6 rounded-2xl border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm"
+                                    >
+                                        <FileDown className="w-4 h-4" /> Curriculum Outline
+                                    </Button>
+                                )}
                                 <Button
-                                    variant="outline"
-                                    onClick={() => window.open(course.syllabusUrl, '_blank')}
-                                    className="h-11 px-6 rounded-2xl border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm"
+                                    onClick={() => {
+                                        loadAiResources(course.name, course.grade);
+                                        toast({ title: "Refreshing Library", description: "Finding new specialized resources...", className: "bg-indigo-600 text-white" })
+                                    }}
+                                    className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 transition-all"
                                 >
-                                    <FileDown className="w-4 h-4" /> Curriculum Outline
+                                    <BrainCircuit className="w-4 h-4" /> Re-curate Resources
                                 </Button>
-                            )}
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
                             {/* Videos */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between px-2">
                                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                         <Youtube className="w-4 h-4 text-rose-500" /> Masterclass Videos
                                     </h4>
-                                    <span className="text-[8px] font-black text-rose-400 uppercase bg-rose-50 px-2 py-0.5 rounded-full">HQ Streams</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[8px] font-black text-rose-400 uppercase bg-rose-50 px-2 py-0.5 rounded-full">HQ Streams</span>
+                                        <button 
+                                            onClick={() => window.open('https://support.google.com/youtube/answer/3037019', '_blank')}
+                                            className="text-[8px] font-black text-slate-400 hover:text-indigo-500 transition-colors uppercase flex items-center gap-1"
+                                        >
+                                            <Search className="w-2.5 h-2.5" /> Troubleshooting
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-4">
                                     {isAiLoading ? (
@@ -405,15 +441,16 @@ export default function CourseDetailPage() {
                                             <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover/book:translate-x-0.5 group-hover/book:-translate-y-0.5 transition-all" />
                                         </div>
                                     ))}
-                                    {!isAiLoading && (!aiResources?.books || aiResources.books.length === 0) && (
-                                        <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                                <Search className="w-5 h-5 text-slate-300" />
-                                            </div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Searching MoE Archives...</p>
-                                        </div>
-                                    )}
                                 </div>
+                                {!isAiLoading && (
+                                    <div className="p-8 rounded-[32px] bg-slate-50/50 border border-slate-100 flex flex-col items-center text-center space-y-3">
+                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                            <Sparkles className="w-5 h-5 text-indigo-400" />
+                                        </div>
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Can't find a specific book?</p>
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed max-w-[180px]">Ask our AI to generate a summary guide for any topic in this course!</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
