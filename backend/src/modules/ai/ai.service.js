@@ -78,15 +78,17 @@ Format your response in a clear, structured way using markdown formatting when h
             try {
                 const model = getGenAI().getGenerativeModel({ model: modelName });
                 const prompt = `Research and suggest 3 high-quality YouTube masterclass videos and 1 digital textbook for a Grade ${grade} student studying "${subject}" in Ethiopia. 
-                
-                ${outline ? `COURSE OUTLINE CONTEXT (Prioritize resources matching these topics): ${outline}` : ""}
+
+                CRITICAL CONTEXT: The student is specifically studying ${subject} for Grade ${grade}. All resources MUST be about ${subject}. DO NOT suggest general curriculum overview if a specific subject like Physics, Maths, or Biology is provided.
+
+                ${outline ? `SPECIFIC CHAPTERS/TOPICS FROM TUTOR: ${outline}` : ""}
 
                 CRITICAL REQUIREMENTS:
                 1. PRIMARY SOURCES: Prioritize links from these domains:
                    - English: https://learn-english.moe.gov.et/
                    - Science/General: https://leadstaracademy.com/
                    - Study Portals: https://study.moe.gov.et/
-                2. Find REAL, SPECIFIC YouTube links from reputable Ethiopian channels. 
+                2. Find REAL, SPECIFIC YouTube links from reputable Ethiopian channels that are strictly about ${subject}. 
                 3. Include start timestamps for deep-dive topics (e.g., https://youtu.be/VIDEO_ID?t=120).
                 4. Languages: Amharic, Afaan Oromo, and English.
                 
