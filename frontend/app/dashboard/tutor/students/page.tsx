@@ -33,6 +33,8 @@ import { tutorStudents as centralizedStudents } from "@/lib/mock-data"
 const MOCK_STUDENTS = centralizedStudents
 
 export default function TeacherStudents() {
+    const [students, setStudents] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
     const [selectedStudent, setSelectedStudent] = useState<any>(null)
@@ -41,9 +43,25 @@ export default function TeacherStudents() {
     const [chatMessage, setChatMessage] = useState("")
     const { toast } = useToast()
 
-    const filteredStudents = MOCK_STUDENTS.filter(student =>
+    useEffect(() => {
+        loadStudents()
+    }, [])
+
+    const loadStudents = async () => {
+        try {
+            setLoading(true)
+            const res = await courseApi.getMyStudents()
+            setStudents(res.data || [])
+        } catch (error: any) {
+            toast({ title: "Failed to load students", description: error.message, variant: "destructive" })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.course.toLowerCase().includes(searchQuery.toLowerCase())
+        (student.course || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     const handleMessageAll = () => {
@@ -119,10 +137,10 @@ export default function TeacherStudents() {
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
-                    { label: "Total Students", value: "97", icon: Users, color: "bg-sky-50 text-sky-500" },
-                    { label: "Avg Attendance", value: "91%", icon: Clock, color: "bg-sky-50 text-sky-500" },
-                    { label: "Exam Ready", value: "64", icon: Star, color: "bg-sky-50 text-sky-500" },
-                    { label: "At Risk", value: "8", icon: ShieldAlert, color: "bg-rose-50 text-rose-500" },
+                    { label: "Total Students", value: students.length.toString(), icon: Users, color: "bg-sky-50 text-sky-500" },
+                    { label: "Courses Taught", value: Array.from(new Set(students.map(s => s.course))).length.toString(), icon: BookOpen, color: "bg-sky-50 text-sky-500" },
+                    { label: "Avg Grade", value: students.length > 0 ? `${Math.round(students.reduce((acc, s) => acc + (s.average || 80), 0) / students.length)}%` : "0%", icon: Star, color: "bg-sky-50 text-sky-500" },
+                    { label: "At Risk", value: students.filter(s => (s.average || 80) < 60).length.toString(), icon: ShieldAlert, color: "bg-rose-50 text-rose-500" },
                 ].map((stat, i) => (
                     <div key={i} className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/10 flex items-center gap-6">
                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm", stat.color)}>
@@ -139,85 +157,86 @@ export default function TeacherStudents() {
             {/* Students Table/List */}
             <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-sky-500/5 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-slate-50 bg-slate-50/50">
-                                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Identity</th>
-                                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Course</th>
-                                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">GPA / Score</th>
-                                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Attendance</th>
-                                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredStudents.map((student) => (
-                                <tr key={student.id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
-                                    <td className="px-10 py-8">
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center font-black text-xs border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
-                                                {student.name.split(' ').map(n => n[0]).join('')}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-[15px] font-black text-slate-900 leading-none mb-1.5">{student.name}</h4>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Grade {student.grade} • ID-8821</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div>
-                                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{student.course}</p>
-                                            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Semester 1</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <span className={cn(
-                                                    "text-xl font-black",
-                                                    student.average >= 85 ? "text-sky-600" :
-                                                        student.average >= 70 ? "text-sky-600" :
-                                                            "text-rose-600"
-                                                )}>{student.average}%</span>
-                                                {student.trend === 'up' ? <TrendingUp className="w-4 h-4 text-sky-400" /> : <TrendingDown className="w-4 h-4 text-rose-400" />}
-                                            </div>
-                                            <span className={cn(
-                                                "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border",
-                                                student.status === 'excellent' ? "bg-sky-50 text-sky-600 border-sky-100" :
-                                                    student.status === 'good' ? "bg-sky-50 text-sky-600 border-sky-100" :
-                                                        "bg-rose-50 text-rose-600 border-rose-100"
-                                            )}>{student.status}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div className="flex flex-col items-center gap-1.5">
-                                            <span className="text-[13px] font-black text-slate-600">{student.attendance}</span>
-                                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-slate-300 rounded-full" style={{ width: student.attendance }} />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8 text-right">
-                                        <div className="flex items-center justify-end gap-3">
-                                            <Button
-                                                size="sm" variant="outline"
-                                                onClick={() => handleMessageStudent(student)}
-                                                className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all"
-                                            >
-                                                <MessageSquare className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => handleViewProfile(student)}
-                                                className="h-10 px-6 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-500/20"
-                                            >
-                                                Full Profile
-                                            </Button>
-                                        </div>
-                                    </td>
+                    {loading ? (
+                        <div className="text-center py-20">
+                            <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading student records...</p>
+                        </div>
+                    ) : filteredStudents.length === 0 ? (
+                        <div className="text-center py-20">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No students found</p>
+                        </div>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-50 bg-slate-50/50">
+                                    <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Identity</th>
+                                    <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Course</th>
+                                    <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Avg Score</th>
+                                    <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredStudents.map((student) => (
+                                    <tr key={student._id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                                        <td className="px-10 py-8">
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center font-black text-xs border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm overflow-hidden">
+                                                    {student.profile?.avatar ? (
+                                                        <img src={student.profile.avatar} className="w-full h-full object-cover" alt="" />
+                                                    ) : (
+                                                        student.name.split(' ').map((n: string) => n[0]).join('')
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-[15px] font-black text-slate-900 leading-none mb-1.5">{student.name}</h4>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Grade {student.profile?.grade || student.grade} • {student.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            <div>
+                                                <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{student.course || "General"}</p>
+                                                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Active Enrollment</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8 text-center">
+                                            <span className="text-xl font-black text-sky-600">{student.average || 80}%</span>
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                                                    (student.average || 80) >= 80 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                )}>
+                                                    {(student.average || 80) >= 80 ? "Excellent" : "On Track"}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8 text-right">
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Button
+                                                    size="sm" variant="outline"
+                                                    onClick={() => handleMessageStudent(student)}
+                                                    className="h-10 w-10 rounded-xl p-0 border-slate-100 text-slate-400 hover:text-sky-600 transition-all"
+                                                >
+                                                    <MessageSquare className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handleViewProfile(student)}
+                                                    className="h-10 px-6 rounded-xl bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-500/20"
+                                                >
+                                                    Full Profile
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
 
                 {/* Broadcast Modal */}

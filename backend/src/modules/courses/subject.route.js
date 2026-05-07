@@ -11,6 +11,7 @@ router.delete("/:subjectId", verifyToken, allowRoles("tutor", "admin", "manager"
 router.get("/", verifyToken, SubjectController.getAll);
 router.get("/recommendations", verifyToken, SubjectController.getRecommendations);
 router.get("/my-courses", verifyToken, SubjectController.getMyCourses);
+router.get("/my-students", verifyToken, SubjectController.getMyStudents);
 router.get("/:subjectId", verifyToken, SubjectController.getSubject);
 router.post("/:subjectId/enroll", verifyToken, SubjectController.enroll);
 

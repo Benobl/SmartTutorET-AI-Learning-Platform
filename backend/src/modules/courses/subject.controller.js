@@ -63,9 +63,12 @@ export class SubjectController {
             const { category, grade, search, isPremium } = req.query;
             const filter = {};
             
-            // Non-staff can only see approved subjects
+            // Non-staff can only see approved subjects OR their own subjects
             if (req.user.role !== "manager" && req.user.role !== "admin") {
-                filter.status = "approved";
+                filter.$or = [
+                    { status: "approved" },
+                    { tutor: req.user._id }
+                ];
             }
             
             if (category) filter.category = category;
@@ -98,6 +101,15 @@ export class SubjectController {
         try {
             const subjects = await SubjectService.getMySubjects(req.user._id, req.user.role);
             res.json({ success: true, data: subjects });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getMyStudents(req, res, next) {
+        try {
+            const students = await SubjectService.getTutorStudents(req.user._id);
+            res.json({ success: true, data: students });
         } catch (error) {
             next(error);
         }

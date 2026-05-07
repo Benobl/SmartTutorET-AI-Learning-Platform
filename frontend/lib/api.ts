@@ -117,6 +117,7 @@ export const courseApi = {
     },
     getRecommendations: () => fetchWithAuth("/courses/recommendations"),
     getMyCourses: () => fetchWithAuth("/courses/my-courses"),
+    getMyStudents: () => fetchWithAuth("/courses/my-students"),
     getById: (courseId: string) => fetchWithAuth(`/courses/${courseId}`),
     enroll: (courseId: string) => fetchWithAuth(`/courses/${courseId}/enroll`, {
         method: "POST"

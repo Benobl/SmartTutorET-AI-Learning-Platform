@@ -28,44 +28,63 @@ export default function TeacherCourses() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
     const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
-    const [courses, setCourses] = useState(tutorCourses)
+    const [courses, setCourses] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [selectedGrade, setSelectedGrade] = useState("All Courses")
     const [searchQuery, setSearchQuery] = useState("")
     const { toast } = useToast()
     const currentUser = getCurrentUser()
     const isApproved = currentUser?.role === 'manager' || currentUser?.role === 'admin' || currentUser?.tutorStatus === 'approved'
 
+    useEffect(() => {
+        loadCourses()
+    }, [])
+
+    const loadCourses = async () => {
+        try {
+            setLoading(true)
+            const res = await courseApi.getMyCourses()
+            setCourses(res.data || [])
+        } catch (error: any) {
+            toast({ title: "Failed to load courses", description: error.message, variant: "destructive" })
+        } finally {
+            setLoading(false)
+        }
+    }
+
     // Form state for new course
     const [newCourse, setNewCourse] = useState({
         name: "",
         grade: "",
-        semester: "",
+        semester: "1",
     })
 
-    const handleCreateCourse = () => {
+    const handleCreateCourse = async () => {
         if (!newCourse.name || !newCourse.grade || !newCourse.semester) return
 
-        const course = {
-            id: `c${courses.length + 1}`,
-            name: newCourse.name,
-            grade: newCourse.grade,
-            semester: newCourse.semester,
-            studentCount: 0,
-            completionRate: 0,
-            activeQuizzes: 0
-        }
+        try {
+            const data = {
+                title: newCourse.name,
+                grade: parseInt(newCourse.grade),
+                semester: newCourse.semester,
+                category: "General"
+            }
 
-        setCourses([course, ...courses])
-        setIsCreateModalOpen(false)
-        setNewCourse({ name: "", grade: "", semester: "" })
-        toast({
-            title: "Course Created",
-            description: `Successfully initialized ${newCourse.name}.`,
-        })
+            await courseApi.create(data)
+            setIsCreateModalOpen(false)
+            setNewCourse({ name: "", grade: "", semester: "1" })
+            toast({
+                title: "Course Created",
+                description: `Successfully initialized ${newCourse.name}.`,
+            })
+            loadCourses()
+        } catch (error: any) {
+            toast({ title: "Failed to create", description: error.message, variant: "destructive" })
+        }
     }
 
     const filteredCourses = courses.filter(course => {
-        const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesSearch = (course.title || "").toLowerCase().includes(searchQuery.toLowerCase())
         const matchesGrade = selectedGrade === "All Courses" || `Grade ${course.grade}` === selectedGrade
         return matchesSearch && matchesGrade
     })
@@ -237,19 +256,28 @@ export default function TeacherCourses() {
                 </div>
             </div>
 
-            {/* Courses Display */}
-            <div className={cn(
-                "grid gap-8",
-                viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
-            )}>
-                {filteredCourses.map(course => (
-                    <div
-                        key={course.id}
-                        className={cn(
-                            "group bg-white rounded-[48px] border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-700 relative overflow-hidden",
-                            viewMode === "list" ? "p-6 lg:p-10 flex flex-col lg:flex-row items-center gap-8" : "p-10"
-                        )}
-                    >
+            {loading ? (
+                <div className="text-center py-20">
+                    <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading courses...</p>
+                </div>
+            ) : filteredCourses.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-[48px] border border-dashed border-slate-200">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No courses found</p>
+                </div>
+            ) : (
+                <div className={cn(
+                    "grid gap-8",
+                    viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+                )}>
+                    {filteredCourses.map(course => (
+                        <div
+                            key={course._id}
+                            className={cn(
+                                "group bg-white rounded-[48px] border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-700 relative overflow-hidden",
+                                viewMode === "list" ? "p-6 lg:p-10 flex flex-col lg:flex-row items-center gap-8" : "p-10"
+                            )}
+                        >
                         <div className="absolute top-0 right-0 p-8">
                             <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-500 text-[8px] font-black uppercase tracking-widest border border-sky-100">Grade {course.grade}</span>
                         </div>
@@ -260,10 +288,10 @@ export default function TeacherCourses() {
                                     <BookOpen className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors">{course.name}</h3>
+                                    <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors">{course.title}</h3>
                                     <div className="flex items-center gap-3 mt-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                            <Users className="w-3.5 h-3.5" /> {course.studentCount} Students
+                                            <Users className="w-3.5 h-3.5" /> {course.students?.length || 0} Students
                                         </p>
                                         <span className="w-1 h-1 rounded-full bg-slate-200" />
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semester {course.semester}</p>
@@ -320,7 +348,8 @@ export default function TeacherCourses() {
                         <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-sky-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     </div>
                 ))}
-            </div>
+                </div>
+            )}
 
             <div className="h-20" /> {/* Spacer */}
 
@@ -334,7 +363,7 @@ export default function TeacherCourses() {
                                 <BookOpen className="w-4 h-4 text-sky-400" />
                             </div>
                             <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Module <span className="text-sky-600">Manager</span></DialogTitle>
-                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForModules?.name} • Grade {selectedCourseForModules?.grade}</p>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForModules?.title} • Grade {selectedCourseForModules?.grade}</p>
                         </DialogHeader>
                     </div>
 

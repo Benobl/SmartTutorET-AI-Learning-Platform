@@ -70,9 +70,31 @@ export class SubjectService {
     static async getMySubjects(userId, role) {
         if (role === "student") {
             return await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
-        } else if (role === "tutor") {
-            return await Subject.find({ tutor: userId }).populate("tutor", "name profile.avatar");
+        } else if (role === "tutor" || role === "manager" || role === "admin") {
+            // Managers and Admins can also see subjects they are assigned to (if any) or all
+            const query = role === "tutor" ? { tutor: userId } : {};
+            return await Subject.find(query).populate("tutor", "name profile.avatar").populate("students", "name profile.avatar");
         }
         return [];
+    }
+
+    static async getTutorStudents(tutorId) {
+        const subjects = await Subject.find({ tutor: tutorId }).populate("students", "name email profile.avatar profile.grade");
+        
+        // Flatten and unique students
+        const studentMap = new Map();
+        subjects.forEach(subject => {
+            subject.students.forEach(student => {
+                if (!studentMap.has(student._id.toString())) {
+                    studentMap.set(student._id.toString(), {
+                        ...student.toObject(),
+                        course: subject.title, // Primary course for listing
+                        grade: student.profile?.grade || subject.grade
+                    });
+                }
+            });
+        });
+        
+        return Array.from(studentMap.values());
     }
 }
