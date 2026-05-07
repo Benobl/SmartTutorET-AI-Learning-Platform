@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     BookOpen, Plus, Search, Filter,
     MoreVertical, Users, Clock, Video,
     Sparkles, ArrowUpRight, GraduationCap,
     LayoutGrid, List, CheckCircle2, ChevronRight,
-    PenTool, Trash2, Activity
+    PenTool, Trash2, Activity, Download
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -55,31 +55,53 @@ export default function TeacherCourses() {
     // Form state for new course
     const [newCourse, setNewCourse] = useState({
         name: "",
-        grade: "",
+        grade: "9",
         semester: "1",
+        isPremium: false,
+        price: 0
     })
 
+    const [syllabusFile, setSyllabusFile] = useState<File | null>(null)
+
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
     const handleCreateCourse = async () => {
-        if (!newCourse.name || !newCourse.grade || !newCourse.semester) return
+        if (!newCourse.name) {
+            toast({ title: "Title Required", description: "Please provide a course title.", variant: "destructive" })
+            return
+        }
+        if (!newCourse.grade) return
 
         try {
-            const data = {
-                title: newCourse.name,
-                grade: parseInt(newCourse.grade),
-                semester: newCourse.semester,
-                category: "General"
+            setIsSubmitting(true)
+            const formData = new FormData()
+            formData.append("title", newCourse.name)
+            formData.append("grade", newCourse.grade)
+            formData.append("semester", newCourse.semester)
+            formData.append("isPremium", String(newCourse.isPremium))
+            formData.append("price", String(newCourse.price))
+            formData.append("category", "General")
+            if (syllabusFile) {
+                formData.append("syllabus", syllabusFile)
             }
 
-            await courseApi.create(data)
+            await courseApi.create(formData)
             setIsCreateModalOpen(false)
-            setNewCourse({ name: "", grade: "", semester: "1" })
+            setNewCourse({ name: "", grade: "9", semester: "1", isPremium: false, price: 0 })
+            setSyllabusFile(null)
             toast({
-                title: "Course Created",
-                description: `Successfully initialized ${newCourse.name}.`,
+                title: "Course Framework Submitted",
+                description: `Successfully initialized ${newCourse.name}. Sent to manager for approval.`,
             })
             loadCourses()
         } catch (error: any) {
-            toast({ title: "Failed to create", description: error.message, variant: "destructive" })
+            toast({
+                title: "Creation Error",
+                description: error.message,
+                variant: "destructive"
+            })
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -139,25 +161,10 @@ export default function TeacherCourses() {
                             />
                         </div>
 
-                        <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
-                            if (!isApproved && open) {
-                                toast({
-                                    title: "Verification Required",
-                                    description: "Your tutor account is currently pending approval. You will be able to create courses once our team verifies your credentials.",
-                                    variant: "destructive"
-                                })
-                                return
-                            }
-                            setIsCreateModalOpen(open)
-                        }}>
+                        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                             <DialogTrigger asChild>
                                 <Button 
-                                    className={cn(
-                                        "h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl transition-all",
-                                        isApproved 
-                                            ? "bg-sky-600 text-white shadow-sky-500/20 hover:scale-105" 
-                                            : "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                    )}
+                                    className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:scale-105 transition-all"
                                 >
                                     <Plus className="w-4 h-4" /> Create New Course
                                 </Button>
@@ -178,40 +185,94 @@ export default function TeacherCourses() {
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grade Level</Label>
-                                            <Select value={newCourse.grade} onValueChange={(v) => setNewCourse({ ...newCourse, grade: v })}>
-                                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-black text-[10px] uppercase tracking-widest">
-                                                    <SelectValue placeholder="Select Grade" />
-                                                </SelectTrigger>
-                                                <SelectContent className="rounded-2xl border-slate-100">
-                                                    <SelectItem value="9">Grade 9</SelectItem>
-                                                    <SelectItem value="10">Grade 10</SelectItem>
-                                                    <SelectItem value="11">Grade 11</SelectItem>
-                                                    <SelectItem value="12">Grade 12</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
+                                            <select 
+                                                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-100 font-black text-[10px] uppercase tracking-widest px-3"
+                                                value={newCourse.grade}
+                                                onChange={(e) => setNewCourse({ ...newCourse, grade: e.target.value })}
+                                            >
+                                                <option value="9">Grade 9</option>
+                                                <option value="10">Grade 10</option>
+                                                <option value="11">Grade 11</option>
+                                                <option value="12">Grade 12</option>
+                                            </select>
                                         </div>
-                                        <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Semester</Label>
-                                            <Select value={newCourse.semester} onValueChange={(v) => setNewCourse({ ...newCourse, semester: v })}>
-                                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-black text-[10px] uppercase tracking-widest">
-                                                    <SelectValue placeholder="Select Term" />
-                                                </SelectTrigger>
-                                                <SelectContent className="rounded-2xl border-slate-100">
-                                                    <SelectItem value="1">Semester 1</SelectItem>
-                                                    <SelectItem value="2">Semester 2</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Term</Label>
+                                            <select 
+                                                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-100 font-black text-[10px] uppercase tracking-widest px-3"
+                                                value={newCourse.semester}
+                                                onChange={(e) => setNewCourse({ ...newCourse, semester: e.target.value })}
+                                            >
+                                                <option value="1">Semester 1</option>
+                                                <option value="2">Semester 2</option>
+                                                <option value="Full Year">Full Year</option>
+                                            </select>
                                         </div>
                                     </div>
-                                    <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center space-y-2 group cursor-pointer hover:bg-sky-50 hover:border-sky-200 transition-all">
-                                        <LayoutGrid className="w-6 h-6 text-slate-300 mx-auto group-hover:scale-110 transition-transform" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Upload Syllabus/Outline (PDF)</p>
+                                    <div className="flex items-center justify-between p-4 rounded-xl bg-sky-50/50 border border-sky-100">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-sky-600">Premium Mode</Label>
+                                            <p className="text-[8px] text-slate-400 font-bold uppercase">Require Chapa Payment</p>
+                                        </div>
+                                        <input 
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-slate-200 text-sky-600"
+                                            checked={newCourse.isPremium}
+                                            onChange={(e) => setNewCourse({ ...newCourse, isPremium: e.target.checked })}
+                                        />
+                                    </div>
+
+                                    {newCourse.isPremium && (
+                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Price (ETB)</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder="500"
+                                                className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
+                                                value={newCourse.price}
+                                                onChange={(e) => setNewCourse({ ...newCourse, price: parseInt(e.target.value) || 0 })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div 
+                                        onClick={() => document.getElementById('syllabus-upload')?.click()}
+                                        className={cn(
+                                            "p-4 rounded-xl border border-dashed text-center space-y-1 group cursor-pointer transition-all",
+                                            syllabusFile ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200 hover:bg-sky-50 hover:border-sky-200"
+                                        )}
+                                    >
+                                        <input 
+                                            id="syllabus-upload"
+                                            type="file" 
+                                            className="hidden" 
+                                            accept=".pdf"
+                                            onChange={(e) => setSyllabusFile(e.target.files?.[0] || null)}
+                                        />
+                                        {syllabusFile ? (
+                                            <>
+                                                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 line-clamp-1">{syllabusFile.name}</p>
+                                                <p className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Click to change file</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="w-6 h-6 text-slate-300 mx-auto group-hover:scale-110 transition-transform group-hover:text-sky-500" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">Upload Syllabus/Outline (PDF)</p>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                                <DialogFooter>
-                                    <Button onClick={handleCreateCourse} className="w-full h-14 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-sky-500/20">Initialize Course Framework</Button>
+                                <DialogFooter className="px-6 pb-6 pt-0">
+                                    <Button 
+                                        disabled={isSubmitting}
+                                        onClick={handleCreateCourse} 
+                                        className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-500/10 disabled:opacity-50"
+                                    >
+                                        {isSubmitting ? "Submitting Framework..." : "Submit for Manager Approval"}
+                                    </Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
@@ -278,8 +339,23 @@ export default function TeacherCourses() {
                                 viewMode === "list" ? "p-6 lg:p-10 flex flex-col lg:flex-row items-center gap-8" : "p-10"
                             )}
                         >
-                        <div className="absolute top-0 right-0 p-8">
+                        <div className="absolute top-0 right-0 p-8 flex flex-col items-end gap-2">
                             <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-500 text-[8px] font-black uppercase tracking-widest border border-sky-100">Grade {course.grade}</span>
+                            {course.status === "pending" && (
+                                <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100 flex items-center gap-1.5 shadow-sm">
+                                    <Clock className="w-3 h-3" /> Under Review
+                                </span>
+                            )}
+                            {course.status === "approved" && (
+                                <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+                                    <CheckCircle2 className="w-3 h-3" /> Approved
+                                </span>
+                            )}
+                            {course.status === "rejected" && (
+                                <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest border border-rose-100 flex items-center gap-1.5 shadow-sm">
+                                    <Activity className="w-3 h-3" /> Action Required
+                                </span>
+                            )}
                         </div>
 
                         <div className={cn("space-y-6 relative z-10 w-full", viewMode === "list" && "flex-1")}>
@@ -287,19 +363,28 @@ export default function TeacherCourses() {
                                 <div className="w-16 h-16 rounded-[28px] bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
                                     <BookOpen className="w-8 h-8" />
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors">{course.title}</h3>
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                            <Users className="w-3.5 h-3.5" /> {course.students?.length || 0} Students
-                                        </p>
-                                        <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semester {course.semester}</p>
-                                    </div>
-                                </div>
-                            </div>
+                                 <div>
+                                     <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors">{course.title}</h3>
+                                     <div className="flex items-center gap-3 mt-1">
+                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                             <Users className="w-3.5 h-3.5" /> {course.students?.length || 0} Students
+                                         </p>
+                                         <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semester {course.semester}</p>
+                                     </div>
+                                 </div>
+                             </div>
+ 
+                             {course.status === "rejected" && course.managerFeedback && (
+                                 <div className="p-6 rounded-3xl bg-rose-50/50 border border-rose-100/50 animate-in fade-in slide-in-from-top-2">
+                                     <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                         <PenTool className="w-3.5 h-3.5" /> Manager Feedback
+                                     </p>
+                                     <p className="text-xs text-slate-600 font-medium leading-relaxed italic">"{course.managerFeedback}"</p>
+                                 </div>
+                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <Activity className="w-3.5 h-3.5 text-sky-400" />

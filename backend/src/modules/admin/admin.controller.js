@@ -88,7 +88,7 @@ export class AdminController {
 
     static async rejectSubject(req, res, next) {
         try {
-            const subject = await AdminService.rejectSubject(req.params.id);
+            const subject = await AdminService.rejectSubject(req.params.id, req.body.feedback);
             res.json({ success: true, message: "Subject rejected", data: subject });
         } catch (error) {
             next(error);

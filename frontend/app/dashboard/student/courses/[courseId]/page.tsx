@@ -519,6 +519,7 @@ export default function CourseDetailPage() {
                 onClose={() => setIsPaymentModalOpen(false)}
                 courseName={course?.name || ""}
                 price={course?.priceValue || 499}
+                courseId={courseId}
                 onSuccess={(id) => handleEnroll(id)}
             />
         </div>

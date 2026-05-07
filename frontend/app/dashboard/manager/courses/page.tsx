@@ -34,13 +34,18 @@ import {
 import { Label } from "@/components/ui/label"
 import { getCourses, addCourse, updateCourse, deleteCourse, exportToPDF, generateGradeCurriculum } from "@/lib/manager-utils"
 import { toast } from "sonner"
+import { courseApi, adminApi } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 export default function CourseManagement() {
     const [searchQuery, setSearchQuery] = useState("")
     const [courses, setCourses] = useState<any[]>([])
+    const [tutors, setTutors] = useState<any[]>([])
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isAIModalOpen, setIsAIModalOpen] = useState(false)
     const [generatingCurriculum, setGeneratingCurriculum] = useState(false)
+    const [pendingCourses, setPendingCourses] = useState<any[]>([])
+    const [activeView, setActiveView] = useState<"curriculum" | "pending">("curriculum")
     const [editingCourse, setEditingCourse] = useState<any>(null)
     const [targetGrade, setTargetGrade] = useState("9")
     const [targetStream, setTargetStream] = useState("Common")
@@ -50,10 +55,11 @@ export default function CourseManagement() {
         name: "",
         code: "",
         subject: "",
-        grade: "",
+        grade: "9",
         stream: "Common",
         semester: "Full Year",
         description: "",
+        tutor: "",
         roadmap: {
             semester1: { chapters: "", midTerm: "", final: "" },
             semester2: { chapters: "", midTerm: "", final: "" }
@@ -62,12 +68,23 @@ export default function CourseManagement() {
 
     const [formState, setFormState] = useState(INITIAL_FORM_STATE)
 
+    const handleExportPDF = () => {
+        exportToPDF(courses)
+        toast.success("Curriculum exported to PDF.")
+    }
+
     const refreshCourses = async () => {
         try {
-            const data = await getCourses()
-            setCourses(Array.isArray(data) ? data : [])
+            const [cData, uData, pData] = await Promise.all([
+                courseApi.getAll(),
+                adminApi.getUsers(),
+                adminApi.getPendingSubjects()
+            ])
+            setCourses(Array.isArray(cData.data) ? cData.data : [])
+            setTutors(Array.isArray(uData.data) ? uData.data.filter((t: any) => t.role === 'tutor' && t.tutorStatus === 'approved') : [])
+            setPendingCourses(Array.isArray(pData.data) ? pData.data : [])
         } catch (error) {
-            console.error("Failed to refresh courses:", error)
+            console.error("Failed to refresh data:", error)
             toast.error("Resource synchronization failed.")
         }
     }
@@ -78,11 +95,18 @@ export default function CourseManagement() {
 
     const handleAction = async (e: React.FormEvent) => {
         e.preventDefault()
+        // Format data for backend
+        const payload = {
+            ...formState,
+            title: formState.name,
+            tutor: formState.tutor || undefined
+        }
+
         if (editingCourse) {
-            await updateCourse(editingCourse.id, formState)
+            await courseApi.update(editingCourse.id, payload)
             toast.success("Course modified successfully.")
         } else {
-            await addCourse(formState)
+            await courseApi.create(payload)
             toast.success("New course archived to curriculum.")
         }
         setIsCreateModalOpen(false)
@@ -94,13 +118,14 @@ export default function CourseManagement() {
     const openEdit = (course: any) => {
         setEditingCourse({ ...course, id: course._id || course.id })
         setFormState({
-            name: course.name,
+            name: course.title || course.name,
             code: course.code,
-            subject: course.subject,
-            grade: course.grade,
+            subject: course.subject || course.title,
+            grade: course.grade?.toString() || "9",
             stream: course.stream || "Common",
             semester: course.semester || "Full Year",
             description: course.description || "",
+            tutor: course.tutor?._id || course.tutor || "",
             roadmap: course.roadmap || {
                 semester1: { chapters: "", midTerm: "", final: "" },
                 semester2: { chapters: "", midTerm: "", final: "" }
@@ -159,13 +184,50 @@ export default function CourseManagement() {
         }
     }
 
-    const handleExportPDF = () => {
-        const columns = ['name', 'code', 'subject', 'grade', 'studentCount']
-        exportToPDF(filteredCourses, columns, 'Curriculum Registry Report', 'smarttutor_curriculum')
-        toast.success("Curriculum exported as PDF.")
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+    const [rejectionFeedback, setRejectionFeedback] = useState("")
+    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
+
+    const handleApprove = async (id: string) => {
+        try {
+            await adminApi.approveSubject(id)
+            toast.success("Course framework approved and published.")
+            refreshCourses()
+        } catch (error) {
+            toast.error("Failed to approve course.")
+        }
     }
 
-    const filteredCourses = courses.filter(c =>
+    const openRejectModal = (id: string) => {
+        setSelectedCourseId(id)
+        setRejectionFeedback("")
+        setIsRejectModalOpen(true)
+    }
+
+    const handleReject = async () => {
+        if (!selectedCourseId) return
+        try {
+            await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/admin/reject-subject/${selectedCourseId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-ST-CSRF': 'XMLHttpRequest',
+                        Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify({ feedback: rejectionFeedback })
+                }
+            )
+            toast.warning("Course framework rejected with feedback.")
+            setIsRejectModalOpen(false)
+            refreshCourses()
+        } catch (error) {
+            toast.error("Failed to reject course.")
+        }
+    }
+
+    const filteredCourses = (activeView === "curriculum" ? courses : pendingCourses).filter(c =>
         (c.title || c.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.code || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -179,6 +241,32 @@ export default function CourseManagement() {
                     <p className="text-slate-400 font-medium">Standardize and audit institutional learning paths.</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <div className="inline-flex p-1.5 bg-slate-100 rounded-[24px] border border-slate-200 shadow-inner mr-4">
+                        <button
+                            onClick={() => setActiveView("curriculum")}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest transition-all",
+                                activeView === "curriculum" ? "bg-white text-blue-600 shadow-md border border-slate-100" : "text-slate-500 hover:text-slate-700"
+                            )}
+                        >
+                            <BookOpen className="w-4 h-4" /> Curriculum
+                        </button>
+                        <button
+                            onClick={() => setActiveView("pending")}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest transition-all relative",
+                                activeView === "pending" ? "bg-white text-indigo-600 shadow-md border border-slate-100" : "text-slate-500 hover:text-slate-700"
+                            )}
+                        >
+                            <Clock className="w-4 h-4" /> Pending
+                            {pendingCourses.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+                                    {pendingCourses.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
                     <Button
                         variant="outline"
                         onClick={handleExportPDF}
@@ -186,13 +274,6 @@ export default function CourseManagement() {
                     >
                         <FileDown className="w-5 h-5" />
                         Export PDF
-                    </Button>
-                    <Button
-                        onClick={() => setIsAIModalOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-[20px] gap-2 font-black px-8 h-14 text-[11px] uppercase tracking-widest shadow-2xl shadow-indigo-500/30 transition-all active:scale-95 border-0"
-                    >
-                        <Sparkles className="w-5 h-5" />
-                        Sync with Gemini AI
                     </Button>
                     <Button
                         onClick={() => {
@@ -287,32 +368,68 @@ export default function CourseManagement() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 pt-2">
-                                    <Button
-                                        onClick={() => openEdit(course)}
-                                        className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-14 border border-slate-100 text-[11px] uppercase tracking-widest transition-all"
-                                    >
-                                        Modify Path
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => handleDelete(course._id || course.id)}
-                                        className="bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-400 rounded-2xl h-14 w-14 border border-rose-100/50 transition-all"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                ) : (
-                    <div className="col-span-full text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-sm animate-in fade-in zoom-in-95 duration-500">
-                        <BookOpen className="w-16 h-16 text-slate-100 mx-auto mb-6" />
-                        <h3 className="text-2xl font-black text-slate-300">No Curriculum Found</h3>
-                        <p className="text-[10px] text-slate-200 font-black uppercase tracking-[0.25em] mt-3 px-10 max-w-md mx-auto">There are currently no course records matching your search query.</p>
-                    </div>
-                )}
-            </div>
+                                 <div className="flex items-center gap-3 pt-2">
+                                     {activeView === "pending" ? (
+                                         <>
+                                             <Button
+                                                 onClick={() => handleApprove(course._id || course.id)}
+                                                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all"
+                                             >
+                                                 Approve Path
+                                             </Button>
+                                             <Button
+                                                 onClick={() => openRejectModal(course._id || course.id)}
+                                                 className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest border border-rose-100 transition-all"
+                                             >
+                                                 Reject
+                                             </Button>
+                                         </>
+                                     ) : (
+                                         <>
+                                             <Button
+                                                 onClick={() => openEdit(course)}
+                                                 className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-14 border border-slate-100 text-[11px] uppercase tracking-widest transition-all"
+                                             >
+                                                 Modify Path
+                                             </Button>
+                                             <Button
+                                                 variant="ghost"
+                                                 onClick={() => handleDelete(course._id || course.id)}
+                                                 className="bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-400 rounded-2xl h-14 w-14 border border-rose-100/50 transition-all"
+                                             >
+                                                 <Trash2 className="w-5 h-5" />
+                                             </Button>
+                                         </>
+                                     )}
+                                 </div>
+                                 
+                                 {course.syllabusUrl && (
+                                     <a 
+                                         href={course.syllabusUrl} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="flex items-center justify-center gap-2 text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-700 transition-colors pt-2"
+                                     >
+                                         <Download className="w-3 h-3" /> View Submitted Syllabus
+                                     </a>
+                                 )}
+                             </CardContent>
+                         </Card>
+                     ))
+                 ) : (
+                     <div className="col-span-full text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-sm animate-in fade-in zoom-in-95 duration-500">
+                         <BookOpen className="w-16 h-16 text-slate-100 mx-auto mb-6" />
+                         <h3 className="text-2xl font-black text-slate-300">
+                             {activeView === "pending" ? "No Pending Frameworks" : "No Curriculum Found"}
+                         </h3>
+                         <p className="text-[10px] text-slate-200 font-black uppercase tracking-[0.25em] mt-3 px-10 max-w-md mx-auto">
+                             {activeView === "pending" 
+                                ? "Tutors have not submitted any new course frameworks for review."
+                                : "There are currently no course records matching your search query."}
+                         </p>
+                     </div>
+                 )}
+             </div>
 
             {/* Archive / Modify Course Modal */}
             <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
@@ -378,6 +495,19 @@ export default function CourseManagement() {
                                     value={formState.description}
                                     onChange={(e) => setFormState({ ...formState, description: e.target.value })}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Assigned Tutor</Label>
+                                <select
+                                    className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                    value={formState.tutor}
+                                    onChange={(e) => setFormState({ ...formState, tutor: e.target.value })}
+                                >
+                                    <option value="">No Tutor Assigned</option>
+                                    {tutors.map(t => (
+                                        <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
@@ -548,6 +678,40 @@ export default function CourseManagement() {
                             )}
                         </Button>
                     </div>
+                </DialogContent>
+            {/* Rejection Feedback Modal */}
+            <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
+                <DialogContent className="sm:max-w-[500px] bg-white rounded-[40px] p-10 border-0 shadow-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-800">Review Suggestions</DialogTitle>
+                        <p className="text-slate-400 font-medium text-sm mt-2"> Provide constructive feedback to the tutor on how to improve this course framework.</p>
+                    </DialogHeader>
+                    <div className="space-y-6 py-8">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Manager Recommendations</Label>
+                            <textarea
+                                className="w-full bg-slate-50 border border-slate-100 min-h-[150px] rounded-2xl focus:ring-rose-500/30 text-slate-800 font-bold p-4 text-sm"
+                                placeholder="e.g. Please decrease the price or add more detailed chapters in Semester 1..."
+                                value={rejectionFeedback}
+                                onChange={(e) => setRejectionFeedback(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-3">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsRejectModalOpen(false)}
+                            className="flex-1 rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleReject}
+                            className="flex-1 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black h-14 text-[11px] uppercase tracking-widest shadow-xl shadow-rose-500/20"
+                        >
+                            Confirm Rejection
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

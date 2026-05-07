@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Users, Search, Filter, Mail, MessageSquare,
     ChevronRight, ArrowUpRight, TrendingUp, TrendingDown,

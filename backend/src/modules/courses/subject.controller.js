@@ -13,7 +13,12 @@ export class SubjectController {
                 throw new ApiError(403, "Students cannot create subjects.");
             }
 
-            const subject = await SubjectService.createSubject(req.user._id, req.body);
+            const subjectData = {
+                ...req.body,
+                syllabusUrl: req.file ? `/uploads/syllabus/${req.file.filename}` : undefined
+            };
+
+            const subject = await SubjectService.createSubject(req.user._id, subjectData);
             res.status(201).json({ success: true, data: subject });
         } catch (error) {
             next(error);
@@ -110,6 +115,24 @@ export class SubjectController {
         try {
             const students = await SubjectService.getTutorStudents(req.user._id);
             res.json({ success: true, data: students });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async approve(req, res, next) {
+        try {
+            const subject = await SubjectService.updateStatus(req.params.subjectId, "approved");
+            res.json({ success: true, message: "Subject approved", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async reject(req, res, next) {
+        try {
+            const subject = await SubjectService.updateStatus(req.params.subjectId, "rejected");
+            res.json({ success: true, message: "Subject rejected", data: subject });
         } catch (error) {
             next(error);
         }

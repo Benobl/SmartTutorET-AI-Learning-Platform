@@ -15,12 +15,17 @@ const onRefreshed = (token: string) => {
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    const headers = {
-        "Content-Type": "application/json",
-        "X-ST-CSRF": "XMLHttpRequest", // Custom header for CSRF protection
+    const isFormData = options.body instanceof FormData;
+
+    const headers: any = {
+        "X-ST-CSRF": "XMLHttpRequest",
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...options.headers,
     };
+
+    if (!isFormData) {
+        headers["Content-Type"] = "application/json";
+    }
 
     const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
     const cleanEndpoint = endpoint.replace(/^\//, "");
@@ -118,13 +123,15 @@ export const courseApi = {
     getRecommendations: () => fetchWithAuth("/courses/recommendations"),
     getMyCourses: () => fetchWithAuth("/courses/my-courses"),
     getMyStudents: () => fetchWithAuth("/courses/my-students"),
+    approve: (id: string) => fetchWithAuth(`/courses/${id}/approve`, { method: "PATCH" }),
+    reject: (id: string) => fetchWithAuth(`/courses/${id}/reject`, { method: "PATCH" }),
     getById: (courseId: string) => fetchWithAuth(`/courses/${courseId}`),
     enroll: (courseId: string) => fetchWithAuth(`/courses/${courseId}/enroll`, {
         method: "POST"
     }),
     create: (data: any) => fetchWithAuth("/courses", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: data instanceof FormData ? data : JSON.stringify(data)
     }),
     update: (id: string, data: any) => fetchWithAuth(`/courses/${id}`, {
         method: "PATCH",
@@ -298,6 +305,14 @@ export const adminApi = {
     // --- Monitoring ---
     getUsers: () => fetchWithAuth("/admin/users"),
     getStudentProgress: (studentId: string) => fetchWithAuth(`/admin/student-progress/${studentId}`),
+};
+
+export const paymentApi = {
+    initialize: (data: { amount: number, subjectId: string, method: string }) => fetchWithAuth("/payments/initialize", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    verify: (transactionId: string) => fetchWithAuth(`/payments/verify/${transactionId}`),
 };
 
 export const notificationApi = {

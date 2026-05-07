@@ -38,7 +38,8 @@ export class SubjectService {
         });
     }
     static async getAllSubjects(query = {}) {
-        return await Subject.find(query).populate("tutor", "name profile.avatar");
+        const finalQuery = { status: "approved", ...query };
+        return await Subject.find(finalQuery).populate("tutor", "name profile.avatar");
     }
 
     static async updateSubject(subjectId, updates) {

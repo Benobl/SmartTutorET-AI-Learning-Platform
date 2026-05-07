@@ -104,7 +104,7 @@ export default function TeacherQuizzes() {
     }
 
     const filteredCourses = courses.filter(c => {
-        if (selectedGrade === "General") return true;
+        if (selectedGrade === "General" || !selectedGrade) return true;
         return c.grade?.toString() === selectedGrade;
     })
 
@@ -119,14 +119,14 @@ export default function TeacherQuizzes() {
         }
         setIsGenerating(true)
         try {
-            const course = courses.find(c => c.title === selectedCourse);
+            const course = courses.find(c => c._id === selectedCourse);
             const res = await assessmentApi.generateAI({
                 subject: selectedCourse,
                 grade: selectedGrade,
                 stream: selectedStream,
                 topic: prompt,
                 count: parseInt(count),
-                subjectId: course?._id
+                subjectId: selectedCourse === "General" ? undefined : selectedCourse
             })
             toast({
                 title: "Quiz Generated Successfully",
@@ -248,7 +248,7 @@ export default function TeacherQuizzes() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {filteredCourses.map(c => (
-                                            <SelectItem key={c._id} value={c.title}>{c.title}</SelectItem>
+                                            <SelectItem key={c._id} value={c._id}>{c.title}</SelectItem>
                                         ))}
                                         <SelectItem value="General">General/Other</SelectItem>
                                     </SelectContent>

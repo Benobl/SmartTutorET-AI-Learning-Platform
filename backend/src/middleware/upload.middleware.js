@@ -1,42 +1,46 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOADS_DIR = path.join(__dirname, "../../uploads/documents");
 
 // Ensure uploads directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const uploadDir = "uploads/syllabus";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, UPLOADS_DIR);
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        const ext = path.extname(file.originalname);
-        const base = path.basename(file.originalname, ext)
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .toLowerCase()
-            .substring(0, 30);
-        cb(null, `${base}-${uniqueSuffix}${ext}`);
-    },
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+    }
 });
 
 const fileFilter = (req, file, cb) => {
-    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
-    if (allowed.includes(file.mimetype)) {
+    if (file.mimetype === "application/pdf") {
         cb(null, true);
     } else {
-        cb(new Error("Only PDF, JPG, and PNG files are allowed"), false);
+        cb(new Error("Only PDF files are allowed!"), false);
     }
 };
 
+export const uploadSyllabus = multer({ 
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
 export const upload = multer({
-    storage,
-    fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Invalid file type. Only PDF and images are allowed."), false);
+        }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });

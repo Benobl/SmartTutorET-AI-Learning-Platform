@@ -17,38 +17,55 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
+import { paymentApi } from "@/lib/api"
+
 interface PaymentModalProps {
     isOpen: boolean
     onClose: () => void
     courseName: string
     price: number
+    courseId: string
     onSuccess: (paymentId: string) => void
 }
 
-export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: PaymentModalProps) {
+export function PaymentModal({ isOpen, onClose, courseName, price, courseId, onSuccess }: PaymentModalProps) {
     const [step, setStep] = useState<1 | 2 | 3>(1)
     const [phoneNumber, setPhoneNumber] = useState("")
     const [isProcessing, setIsProcessing] = useState(false)
     const { toast } = useToast()
 
-    const handlePhoneSubmit = (e: React.FormEvent) => {
+    const handleChapaPayment = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (phoneNumber.length < 9) {
-            toast({ title: "Invalid Phone Number", description: "Please enter a valid phone number.", variant: "destructive" })
-            return
+        setIsProcessing(true)
+        try {
+            const res = await paymentApi.initialize({
+                amount: price,
+                subjectId: courseId,
+                method: "chapa"
+            })
+            
+            if (res.data?.checkout_url) {
+                toast({ title: "Redirecting to Chapa", description: "Completing secure payment gateway connection..." })
+                window.location.href = res.data.checkout_url
+            } else {
+                throw new Error("Failed to get checkout URL")
+            }
+        } catch (error: any) {
+            toast({ title: "Payment Failed", description: error.message, variant: "destructive" })
+        } finally {
+            setIsProcessing(false)
         }
-        setStep(2)
     }
 
     const handleSimulatedPayment = () => {
         setIsProcessing(true)
-        // Simulate Telebir processing delay
+        // Simulate Chapa verification
         setTimeout(() => {
             setIsProcessing(false)
             setStep(3)
             toast({ title: "Payment Verified!", description: "Thank you for your purchase.", className: "bg-emerald-500 text-white border-none" })
             setTimeout(() => {
-                onSuccess("TLB-" + Math.random().toString(36).substring(2, 9).toUpperCase())
+                onSuccess("CHAPA-" + Math.random().toString(36).substring(2, 9).toUpperCase())
                 onClose()
             }, 2000)
         }, 2500)
@@ -65,9 +82,9 @@ export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: 
                         <DialogHeader className="mb-8">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <DialogTitle className="text-white text-2xl font-black tracking-tight">Telebirr Checkout</DialogTitle>
+                                    <DialogTitle className="text-white text-2xl font-black tracking-tight">Chapa Checkout</DialogTitle>
                                     <DialogDescription className="text-indigo-100/80 font-medium">
-                                        Secure payment for <span className="text-amber-300 font-bold">{courseName}</span>
+                                        Secure payment via <span className="text-amber-300 font-bold">Chapa</span> for {courseName}
                                     </DialogDescription>
                                 </div>
                                 <button onClick={onClose} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors">
@@ -78,7 +95,7 @@ export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: 
 
                         {/* Steps Indicator */}
                         <div className="flex justify-between items-center mb-10 px-4">
-                            {[1, 2, 3].map((s) => (
+                            {[1, 2].map((s) => (
                                 <div key={s} className="flex flex-col items-center gap-2">
                                     <div className={cn(
                                         "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all duration-500",
@@ -92,7 +109,7 @@ export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: 
                                         "text-[9px] font-black uppercase tracking-widest",
                                         step >= s ? "text-white" : "text-white/30"
                                     )}>
-                                        {s === 1 ? "Details" : s === 2 ? "Confirm" : "Success"}
+                                        {s === 1 ? "Initialize" : "Complete"}
                                     </span>
                                 </div>
                             ))}
@@ -100,7 +117,7 @@ export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: 
                             <div className="absolute left-[88px] top-[148px] right-[88px] h-[2px] bg-white/10 -z-10">
                                 <div
                                     className="h-full bg-amber-400 transition-all duration-500"
-                                    style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
+                                    style={{ width: step === 1 ? '0%' : '100%' }}
                                 />
                             </div>
                         </div>
@@ -108,30 +125,22 @@ export function PaymentModal({ isOpen, onClose, courseName, price, onSuccess }: 
                         {/* Content Card */}
                         <div className="bg-white rounded-[28px] p-6 shadow-xl border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {step === 1 && (
-                                <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                                <form onSubmit={handleChapaPayment} className="space-y-6">
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center px-1">
                                             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Amount to Pay</span>
                                             <span className="text-xl font-black text-slate-900">{price} ETB</span>
                                         </div>
-                                        <div className="relative">
-                                            <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                            <Input
-                                                placeholder="Enter Phone Number (e.g. 0912...)"
-                                                value={phoneNumber}
-                                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                                className="pl-12 h-14 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 transition-all font-bold text-slate-700"
-                                            />
-                                        </div>
                                     </div>
                                     <Button
                                         type="submit"
+                                        disabled={isProcessing}
                                         className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center gap-2"
                                     >
-                                        Proceed to Pay <ArrowRight className="w-4 h-4" />
+                                        {isProcessing ? "Initializing..." : <>Pay with Chapa <ArrowRight className="w-4 h-4" /></>}
                                     </Button>
                                     <p className="text-[10px] text-slate-400 text-center font-medium">
-                                        By clicking, you'll be redirected to Telebirr to complete your payment.
+                                        You will be redirected to Chapa's secure checkout page to complete your payment.
                                     </p>
                                 </form>
                             )}

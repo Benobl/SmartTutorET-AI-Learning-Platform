@@ -84,10 +84,11 @@ export class AdminService {
         return await subject.save();
     }
 
-    static async rejectSubject(subjectId) {
+    static async rejectSubject(subjectId, feedback) {
         const subject = await Subject.findById(subjectId);
         if (!subject) throw new ApiError(404, "Subject not found");
         subject.status = "rejected";
+        if (feedback) subject.managerFeedback = feedback;
         return await subject.save();
     }
 

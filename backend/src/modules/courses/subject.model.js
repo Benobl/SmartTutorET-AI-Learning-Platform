@@ -23,7 +23,9 @@ const subjectSchema = new mongoose.Schema({
             midTermDate: { type: String },
             finalDate: { type: String }
         }
-    }
+    },
+    syllabusUrl: { type: String },
+    managerFeedback: { type: String }
 }, { timestamps: true, collection: "subjects" });
 
 const Subject = mongoose.model("Subject", subjectSchema);
