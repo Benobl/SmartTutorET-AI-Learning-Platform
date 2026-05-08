@@ -55,6 +55,8 @@ export default function TeacherLive() {
     const [isVideoOff, setIsVideoOff] = useState(false)
     const [isSharingScreen, setIsSharingScreen] = useState(false)
     const [isRecording, setIsRecording] = useState(false)
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+    const recordedChunks = useRef<Blob[]>([])
     const [chatInput, setChatInput] = useState("")
     const [messages, setMessages] = useState([
         { id: "m1", user: "Biniyam S.", text: "Professor, can you re-explain the measurement problem in quantum physics?" },
@@ -202,12 +204,55 @@ export default function TeacherLive() {
     }, [])
 
     const toggleRecording = () => {
-        setIsRecording(!isRecording)
-        toast({
-            title: !isRecording ? "Recording Started" : "Recording Saved",
-            description: !isRecording ? "The session is now being recorded." : "The recording has been uploaded to your library.",
-            duration: 3000,
-        })
+        if (!isRecording) {
+            if (!streamRef.current) {
+                toast({ title: "No stream", description: "Please start the session before recording.", variant: "destructive" })
+                return
+            }
+            try {
+                const recorder = new MediaRecorder(streamRef.current, { mimeType: "video/webm" })
+                recorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.current.push(e.data)
+                }
+                recorder.onstop = () => {
+                    const blob = new Blob(recordedChunks.current, { type: "video/webm" })
+                    recordedChunks.current = []
+                    
+                    // Trigger download
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement("a")
+                    a.style.display = "none"
+                    a.href = url
+                    a.download = `live-session-${Date.now()}.webm`
+                    document.body.appendChild(a)
+                    a.click()
+                    setTimeout(() => {
+                        document.body.removeChild(a)
+                        window.URL.revokeObjectURL(url)
+                    }, 100)
+                    
+                    toast({
+                        title: "Recording Saved",
+                        description: "Your session recording has been downloaded.",
+                    })
+                }
+                recorder.start()
+                setMediaRecorder(recorder)
+                setIsRecording(true)
+                toast({
+                    title: "Recording Started",
+                    description: "The session is now being recorded.",
+                })
+            } catch (error: any) {
+                toast({ title: "Recording Error", description: error.message, variant: "destructive" })
+            }
+        } else {
+            if (mediaRecorder) {
+                mediaRecorder.stop()
+                setMediaRecorder(null)
+            }
+            setIsRecording(false)
+        }
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

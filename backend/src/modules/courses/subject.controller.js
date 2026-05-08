@@ -4,11 +4,9 @@ import { ApiError } from "../../middleware/error.middleware.js";
 export class SubjectController {
     static async createSubject(req, res, next) {
         try {
-            // Rule: Only approved tutors (or staff) can create subjects
             if (req.user.role === "tutor" && req.user.tutorStatus !== "approved") {
                 throw new ApiError(403, "Your tutor account is pending approval. You cannot create subjects yet.");
             }
-            
             if (req.user.role === "student") {
                 throw new ApiError(403, "Students cannot create subjects.");
             }
@@ -30,7 +28,6 @@ export class SubjectController {
             const updateData = { ...req.body };
             if (req.file) {
                 updateData.syllabusUrl = `/uploads/syllabus/${req.file.filename}`;
-                // When modifying a rejected framework, reset status to pending for re-review
                 updateData.status = "pending";
             }
             const subject = await SubjectService.updateSubject(req.params.subjectId, updateData);
@@ -73,15 +70,14 @@ export class SubjectController {
         try {
             const { category, grade, search, isPremium } = req.query;
             const filter = {};
-            
-            // Non-staff can only see approved subjects OR their own subjects
+
             if (req.user.role !== "manager" && req.user.role !== "admin") {
                 filter.$or = [
                     { status: "approved" },
                     { tutor: req.user._id }
                 ];
             }
-            
+
             if (category) filter.category = category;
             if (grade) filter.grade = grade;
             if (isPremium) filter.isPremium = isPremium === "true";
@@ -143,6 +139,7 @@ export class SubjectController {
             next(error);
         }
     }
+
     static async addLesson(req, res, next) {
         try {
             const subject = await SubjectService.addLesson(req.params.subjectId, req.body);
@@ -151,6 +148,35 @@ export class SubjectController {
             next(error);
         }
     }
+
+    /**
+     * Upload a video file as a new lesson.
+     * The video is stored at /uploads/videos/<filename>.
+     * Students can only view (not download) via the served static route.
+     */
+    static async uploadLessonVideo(req, res, next) {
+        try {
+            if (!req.file) throw new ApiError(400, "No video file provided.");
+
+            const { title, duration } = req.body;
+            if (!title) throw new ApiError(400, "Lesson title is required.");
+
+            const videoUrl = `/uploads/videos/${req.file.filename}`;
+            const lessonData = {
+                title,
+                videoUrl,
+                duration: duration || "Unknown",
+                type: "video",
+                isUploadedFile: true
+            };
+
+            const subject = await SubjectService.addLesson(req.params.subjectId, lessonData);
+            res.json({ success: true, message: "Video lesson uploaded successfully", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async autoGenerateLessons(req, res, next) {
         try {
             const subject = await SubjectService.autoGenerateLessons(req.params.subjectId);

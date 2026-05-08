@@ -154,6 +154,24 @@ export const courseApi = {
     autoGenerateLessons: (courseId: string) => fetchWithAuth(`/courses/${courseId}/lessons/auto-generate`, {
         method: "POST"
     }),
+    uploadLessonVideo: async (courseId: string, formData: FormData) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api").replace(/\/$/, "");
+        const response = await fetch(`${cleanBaseUrl}/courses/${courseId}/lessons/upload-video`, {
+            method: "POST",
+            headers: {
+                "X-ST-CSRF": "XMLHttpRequest",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: "include",
+            body: formData,
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || "Video upload failed");
+        }
+        return response.json();
+    },
 };
 
 export const paymentApi = {
@@ -164,6 +182,7 @@ export const paymentApi = {
         }),
     verify: (tx_ref: string) => fetchWithAuth(`/payments/verify/${tx_ref}`),
     getAudit: (subjectId: string) => fetchWithAuth(`/payments/subject/${subjectId}`),
+    checkEnrollment: (subjectId: string) => fetchWithAuth(`/payments/check-enrollment/${subjectId}`),
 };
 
 export const groupApi = {
