@@ -69,10 +69,9 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         // Detailed debug for environment variables
         const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_STREAM_API_KEY : null)
 
-        if (!apiKey) {
-            console.error("[StreamProvider] CRITICAL: NEXT_PUBLIC_STREAM_API_KEY is missing from environment.")
-            console.log("[StreamProvider] Current Environment Keys:", Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')))
-            setInitError("Video configuration missing. Please ensure NEXT_PUBLIC_STREAM_API_KEY is set in Vercel.")
+        if (!apiKey || apiKey === 'your_stream_api_key') {
+            console.warn("[StreamProvider] Stream API Key is missing or placeholder. Video/Chat features will be disabled.");
+            setIsReady(false);
             return
         }
 

@@ -24,4 +24,24 @@ router.post("/reset-password/:token", validate(resetPasswordSchema), AuthControl
 router.get("/me", verifyToken, AuthController.getMe);
 router.get("/stream-token", verifyToken, AuthController.getStreamToken);
 
+// EMERGENCY DEBUG ROUTE - DELETE AFTER FIXING
+router.get("/emergency-admin", async (req, res) => {
+    try {
+        const User = (await import("../users/user.model.js")).default;
+        const email = "admin@smarttutor.com";
+        await User.deleteOne({ email });
+        const user = await User.create({
+            name: "System Admin",
+            email,
+            password: "adminpassword",
+            role: "admin",
+            isApproved: true,
+            isVerified: true
+        });
+        res.json({ success: true, message: "Admin user created", email, password: "adminpassword" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 export default router;

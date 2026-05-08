@@ -16,6 +16,7 @@ import {
     Bot, User, ChevronRight, Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { aiApi } from "@/lib/api"
 
 interface Message {
     id: string
@@ -55,7 +56,7 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
     }, [messages, isTyping])
 
     const handleSend = async () => {
-        if (!input.trim()) return
+        if (!input.trim() || isTyping) return
 
         const userMsg: Message = {
             id: Date.now().toString(),
@@ -65,20 +66,34 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
         }
 
         setMessages(prev => [...prev, userMsg])
+        const currentInput = input;
         setInput("")
         setIsTyping(true)
 
-        // Simulate AI response
-        setTimeout(() => {
+        try {
+            const res = await aiApi.getTutorResponse({ 
+                message: currentInput,
+                history: messages.map(m => ({ role: m.role, content: m.content }))
+            });
+            
             const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
+                id: Date.now().toString(),
                 role: "assistant",
-                content: `That's a great question about "${input}". In SmartTutorET, we focus on breaking down complex problems into smaller visible steps. Let's look at the core principles involved...`,
+                content: res.data.response,
                 timestamp: new Date(),
             }
             setMessages(prev => [...prev, aiMsg])
+        } catch (error: any) {
+            const errorMsg: Message = {
+                id: Date.now().toString(),
+                role: "assistant",
+                content: "I'm sorry, I'm having trouble connecting to my knowledge base right now. Please try again in a moment.",
+                timestamp: new Date(),
+            }
+            setMessages(prev => [...prev, errorMsg])
+        } finally {
             setIsTyping(false)
-        }, 1500)
+        }
     }
 
     return (

@@ -1,4 +1,6 @@
 import "dotenv/config";
+import dns from "dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
@@ -13,7 +15,7 @@ import logger from "./src/config/logger.js";
 import { errorHandler } from "./src/middleware/error.middleware.js";
 import { requestLogger } from "./src/middleware/logger.middleware.js";
 import { csrfProtection } from "./src/middleware/csrf.middleware.js";
-const VERSION = "1.0.7-manual-cors";
+const VERSION = "1.0.12-dashboard-complete";
 
 // Routes
 import authRoutes from "./src/modules/auth/auth.route.js";

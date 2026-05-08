@@ -63,4 +63,22 @@ export class UserController {
             next(error);
         }
     }
+
+    static async getStudentStats(req, res, next) {
+        try {
+            const stats = await UserService.getStudentStats(req.user._id);
+            res.json({ success: true, data: stats });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getTutorStats(req, res, next) {
+        try {
+            const stats = await UserService.getTutorStats(req.user._id);
+            res.json({ success: true, data: stats });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

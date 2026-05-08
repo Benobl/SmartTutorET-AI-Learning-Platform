@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    accountStatus: {
+      type: String,
+      enum: ["active", "waiting", "suspended", "deactivated"],
+      default: "active",
+    },
     profile: {
       bio: { type: String, default: "" },
       expertise: { type: [String], default: [] },
@@ -105,6 +110,12 @@ userSchema.pre("validate", function (next) {
 
 userSchema.pre("save", async function (next) {
   if (!this.password || !this.isModified("password")) return next();
+  
+  // If it already looks like a bcrypt hash, don't hash it again
+  if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$")) {
+    return next();
+  }
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

@@ -2,12 +2,11 @@ import { User, authApi } from './auth-utils';
 import * as api from './api';
 const { adminApi, userApi, courseApi, notificationApi, aiApi, schedulingApi } = api;
 console.log("[DEBUG] schedulingApi loaded:", !!schedulingApi);
-import { getDb, saveDb } from './db-utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Manager utilities for administrative workflows with persistent state (localStorage).
+ * Manager utilities for administrative workflows connected to the backend API.
  */
 
 /**
@@ -50,11 +49,16 @@ export const getPendingTutors = async (): Promise<User[]> => {
 };
 
 /**
- * Get specific tutor by ID
+ * Get specific tutor by ID (Now fetches from backend via user list)
  */
-export const getTutorById = (id: string): User | undefined => {
-    const db = getDb();
-    return (db.users.tutors as User[]).find(t => t.id === id);
+export const getTutorById = async (id: string): Promise<User | undefined> => {
+    try {
+        const tutors = await getAllTutors();
+        return tutors.find(t => t._id === id || t.id === id);
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch tutor by ID:", error);
+        return undefined;
+    }
 };
 
 /**
@@ -107,11 +111,16 @@ export const generateGradeSchedule = async (grade: string, stream: string, subje
 };
 
 /**
- * Get master schedule
+ * Get master schedule (Backend-driven)
  */
-export const getSchedules = () => {
-    const db = getDb();
-    return db.schedules;
+export const getSchedules = async () => {
+    try {
+        const response = await schedulingApi.getAll();
+        return response.data || [];
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch schedules:", error);
+        return [];
+    }
 };
 
 /**
@@ -302,10 +311,21 @@ export const exportReport = (data: any, fileName: string) => {
 };
 
 /**
- * Get all database for full export
+ * Get all database for full export (Now aggregates real collections)
  */
-export const getFullExportData = () => {
-    return getDb();
+export const getFullExportData = async () => {
+    try {
+        const [users, jobs, courses, schedules] = await Promise.all([
+            getUsers(),
+            getJobs(),
+            getCourses(),
+            getMasterSchedules()
+        ]);
+        return { users, jobs, courses, schedules };
+    } catch (error) {
+        console.error("[ManagerUtils] Failed to fetch full export data:", error);
+        return {};
+    }
 };
 
 /**
