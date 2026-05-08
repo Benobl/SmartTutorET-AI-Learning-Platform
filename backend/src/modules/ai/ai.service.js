@@ -71,7 +71,7 @@ Format your response in a clear, structured way using markdown formatting when h
     }
 
     static async suggestResources(subject, grade, outline = "") {
-        const modelsToTry = ["gemini-1.5-flash", "gemini-pro"];
+        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro"];
         let lastError = null;
 
         for (const modelName of modelsToTry) {
@@ -390,10 +390,8 @@ Format your response in a clear, structured way using markdown formatting when h
 
         const modelsToTry = [
             "gemini-1.5-flash", 
-            "gemini-pro",
             "gemini-1.5-pro",
-            "gemini-1.5-flash-8b",
-            "gemini-1.0-pro"
+            "gemini-1.5-flash-8b"
         ];
         let lastError = null;
 

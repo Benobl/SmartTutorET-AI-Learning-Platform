@@ -21,11 +21,23 @@ export class PaymentController {
             next(error);
         }
     }
+
     static async getPayments(req, res, next) {
         try {
             const { subjectId } = req.params;
             const payments = await PaymentService.getSubjectPayments(subjectId);
             res.json({ success: true, data: payments });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async checkEnrollment(req, res, next) {
+        try {
+            const { subjectId } = req.params;
+            const studentId = req.user._id;
+            const result = await PaymentService.checkEnrollment(studentId, subjectId);
+            res.json({ success: true, data: result });
         } catch (error) {
             next(error);
         }

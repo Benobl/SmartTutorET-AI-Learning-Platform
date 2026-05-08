@@ -7,7 +7,7 @@ import {
     LayoutGrid, List, Star, Users, CheckCircle,
     Sparkles, ChevronRight, GraduationCap, Video,
     MonitorPlay, Calendar, Zap, LayoutPanelLeft, Clock,
-    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp, FileDown
+    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp, FileDown, AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -153,14 +153,22 @@ export default function StudentCourses() {
 
             if (mine.status === "fulfilled" && mine.value.success) {
                 setMyCourses(mine.value.data.map((c: any) => ({
-                    id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
+                    id: c._id || c.id, 
+                    name: c.title, 
+                    tutor: c.tutor?.name || "Expert Tutor",
                     progress: Math.floor(Math.random() * 60),
-                    lessons: 20, completed: 0, lastAccessed: "Recently",
+                    lessons: c.lessons?.length || 0, 
+                    completed: 0, 
+                    lastAccessed: "Recently",
                     image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
                     tags: [c.category || "General", `Grade ${c.grade || 12}`],
-                    grade: `Grade ${c.grade || 12}`, semester: c.semester || "Semester 1",
-                    category: c.category || "All", delivery: "Live",
-                    nextClass: "Available now", rating: 4.8,
+                    grade: `Grade ${c.grade || 12}`, 
+                    semester: c.semester || "Semester 1",
+                    category: c.category || "All", 
+                    delivery: "Live",
+                    nextClass: "Available now", 
+                    rating: 4.8,
+                    hasLessons: c.lessons && c.lessons.length > 0
                 })))
             } else { setMyCourses(MY_COURSES) }
 
@@ -257,6 +265,18 @@ export default function StudentCourses() {
         if (course.price !== "Free") {
             try {
                 setEnrollingId(course.id)
+                // First, verify if already paid/enrolled via the backend
+                const enrollmentCheck = await paymentApi.checkEnrollment(course.id);
+                if (enrollmentCheck.data?.alreadyPaid) {
+                    toast({
+                        title: "Already Enrolled",
+                        description: "You already have access to this course!",
+                        className: "bg-emerald-500 text-white"
+                    });
+                    router.push(`/dashboard/student/courses/${course.id}`);
+                    return;
+                }
+
                 const amountStr = course.price.replace(" ETB", "")
                 const amount = parseFloat(amountStr)
                 
@@ -692,13 +712,34 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
                 )}
 
                 <div className="mt-auto">
+                    {tab === "enrolled" && !course.hasLessons && (
+                        <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-100 flex flex-col gap-2">
+                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                                <AlertCircle className="w-3 h-3" /> No Lessons Uploaded Yet
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-500 leading-tight">
+                                Your tutor hasn't uploaded content for this course. Start learning from official Ethiopian Ministry of Education resources.
+                            </p>
+                            <a 
+                                href="https://learn-english.moe.gov.et/?utm_source=chatgpt.com" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="mt-2 w-full py-2.5 rounded-xl bg-white border border-amber-200 text-amber-600 text-[10px] font-black uppercase tracking-widest text-center hover:bg-amber-500 hover:text-white transition-all shadow-sm"
+                            >
+                                Open MoE English Portal
+                            </a>
+                        </div>
+                    )}
+
                     <Button
                         onClick={() => tab === "enrolled" ? onContinue(course.id, course.name) : onEnroll(course)}
-                        disabled={enrollingId === course.id}
+                        disabled={enrollingId === course.id || (tab === "enrolled" && !course.hasLessons)}
                         className={cn(
                             "w-full h-14 rounded-[22px] gap-3 font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1 active:scale-95",
                             tab === "enrolled"
-                                ? "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20"
+                                ? course.hasLessons 
+                                    ? "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20"
+                                    : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
                                 : course.price === "Free"
                                     ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
                                     : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
@@ -707,7 +748,9 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
                         {enrollingId === course.id ? (
                             <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Syncing...</span>
                         ) : tab === "enrolled" ? (
-                            <><PlayCircle className="w-5 h-5 fill-white/20" /> Continue Learning</>
+                            course.hasLessons 
+                                ? <><PlayCircle className="w-5 h-5 fill-white/20" /> Continue Learning</>
+                                : <><Clock className="w-5 h-5" /> Waiting for Tutor</>
                         ) : course.price === "Free" ? (
                             <><CheckCircle className="w-5 h-5" /> Enroll for Free</>
                         ) : (

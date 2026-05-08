@@ -36,6 +36,9 @@ export default function TeacherCourses() {
         type: "video" as "video" | "exercise" | "quiz",
         videoUrl: ""
     })
+    const [uploadType, setUploadType] = useState<"url" | "file">("url")
+    const [videoFile, setVideoFile] = useState<File | null>(null)
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false)
 
     useEffect(() => {
         if (selectedCourseForModules && isModuleManagerOpen) {
@@ -60,12 +63,27 @@ export default function TeacherCourses() {
     const handleAddLesson = async () => {
         if (!lessonForm.title) return
         try {
-            const res = await courseApi.addLesson(selectedCourseForModules._id, lessonForm)
-            setLessons(res.data.lessons)
+            setIsUploadingVideo(true)
+            if (uploadType === "file" && videoFile) {
+                const formData = new FormData()
+                formData.append("video", videoFile)
+                formData.append("title", lessonForm.title)
+                formData.append("duration", lessonForm.duration)
+                
+                const res = await courseApi.uploadLessonVideo(selectedCourseForModules._id, formData)
+                setLessons(res.data.lessons)
+                toast({ title: "Video Uploaded", description: "Successfully uploaded video and added to curriculum." })
+            } else {
+                const res = await courseApi.addLesson(selectedCourseForModules._id, lessonForm)
+                setLessons(res.data.lessons)
+                toast({ title: "Lesson Added", description: "Successfully added new lesson to curriculum." })
+            }
             setLessonForm({ title: "", duration: "15 min", type: "video", videoUrl: "" })
-            toast({ title: "Lesson Added", description: "Successfully added new lesson to curriculum." })
+            setVideoFile(null)
         } catch (error: any) {
             toast({ title: "Failed to add lesson", description: error.message, variant: "destructive" })
+        } finally {
+            setIsUploadingVideo(false)
         }
     }
 
@@ -553,14 +571,39 @@ export default function TeacherCourses() {
                                         onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Video URL (YouTube)</Label>
-                                    <Input 
-                                        placeholder="https://youtube.com/..."
-                                        className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
-                                        value={lessonForm.videoUrl}
-                                        onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
-                                    />
+                                <div className="space-y-3">
+                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                        <button 
+                                            className={cn("flex-1 text-[9px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-all", uploadType === "url" ? "bg-white text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
+                                            onClick={() => setUploadType("url")}
+                                        >YouTube Link</button>
+                                        <button 
+                                            className={cn("flex-1 text-[9px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-all", uploadType === "file" ? "bg-white text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
+                                            onClick={() => setUploadType("file")}
+                                        >Upload File</button>
+                                    </div>
+
+                                    {uploadType === "url" ? (
+                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                            <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Video URL (YouTube)</Label>
+                                            <Input 
+                                                placeholder="https://youtube.com/..."
+                                                className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs focus:bg-white"
+                                                value={lessonForm.videoUrl}
+                                                onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                            <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Video File (MP4/WebM)</Label>
+                                            <Input 
+                                                type="file"
+                                                accept="video/mp4,video/webm,video/quicktime"
+                                                className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-[9px] file:font-black file:uppercase file:tracking-widest file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200 cursor-pointer pt-2.5"
+                                                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
@@ -587,9 +630,10 @@ export default function TeacherCourses() {
                                 </div>
                                 <Button 
                                     onClick={handleAddLesson}
-                                    className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[9px] uppercase tracking-widest shadow-lg shadow-sky-500/10 mt-2"
+                                    disabled={isUploadingVideo}
+                                    className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[9px] uppercase tracking-widest shadow-lg shadow-sky-500/10 mt-2 disabled:opacity-50"
                                 >
-                                    Append to Curriculum
+                                    {isUploadingVideo ? "Uploading..." : "Append to Curriculum"}
                                 </Button>
                             </div>
                         </div>

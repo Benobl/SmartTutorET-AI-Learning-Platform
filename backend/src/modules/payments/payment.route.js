@@ -7,5 +7,6 @@ const router = express.Router();
 router.post("/initialize", verifyToken, PaymentController.initialize);
 router.get("/verify/:tx_ref", verifyToken, PaymentController.verify);
 router.get("/subject/:subjectId", verifyToken, PaymentController.getPayments);
+router.get("/check-enrollment/:subjectId", verifyToken, PaymentController.checkEnrollment);
 
 export default router;
