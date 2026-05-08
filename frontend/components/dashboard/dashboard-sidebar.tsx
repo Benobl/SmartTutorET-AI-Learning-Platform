@@ -270,23 +270,10 @@ const adminNavItems: NavItem[] = [
         activeColor: "slate",
     },
     {
-        title: "Moderation",
-        url: "/dashboard/admin/moderation",
-        icon: FileText,
-        activeColor: "rose",
-        badge: 2,
-    },
-    {
         title: "Revenue",
         url: "/dashboard/admin/revenue",
         icon: DollarSign,
         activeColor: "amber",
-    },
-    {
-        title: "System Health",
-        url: "/dashboard/admin/system",
-        icon: BarChart3,
-        activeColor: "violet",
     },
     {
         title: "Settings",
@@ -325,16 +312,44 @@ function CollapseToggle({ className }: { className?: string }) {
     )
 }
 
+import { useEffect } from "react"
+import { adminApi } from "@/lib/api"
+
 export function DashboardSidebar() {
     const pathname = usePathname()
     const { state, setOpenMobile, isMobile } = useSidebar()
     const isCollapsed = state === "collapsed"
     const [expandedItem, setExpandedItem] = useState<string | null>(null)
+    const [notifications, setNotifications] = useState({ tutors: 0 })
 
     const isTeacher = pathname.startsWith("/dashboard/teacher") || pathname.startsWith("/dashboard/tutor")
     const isManager = pathname.startsWith("/dashboard/manager")
     const isAdmin = pathname.startsWith("/dashboard/admin")
-    const navigationItems = isAdmin ? adminNavItems : (isManager ? managerNavItems : (isTeacher ? teacherNavItems : studentNavItems))
+    
+    useEffect(() => {
+        if (isAdmin) {
+            const fetchNotifications = async () => {
+                try {
+                    const res = await adminApi.getStats()
+                    setNotifications({
+                        tutors: res.data.pendingTutors || 0
+                    })
+                } catch (error) {
+                    console.error("Failed to fetch sidebar notifications", error)
+                }
+            }
+            fetchNotifications()
+            // Optional: poll every minute
+            const interval = setInterval(fetchNotifications, 60000)
+            return () => clearInterval(interval)
+        }
+    }, [isAdmin])
+
+    const navigationItems = isAdmin ? adminNavItems.map(item => {
+        if (item.title === "Tutors") return { ...item, badge: notifications.tutors }
+        return item
+    }) : (isManager ? managerNavItems : (isTeacher ? teacherNavItems : studentNavItems))
+    
     const navLabel = isAdmin ? "Admin Console" : (isManager ? "Registrar Console" : (isTeacher ? "Instructor Console" : "Student Hub"))
 
     const toggleExpanded = (title: string) => {

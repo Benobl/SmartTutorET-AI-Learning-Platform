@@ -146,8 +146,8 @@ export default function ManagerDashboard() {
         await refreshData()
     }
 
-    const handleExport = () => {
-        const data = getFullExportData()
+    const handleExport = async () => {
+        const data = await getFullExportData()
         exportReport(data, 'SmartTutorET_Manager_Report')
         toast.success("Report exported successfully.")
     }

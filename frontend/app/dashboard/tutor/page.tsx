@@ -1,4 +1,6 @@
 "use client"
+ 
+import { useState, useEffect, useCallback } from "react"
 
 import Link from "next/link"
 import {
@@ -9,9 +11,34 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { tutorProfile as mockTeacherData, tutorCourses, tutorActivity } from "@/lib/mock-data"
+import { tutorActivity } from "@/lib/mock-data"
+import { userApi, courseApi } from "@/lib/api"
 
 export default function TeacherOverview() {
+    const [stats, setStats] = useState<any>(null);
+    const [courses, setCourses] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const [statsRes, coursesRes] = await Promise.all([
+                userApi.getTutorStats(),
+                courseApi.getMyCourses() // For tutors, this should return courses they teach
+            ]);
+            setStats(statsRes.data);
+            setCourses(coursesRes.data);
+        } catch (error) {
+            console.error("Failed to fetch tutor data", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
@@ -24,10 +51,10 @@ export default function TeacherOverview() {
                             <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
                         </div>
                         <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
-                            Welcome Back, <span className='text-sky-600'>{mockTeacherData.firstName}</span>
+                            Welcome Back, <span className='text-sky-600'>{stats?.firstName || "Teacher"}</span>
                         </h1>
                         <p className="text-slate-500 text-sm font-medium max-w-md">
-                            Your students are making progress. Today you have {tutorCourses.filter(c => c.nextClass?.includes('AM')).length} live classes scheduled.
+                            Your students are making progress. You have {courses.length} active courses currently.
                         </p>
                     </div>
 
@@ -52,7 +79,7 @@ export default function TeacherOverview() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Active Students</p>
-                            <h2 className="text-2xl font-black text-slate-900">97</h2>
+                            <h2 className="text-2xl font-black text-slate-900">{stats?.activeStudents || "0"}</h2>
                         </div>
                     </div>
                     <div className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-6 min-w-[240px]">
@@ -61,7 +88,7 @@ export default function TeacherOverview() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Class Average</p>
-                            <h2 className="text-2xl font-black text-slate-900">{mockTeacherData.classAverage}%</h2>
+                            <h2 className="text-2xl font-black text-slate-900">{stats?.classAverage || "0"}%</h2>
                         </div>
                     </div>
                 </div>
@@ -84,8 +111,8 @@ export default function TeacherOverview() {
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {tutorCourses.map(course => (
-                                <Link href={`/dashboard/tutor/courses`} key={course.id}>
+                            {courses.map(course => (
+                                <Link href={`/dashboard/tutor/courses`} key={course._id}>
                                     <div
                                         className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-2xl hover:shadow-sky-500/5 transition-all duration-500 cursor-pointer relative overflow-hidden h-full"
                                     >
@@ -98,23 +125,20 @@ export default function TeacherOverview() {
                                                     <BookOpen className="w-6 h-6" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-lg font-black text-slate-900 leading-tight group-hover:text-sky-600 transition-colors uppercase italic">{course.name}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{course.studentCount} Students Enrolled</p>
+                                                    <h4 className="text-lg font-black text-slate-900 leading-tight group-hover:text-sky-600 transition-colors uppercase italic">{course.title}</h4>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{course.students?.length || 0} Students Enrolled</p>
                                                 </div>
                                             </div>
                                             <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
                                                 <div className="space-y-1">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Completion</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Status</p>
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex-1 w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-sky-500 rounded-full" style={{ width: `${course.completionRate}%` }} />
-                                                        </div>
-                                                        <span className="text-[10px] font-black text-slate-900">{course.completionRate}%</span>
+                                                        <span className="text-[10px] font-black text-sky-600 uppercase">{course.status}</span>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Quizzes</p>
-                                                    <p className="text-[10px] font-black text-sky-600">{course.activeQuizzes} Quizzes</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Price</p>
+                                                    <p className="text-[10px] font-black text-emerald-600">{course.price} ETB</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -122,6 +146,11 @@ export default function TeacherOverview() {
                                     </div>
                                 </Link>
                             ))}
+                            {courses.length === 0 && !loading && (
+                                <div className="md:col-span-2 p-12 text-center rounded-[36px] border-2 border-dashed border-slate-100 bg-slate-50/30">
+                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No courses created yet</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -210,7 +239,7 @@ export default function TeacherOverview() {
                             <div>
                                 <h3 className="text-xl font-black uppercase italic tracking-tight mb-2 text-slate-900">Grading Queue</h3>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-black text-sky-600">{mockTeacherData.pendingHomework}</span>
+                                    <span className="text-5xl font-black text-sky-600">{stats?.pendingHomework || "0"}</span>
                                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Pending</span>
                                 </div>
                             </div>

@@ -10,6 +10,8 @@ router.patch("/profile", verifyToken, UserController.updateProfile);
 router.post("/friend-request", verifyToken, UserController.sendFriendRequest);
 router.get("/students", verifyToken, UserController.getStudents);
 router.get("/tutors", verifyToken, UserController.getTutors);
-router.get("/search", UserController.searchByEmail);
+router.get("/search", verifyToken, UserController.searchByEmail);
+router.get("/stats", verifyToken, UserController.getStudentStats);
+router.get("/tutor-stats", verifyToken, UserController.getTutorStats);
 
 export default router;

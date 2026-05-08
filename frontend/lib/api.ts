@@ -102,8 +102,15 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error(`[API Error Response] ${endpoint}:`, errorData);
+            let errorData: any = {};
+            const text = await response.text();
+            try {
+                errorData = JSON.parse(text);
+            } catch (e) {
+                const rawText = text || "No response body";
+                console.error(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
+                errorData = { message: rawText || `Server error (${response.status})` };
+            }
             throw new Error(errorData.message || "Something went wrong");
         }
 
@@ -266,6 +273,8 @@ export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
     getAllTutors: () => fetchWithAuth("/users/tutors"),
     searchByEmail: (email: string) => fetchWithAuth(`/users/search?email=${email}`),
+    getStats: () => fetchWithAuth("/users/stats"),
+    getTutorStats: () => fetchWithAuth("/users/tutor-stats"),
 };
 
 export const authApi = {
@@ -330,6 +339,16 @@ export const adminApi = {
         body: JSON.stringify(data)
     }),
     deleteJob: (id: string) => fetchWithAuth(`/admin/jobs/${id}`, { method: "DELETE" }),
+    getUsers: () => fetchWithAuth("/admin/users"),
+    getStudentProgress: (studentId: string) => fetchWithAuth(`/admin/student-progress/${studentId}`),
+    getPayments: () => fetchWithAuth("/admin/payments"),
+    getLiveSessions: () => fetchWithAuth("/admin/live-sessions"),
+    getAssessments: () => fetchWithAuth("/admin/assessments"),
+    getForums: () => fetchWithAuth("/admin/forums"),
+    deleteUser: (userId: string) => fetchWithAuth(`/admin/users/${userId}`, { method: "DELETE" }),
+    appointManager: (email: string) => fetchWithAuth("/admin/appoint-manager", { method: "POST", body: JSON.stringify({ email }) }),
+    updateUser: (userId: string, data: any) => fetchWithAuth(`/admin/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    updateUserStatus: (userId: string, status: string) => fetchWithAuth(`/admin/users/${userId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
     // --- Subject Approval ---
     getPendingSubjects: () => fetchWithAuth("/admin/pending-subjects"),
     approveSubject: (id: string) => fetchWithAuth(`/admin/approve-subject/${id}`, {
@@ -338,9 +357,9 @@ export const adminApi = {
     rejectSubject: (id: string) => fetchWithAuth(`/admin/reject-subject/${id}`, {
         method: "PATCH"
     }),
-    // --- Monitoring ---
-    getUsers: () => fetchWithAuth("/admin/users"),
-    getStudentProgress: (studentId: string) => fetchWithAuth(`/admin/student-progress/${studentId}`),
+    getAnalytics: (range?: string) => fetchWithAuth(`/admin/analytics${range ? `?range=${range}` : ""}`),
+    getSettings: () => fetchWithAuth("/admin/settings"),
+    updateSettings: (data: any) => fetchWithAuth("/admin/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 
@@ -358,7 +377,7 @@ export const uploadApi = {
         formData.append("file", file);
         formData.append("type", type);
 
-        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://smarttutoret-ai-learning-platform.onrender.com/api").replace(/\/$/, "");
+        const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
 
         const response = await fetch(`${cleanBaseUrl}/upload/document`, {
             method: "POST",

@@ -41,9 +41,11 @@ export class AuthController {
     static async login(req, res, next) {
         try {
             const { email, password } = req.body;
+            console.log(`[Auth Controller] Login POST received for: ${email}`);
             logger.info(`[Auth] Login attempt for: ${email}`);
 
             const user = await AuthService.login(email, password);
+            console.log(`[Auth Controller] AuthService.login success for: ${user._id}`);
             logger.info(`[Auth] User found: ${user._id}`);
 
             const { accessToken, refreshToken } = AuthService.generateTokens(user._id);

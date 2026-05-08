@@ -1,6 +1,13 @@
 import logger from "../config/logger.js";
 
 export const errorHandler = (err, req, res, next) => {
+    console.error("DEBUG: Error Handler Triggered", {
+        name: err.name,
+        message: err.message,
+        status: err.statusCode,
+        stack: err.stack
+    });
+
     let statusCode = err.statusCode || 500;
     let message = err.message || "Internal Server Error";
 
@@ -16,14 +23,13 @@ export const errorHandler = (err, req, res, next) => {
         message = `Invalid ${err.path}: ${err.value}`;
     }
 
-    logger.error(`[${req.method}] ${req.path} >> ${message}`, {
-        stack: process.env.NODE_ENV === "production" ? null : err.stack
-    });
+    logger.error(`[${req.method}] ${req.path} >> ${message}`);
 
+    // Ensure we ALWAYS return a JSON object with at least a message
     res.status(statusCode).json({
         success: false,
         statusCode,
-        message,
+        message: message || "An unexpected error occurred",
         errors: err.errors || null,
         stack: process.env.NODE_ENV === "production" ? null : err.stack
     });

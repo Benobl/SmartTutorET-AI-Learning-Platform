@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Progress } from "@/components/ui/progress"
 import {
   BookOpen, Clock, Calendar, GraduationCap, ChevronRight,
@@ -8,7 +8,8 @@ import {
   Zap, MessageSquare, Lightbulb, TrendingUp, Target, Users
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { courses, upcomingDeadlines, recentActivity, announcements } from "@/lib/mock-data"
+import { announcements } from "@/lib/mock-data"
+import { userApi, courseApi } from "@/lib/api"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -29,11 +30,34 @@ export default function StudentOverview() {
   const [isStudyHubOpen, setIsStudyHubOpen] = useState(false)
   const [collabType, setCollabType] = useState<"create" | "invite">("create")
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
+  const [stats, setStats] = useState<any>(null)
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const user = getCurrentUser()
   const studentName = user?.name?.split(" ")[0] || "Student"
 
-  const topCourses = courses.slice(0, 2)
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [statsRes, coursesRes] = await Promise.all([
+        userApi.getStats(),
+        courseApi.getMyCourses()
+      ])
+      setStats(statsRes.data)
+      setEnrolledCourses(coursesRes.data)
+    } catch (error) {
+      console.error("Failed to fetch student data", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const topCourses = enrolledCourses.slice(0, 2)
   const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
 
   return (
@@ -80,16 +104,16 @@ export default function StudentOverview() {
         {[
           {
             label: "Assessment Score",
-            value: "82%",
+            value: stats ? `${stats.gpa * 20}%` : "...", // Mocking conversion
             icon: Target,
             color: "sky",
-            sub: "Overall Rank: 14",
+            sub: stats ? `Overall Rank: ${stats.rank}` : "Loading...",
             trend: "+2% Today",
             bg: "from-sky-50 to-white"
           },
           {
             label: "Quizzes Taken",
-            value: "14",
+            value: stats ? String(stats.quizzesTaken) : "...",
             icon: GraduationCap,
             color: "indigo",
             sub: "Last: Photosynthesis",
@@ -98,7 +122,7 @@ export default function StudentOverview() {
           },
           {
             label: "Learning Streak",
-            value: "12",
+            value: stats ? String(stats.streak) : "...",
             icon: Zap,
             color: "amber",
             sub: "Days active",
@@ -107,7 +131,7 @@ export default function StudentOverview() {
           },
           {
             label: "Current GPA",
-            value: "3.8",
+            value: stats ? String(stats.gpa) : "...",
             icon: TrendingUp,
             color: "purple",
             sub: "Dean's List",
@@ -169,45 +193,56 @@ export default function StudentOverview() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {topCourses.map((course) => (
-                <div key={course.name} className="group rounded-[36px] border border-slate-100 bg-white overflow-hidden hover:border-sky-300 transition-all duration-700 shadow-sm hover:shadow-2xl">
+                <div key={course._id} className="group rounded-[36px] border border-slate-100 bg-white overflow-hidden hover:border-sky-300 transition-all duration-700 shadow-sm hover:shadow-2xl">
                   <div className="h-36 relative overflow-hidden">
-                    <img src={course.image} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <img src={course.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800"} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-6">
                       <span className="text-[9px] font-black text-sky-600 uppercase tracking-widest bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-sky-100 shadow-sm">
-                        Calculus Mastery
+                        {course.subject?.title || "Subject"}
                       </span>
                     </div>
                   </div>
                   <div className="p-7 space-y-5">
                     <div>
-                      <h4 className="text-xl font-black text-slate-900 group-hover:text-sky-600 transition-colors leading-tight">{course.name}</h4>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{course.tutor}</p>
+                      <h4 className="text-xl font-black text-slate-900 group-hover:text-sky-600 transition-colors leading-tight uppercase tracking-tight">{course.title}</h4>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{course.tutor?.name || "Expert Tutor"}</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-end">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Progress</span>
-                        <span className="text-xs font-black text-sky-600">{course.progress}%</span>
+                        <span className="text-xs font-black text-sky-600">0%</span>
                       </div>
                       <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
                         <div
                           className="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full transition-all duration-1000 group-hover:shadow-[0_0_12px_rgba(56,189,248,0.5)]"
-                          style={{ width: `${course.progress}%` }}
+                          style={{ width: `0%` }}
                         />
                       </div>
                     </div>
                     <div className="pt-4 flex items-center justify-between border-t border-slate-50">
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black mb-0.5">Up Next</span>
-                        <span className="text-xs font-bold text-slate-700">{course.nextLesson}</span>
+                        <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black mb-0.5">Enrollment</span>
+                        <span className="text-xs font-bold text-slate-700">Active</span>
                       </div>
-                      <button className="p-3.5 rounded-2xl bg-slate-900 text-white hover:bg-sky-500 transition-all shadow-lg group/btn">
-                        <PlayCircle className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                      </button>
+                      <Link href={`/dashboard/student/courses/${course._id}`}>
+                        <button className="p-3.5 rounded-2xl bg-slate-900 text-white hover:bg-sky-500 transition-all shadow-lg group/btn">
+                          <PlayCircle className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
               ))}
+              {topCourses.length === 0 && !loading && (
+                <div className="md:col-span-2 p-12 text-center rounded-[36px] border-2 border-dashed border-slate-100 bg-slate-50/30">
+                   <BookOpen className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                   <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No courses enrolled yet</p>
+                   <Link href="/dashboard/student/courses">
+                     <Button variant="link" className="mt-2 text-sky-500 font-bold uppercase text-[10px]">Explore Catalog</Button>
+                   </Link>
+                </div>
+              )}
             </div>
           </div>
 
