@@ -103,30 +103,24 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl h-[85vh] bg-white rounded-[40px] p-0 overflow-hidden flex flex-col border-slate-200 shadow-2xl">
-                <DialogHeader className="p-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50/30 shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-sky-500/20">
-                                <Sparkles className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
-                                    AI Learning <span className="text-sky-600">Assistant</span>
-                                </DialogTitle>
-                                <DialogDescription className="text-slate-500 font-bold mt-1 uppercase tracking-widest text-[10px]">
-                                    Personalized Study Planning & Tutoring
-                                </DialogDescription>
-                            </div>
+            <DialogContent className="max-w-3xl h-[85vh] bg-white rounded-[32px] p-0 overflow-hidden flex flex-col border border-slate-100 shadow-2xl">
+                <DialogHeader className="p-6 border-b border-slate-100 bg-white shrink-0 flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
+                            <Sparkles className="w-5 h-5" />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Engine</span>
+                        <div className="text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight leading-none">
+                                AI Assistant
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium text-xs">
+                                Always here to help you learn
+                            </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
+                <div className="flex-1 overflow-hidden flex flex-col bg-white">
                     {/* Chat Messages */}
                     <div
                         ref={scrollRef}
@@ -141,16 +135,16 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
                                 )}
                             >
                                 <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border",
-                                    m.role === "assistant" ? "bg-white text-sky-600 border-sky-100" : "bg-sky-600 text-white border-sky-500"
+                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm",
+                                    m.role === "assistant" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"
                                 )}>
-                                    {m.role === "assistant" ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                                    {m.role === "assistant" ? <Sparkles className="w-4 h-4" /> : <User className="w-4 h-4" />}
                                 </div>
                                 <div className={cn(
-                                    "max-w-[85%] p-5 rounded-[24px] text-sm font-medium leading-relaxed shadow-sm whitespace-pre-wrap",
+                                    "max-w-[85%] p-4 rounded-2xl text-[15px] font-normal leading-relaxed shadow-sm whitespace-pre-wrap",
                                     m.role === "assistant"
-                                        ? "bg-white text-slate-700 border border-slate-100 rounded-tl-none"
-                                        : "bg-sky-600 text-white rounded-tr-none shadow-sky-600/20"
+                                        ? "bg-white text-slate-800 border border-slate-100"
+                                        : "bg-slate-100 text-slate-900"
                                 )}>
                                     {m.content}
                                 </div>
@@ -158,14 +152,14 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
                         ))}
                         {isTyping && (
                             <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-white text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-sm">
-                                    <Bot className="w-5 h-5" />
+                                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-sm">
+                                    <Sparkles className="w-4 h-4" />
                                 </div>
-                                <div className="bg-white p-5 rounded-[24px] rounded-tl-none border border-slate-100 shadow-sm">
-                                    <div className="flex gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="flex gap-1.5 mt-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                                     </div>
                                 </div>
                             </div>
@@ -181,11 +175,10 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
                                     <button
                                         key={p.label}
                                         onClick={() => { handleSend(p.prompt); }}
-                                        className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-600 hover:border-sky-300 hover:text-sky-600 hover:shadow-xl transition-all text-[11px] font-black uppercase tracking-tight"
+                                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all text-sm font-medium"
                                     >
-                                        <p.icon className="w-4 h-4 text-sky-500" />
+                                        <p.icon className="w-4 h-4 text-slate-400" />
                                         {p.label}
-                                        <ChevronRight className="w-3.5 h-3.5 opacity-30" />
                                     </button>
                                 ))}
                             </div>
@@ -193,21 +186,21 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
                     )}
 
                     {/* Input Area */}
-                    <div className="p-8 border-t border-slate-100 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
-                        <div className="flex gap-3 relative">
+                    <div className="p-6 border-t border-slate-100 bg-white shrink-0">
+                        <div className="flex gap-3 relative max-w-3xl mx-auto">
                             <Input
-                                placeholder="Discuss your study plan or ask a question..."
+                                placeholder="Message AI Assistant..."
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-sky-500/10 focus:border-sky-500 text-sm font-medium pl-6 pr-16 shadow-inner"
+                                className="h-14 rounded-2xl border-slate-200 bg-white focus:ring-slate-900/5 focus:border-slate-900 text-[15px] font-normal pl-6 pr-16 shadow-sm"
                             />
                             <Button
                                 onClick={() => handleSend()}
                                 disabled={!input.trim() || isTyping}
-                                className="absolute right-2 top-2 h-12 w-12 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white shadow-lg shadow-sky-500/30 p-0 transition-all active:scale-95"
+                                className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-sm p-0 transition-all active:scale-95"
                             >
-                                <Send className="w-5 h-5 translate-x-0.5 -translate-y-0.5" />
+                                <Send className="w-4 h-4 translate-x-0.5 -translate-y-0.5" />
                             </Button>
                         </div>
                         <div className="flex items-center justify-center gap-6 mt-6">

@@ -78,7 +78,25 @@ export class SubjectService {
 
     static async getMySubjects(userId, role) {
         if (role === "student") {
-            return await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
+            const User = (await import("../users/user.model.js")).default;
+            const student = await User.findById(userId);
+            const studentGrade = student?.grade;
+
+            // Get explicitly enrolled subjects
+            const enrolledSubjects = await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
+
+            // Get free common subjects for this grade
+            let freeCommonSubjects = [];
+            if (studentGrade) {
+                freeCommonSubjects = await Subject.find({ 
+                    isPremium: false, 
+                    grade: parseInt(studentGrade), 
+                    status: "approved",
+                    students: { $ne: userId } // Don't duplicate if already enrolled
+                }).populate("tutor", "name profile.avatar");
+            }
+
+            return [...enrolledSubjects, ...freeCommonSubjects];
         } else if (role === "tutor" || role === "manager" || role === "admin") {
             // Managers and Admins can also see subjects they are assigned to (if any) or all
             const query = role === "tutor" ? { tutor: userId } : {};

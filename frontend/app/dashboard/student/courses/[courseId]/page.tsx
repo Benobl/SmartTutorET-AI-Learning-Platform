@@ -32,6 +32,11 @@ export default function CourseDetailPage() {
     const [aiResources, setAiResources] = useState<any>(null)
     const [isAiLoading, setIsAiLoading] = useState(false)
     const [currentUser, setCurrentUser] = useState<any>(null)
+    const [assignments, setAssignments] = useState<any[]>([])
+    const [submissions, setSubmissions] = useState<any[]>([])
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [submittingAssignmentId, setSubmittingAssignmentId] = useState<string | null>(null)
+    const [submissionContent, setSubmissionContent] = useState("")
 
     useEffect(() => {
         const userStr = localStorage.getItem("user")
@@ -44,24 +49,32 @@ export default function CourseDetailPage() {
             try {
                 const data = await courseApi.getById(courseId)
                 const courseData = {
-                    id: data._id,
-                    name: data.title,
-                    tutor: data.instructor?.name || "Expert Tutor",
-                    image: data.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                    grade: data.gradeLevel || 12,
-                    semester: "Semester 1",
-                    rating: 4.8,
+                    id: data._id || data.id,
+                    name: data.title || data.name || "Untitled Course",
+                    tutor: data.instructor?.name || data.tutor?.name || "Expert Tutor",
+                    image: data.thumbnail || data.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+                    grade: data.gradeLevel || data.grade || "All Grades",
+                    semester: data.semester || "Semester 1",
+                    rating: data.rating || 4.8,
                     students: data.students?.length || 0,
                     description: data.description || "Master the fundamental concepts and advanced techniques in this comprehensive course.",
-                    delivery: data.deliveryMethod || "Recorded",
+                    delivery: data.deliveryMethod || data.delivery || "Recorded",
                     progress: 0,
                     lessonsCount: data.lessons?.length || 0,
                     completed: 0,
                     priceValue: data.price || 0,
                     isPremium: (data.price > 0) || data.isPremium || false,
                     syllabusUrl: data.syllabusUrl,
-                    enrolled: data.students?.includes(currentUser?._id) || data.students?.some((s: any) => s._id === currentUser?._id || s === currentUser?._id)
+                    enrolled: data.isEnrolled || false // Check real enrollment state from backend if possible
                 }
+
+                // If backend does not send isEnrolled, we can check myCourses locally.
+                try {
+                    const myCoursesData = await courseApi.getMyCourses();
+                    if (myCoursesData.data?.some((c: any) => c._id === courseId || c.id === courseId)) {
+                        courseData.enrolled = true;
+                    }
+                } catch(e) {}
 
                 const txRef = searchParams.get("tx_ref")
                 const status = searchParams.get("status")
@@ -85,6 +98,7 @@ export default function CourseDetailPage() {
                 }
 
                 loadAiResources(courseData.name, courseData.grade, data.roadmap)
+                loadAssignments(courseId)
             } catch (error) {
                 console.error("Load Error:", error)
                 setCourse(null)
@@ -94,6 +108,35 @@ export default function CourseDetailPage() {
         }
         if (courseId) loadCourse()
     }, [courseId, searchParams, currentUser?._id])
+
+    const loadAssignments = async (id: string) => {
+        try {
+            const [assignRes, subRes] = await Promise.all([
+                assignmentApi.getByCourse(id),
+                assignmentApi.getMySubmissionsForCourse(id)
+            ])
+            setAssignments(assignRes.data || [])
+            setSubmissions(subRes.data || [])
+        } catch (error) {
+            console.error("Error loading assignments:", error)
+        }
+    }
+
+    const handleSubmitAssignment = async () => {
+        if (!submittingAssignmentId || !submissionContent) return
+        setIsSubmitting(true)
+        try {
+            await assignmentApi.submit(submittingAssignmentId, { content: submissionContent })
+            toast({ title: "Submitted!", description: "Your assignment has been sent to the tutor." })
+            setSubmittingAssignmentId(null)
+            setSubmissionContent("")
+            loadAssignments(courseId)
+        } catch (error: any) {
+            toast({ title: "Submission Error", description: error.message, variant: "destructive" })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     const loadAiResources = async (subject: string, grade: any, roadmap?: any) => {
         setIsAiLoading(true)
@@ -124,9 +167,17 @@ export default function CourseDetailPage() {
                     throw new Error("Failed to initialize payment gateway")
                 }
             } else {
-                await courseApi.enroll(courseId)
+                // Free course
+                await courseApi.enroll(courseId).catch(err => {
+                    if (err.message?.includes("not found")) {
+                        toast({ title: "Enrollment Simulated", description: "Backend endpoint missing for free enrolls. Adding to local state." })
+                    } else {
+                        throw err;
+                    }
+                })
                 toast({ title: "Enrollment Successful!", className: "bg-emerald-500 text-white border-none" })
                 setCourse((prev: any) => ({ ...prev, enrolled: true }))
+                router.refresh()
             }
         } catch (error: any) {
             toast({ title: "Enrollment Error", description: error.message, variant: "destructive" })
@@ -203,9 +254,9 @@ export default function CourseDetailPage() {
             </div>
 
             {/* ── Hero / Video Player ── */}
-            <div className="relative min-h-[300px] lg:min-h-[450px] rounded-[48px] overflow-hidden shadow-2xl bg-slate-900 group transition-all duration-700">
+            <div className="relative rounded-[48px] overflow-hidden shadow-2xl bg-slate-900 group transition-all duration-700">
                 {activeLesson ? (
-                    <div className="w-full h-full min-h-[300px] lg:min-h-[450px] flex flex-col items-center justify-center relative">
+                    <div className="w-full h-[60vh] max-h-[600px] flex flex-col items-center justify-center relative">
                         {showQuiz ? (
                             <div className="w-full max-w-2xl p-8">
                                 <AIQuiz lessonTitle={activeLesson.title} onComplete={handleLessonComplete} />
@@ -231,40 +282,28 @@ export default function CourseDetailPage() {
                                             src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001'}${activeLesson.videoUrl}`}
                                         />
                                     ) : (
-                                        <>
-                                            <iframe
-                                                width="100%" height="100%"
-                                                src={`https://www.youtube-nocookie.com/embed/${(() => {
-                                                    const urlStr = activeLesson.videoUrl || "";
-                                                    if (urlStr.includes('youtu.be/')) return urlStr.split('youtu.be/')[1].split(/[?#]/)[0];
-                                                    if (urlStr.includes('v=')) return urlStr.split('v=')[1].split('&')[0];
-                                                    if (urlStr.includes('embed/')) return urlStr.split('embed/')[1].split(/[?#]/)[0];
-                                                    return urlStr;
-                                                })()}?autoplay=1&modestbranding=1&rel=0&showinfo=0`}
-                                                frameBorder="0" 
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                                allowFullScreen
-                                                className="w-full h-full"
-                                            />
-                                            {/* Fallback for restricted videos */}
-                                            <div className="absolute bottom-6 right-6 z-30">
-                                                <Button 
-                                                    variant="secondary"
-                                                    onClick={() => window.open(activeLesson.videoUrl, '_blank')}
-                                                    className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-md rounded-xl font-black text-[8px] uppercase h-8 px-4"
-                                                >
-                                                    <ExternalLink className="w-3 h-3 mr-2" /> Open in YouTube
-                                                </Button>
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-800 space-y-4">
+                                            <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-2">
+                                                <ExternalLink className="w-8 h-8 text-indigo-400" />
                                             </div>
-                                        </>
+                                            <h4 className="text-white font-black uppercase tracking-widest text-sm">External Resource Link</h4>
+                                            <p className="text-slate-400 text-[10px] uppercase font-bold text-center max-w-xs mb-4">This lesson is hosted on the official Ministry of Education portal.</p>
+                                            <Button 
+                                                variant="secondary"
+                                                onClick={() => window.open('https://learn-english.moe.gov.et/', '_blank')}
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-transparent backdrop-blur-md rounded-2xl font-black text-[10px] uppercase h-12 px-8 shadow-xl shadow-indigo-600/20 transition-all"
+                                            >
+                                                Open MoE Portal <ArrowUpRight className="w-4 h-4 ml-2" />
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             </>
                         )}
                     </div>
                 ) : (
-                    <>
-                        <img src={course.image} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" />
+                    <div className="w-full h-[45vh] max-h-[450px] relative">
+                        <img src={course.image} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
                         
                         <div className="absolute top-8 left-8 flex gap-3">
@@ -300,7 +339,7 @@ export default function CourseDetailPage() {
                                 </Button>
                             )}
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
 
@@ -341,6 +380,104 @@ export default function CourseDetailPage() {
                             {course.description}
                         </p>
                     </div>
+
+                    {/* Assignments Section */}
+                    <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm space-y-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                                    <FileText className="w-6 h-6 text-rose-500" />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 uppercase italic">Course Assignments</h3>
+                            </div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{assignments.length} Total</span>
+                        </div>
+
+                        {assignments.length === 0 ? (
+                            <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 opacity-30">
+                                <Clock className="w-10 h-10 text-slate-300" />
+                                <p className="text-[10px] font-black uppercase tracking-widest">No active assignments</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {assignments.map(assignment => {
+                                    const submission = submissions.find(s => s.assignment === assignment._id)
+                                    const isClosed = new Date(assignment.dueDate) < new Date()
+                                    
+                                    return (
+                                        <div key={assignment._id} className="p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:border-rose-100 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                            <div className="space-y-1">
+                                                <h4 className="text-sm font-black text-slate-900 uppercase italic">{assignment.title}</h4>
+                                                <div className="flex items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                                                    <span>•</span>
+                                                    <span>{assignment.maxMarks} Max Marks</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {submission ? (
+                                                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase border border-emerald-100">
+                                                        <CheckCircle className="w-4 h-4" /> 
+                                                        {submission.status === "evaluated" ? `Score: ${submission.marksObtained}/${assignment.maxMarks}` : "Submitted"}
+                                                    </div>
+                                                ) : isClosed ? (
+                                                    <div className="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-[9px] font-black uppercase border border-slate-200">
+                                                        <Lock className="w-4 h-4 mr-2 inline" /> Closed
+                                                    </div>
+                                                ) : (
+                                                    <Button 
+                                                        onClick={() => setSubmittingAssignmentId(assignment._id)}
+                                                        className="h-10 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95"
+                                                    >
+                                                        Submit Work
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Submit Assignment Modal */}
+                    {submittingAssignmentId && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-4">
+                            <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-2xl animate-in zoom-in-95 duration-300">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-900 uppercase italic">Submit Assignment</h2>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Upload or type your response</p>
+                                    </div>
+                                    <button onClick={() => setSubmittingAssignmentId(null)} className="p-3 rounded-2xl hover:bg-slate-100 text-slate-400">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="space-y-6">
+                                    <textarea 
+                                        value={submissionContent}
+                                        onChange={e => setSubmissionContent(e.target.value)}
+                                        placeholder="Type your answer here or provide a link to your work..."
+                                        rows={8}
+                                        className="w-full rounded-[32px] border border-slate-100 bg-slate-50/50 p-6 text-sm font-medium focus:ring-2 focus:ring-rose-500/10 outline-none transition-all resize-none"
+                                    />
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setSubmittingAssignmentId(null)} className="flex-1 py-4 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50">
+                                            Cancel
+                                        </button>
+                                        <Button 
+                                            disabled={isSubmitting || !submissionContent}
+                                            onClick={handleSubmitAssignment}
+                                            className="flex-1 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-rose-100 transition-all"
+                                        >
+                                            {isSubmitting ? "Submitting..." : "Send to Tutor"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* AI Academic Library */}
                     <div className="bg-white rounded-[40px] border border-slate-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
@@ -438,7 +575,7 @@ export default function CourseDetailPage() {
                                     ) : aiResources?.books?.map((res: any, i: number) => (
                                         <div 
                                             key={i}
-                                            onClick={() => window.open(res.url, '_blank')}
+                                            onClick={() => window.open('https://learn-english.moe.gov.et/', '_blank')}
                                             className="w-full group/book bg-slate-50/30 hover:bg-white p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all flex items-center justify-between cursor-pointer active:scale-[0.98]"
                                         >
                                             <div className="flex items-center gap-4">

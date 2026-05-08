@@ -262,6 +262,30 @@ export const aiApi = {
     })
 };
 
+export const assignmentApi = {
+    // Tutor
+    create: (data: any) => fetchWithAuth("/assignments", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getSubmissions: (assignmentId: string) => fetchWithAuth(`/assignments/${assignmentId}/submissions`),
+    evaluate: (submissionId: string, data: any) => fetchWithAuth(`/assignments/submission/${submissionId}/evaluate`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    
+    // Student
+    submit: (assignmentId: string, data: any) => fetchWithAuth(`/assignments/${assignmentId}/submit`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getMyMarks: () => fetchWithAuth("/assignments/my-marks"),
+    getMySubmissionsForCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}/my-submissions`),
+    
+    // Common
+    getByCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}`),
+};
+
 export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
     getAllTutors: () => fetchWithAuth("/users/tutors"),
