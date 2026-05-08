@@ -74,6 +74,8 @@ export class AuthService {
         }
 
         const isMatch = await user.matchPassword(password);
+        console.log(`[AUTH-DEBUG] Email: "${normalizedEmail}" | Input Pass Length: ${password.length} | Match: ${isMatch}`);
+        
         if (!isMatch) {
             logger.warn(`[AuthService] Password mismatch for ${normalizedEmail}`);
             throw new ApiError(401, "Invalid email or password");

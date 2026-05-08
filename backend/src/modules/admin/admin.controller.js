@@ -2,6 +2,7 @@ import { AdminService } from "./admin.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class AdminController {
+
     static async createJob(req, res, next) {
         try {
             if (req.user.role !== "manager" && req.user.role !== "admin") {
@@ -108,6 +109,114 @@ export class AdminController {
         try {
             const progress = await AdminService.getStudentProgress(req.params.studentId);
             res.json({ success: true, data: progress });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // --- Module Management ---
+
+    static async getPayments(req, res, next) {
+        try {
+            const payments = await AdminService.getAllPayments();
+            res.json({ success: true, data: payments });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getLiveSessions(req, res, next) {
+        try {
+            const sessions = await AdminService.getAllLiveSessions();
+            res.json({ success: true, data: sessions });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+
+
+    static async getAssessments(req, res, next) {
+        try {
+            const assessments = await AdminService.getAllAssessments();
+            res.json({ success: true, data: assessments });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getForums(req, res, next) {
+        try {
+            const forums = await AdminService.getAllForums();
+            res.json({ success: true, data: forums });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getAnalytics(req, res, next) {
+        try {
+            const analytics = await AdminService.getAnalytics(req.query.range);
+            res.json({ success: true, data: analytics });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async deleteUser(req, res, next) {
+        try {
+            if (req.params.userId === req.user._id.toString()) {
+                throw new ApiError(400, "Security Violation: You cannot delete your own administrative account while logged in.");
+            }
+            await AdminService.deleteUser(req.params.userId);
+            res.json({ success: true, message: "User deleted successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async appointManager(req, res, next) {
+        try {
+            const user = await AdminService.appointManager(req.body.email);
+            res.json({ success: true, message: `User ${user.name} is now a Manager`, data: user });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async updateUser(req, res, next) {
+        try {
+            const user = await AdminService.updateUser(req.params.userId, req.body);
+            res.json({ success: true, message: "User updated successfully", data: user });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getSettings(req, res, next) {
+        try {
+            const settings = await AdminService.getSettings();
+            res.json({ success: true, data: settings });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async updateSettings(req, res, next) {
+        try {
+            const settings = await AdminService.updateSettings(req.body, req.user._id);
+            res.json({ success: true, message: "Settings updated", data: settings });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async updateUserStatus(req, res, next) {
+        try {
+            const { userId } = req.params;
+            const { status } = req.body;
+            const user = await AdminService.updateUserStatus(userId, status);
+            res.json({ success: true, message: `User status updated to ${status}`, data: user });
         } catch (error) {
             next(error);
         }

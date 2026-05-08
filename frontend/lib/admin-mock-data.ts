@@ -359,10 +359,11 @@ export const recentActivityLog = [
  */
 export const ADMIN_TABS = [
     { id: "overview", label: "Overview", icon: "📊", url: "/dashboard/admin" },
+    { id: "tutors", label: "Tutors", icon: "🎓", url: "/dashboard/admin/tutors" },
     { id: "users", label: "All Users", icon: "👥", url: "/dashboard/admin/users" },
-    { id: "managers", label: "Manage Managers", icon: "💼", url: "/dashboard/admin/managers" },
-    { id: "students", label: "Manage Students", icon: "🧑‍🎓", url: "/dashboard/admin/students" },
-    { id: "moderation", label: "Moderation", icon: "🛡️", url: "/dashboard/admin/moderation" },
+    { id: "managers", label: "Managers", icon: "💼", url: "/dashboard/admin/managers" },
+    { id: "students", label: "Students", icon: "🧑‍🎓", url: "/dashboard/admin/students" },
+    { id: "curriculum", label: "Curriculum", icon: "📚", url: "/dashboard/admin/curriculum" },
     { id: "revenue", label: "Revenue", icon: "💰", url: "/dashboard/admin/revenue" },
-    { id: "system", label: "System", icon: "⚙️", url: "/dashboard/admin/system" },
+    { id: "settings", label: "Settings", icon: "🛠️", url: "/dashboard/admin/settings" },
 ]

@@ -59,8 +59,8 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
     }, [messages, isTyping])
 
     const handleSend = async (customPrompt?: string) => {
-        const textToSend = customPrompt || input
-        if (!textToSend.trim()) return
+        const textToSend = typeof customPrompt === 'string' ? customPrompt : input
+        if (!textToSend.trim() || isTyping) return
 
         const userMsg: Message = {
             id: Date.now().toString(),
@@ -80,10 +80,13 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
                 conversationHistory: messages.map(m => ({ role: m.role, content: m.content }))
             });
 
+            // Handle both response object structures depending on API shape
+            const content = response?.data?.response || response;
+
             const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
+                id: Date.now().toString(),
                 role: "assistant",
-                content: response,
+                content: typeof content === 'string' ? content : "I received a response, but it was in an unexpected format.",
                 timestamp: new Date(),
             }
             setMessages(prev => [...prev, aiMsg])

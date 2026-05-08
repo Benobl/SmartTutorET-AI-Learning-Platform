@@ -1,39 +1,73 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { systemHealth } from "@/lib/admin-mock-data";
 import { Activity, Server, Database, Cpu, Clock, Network, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
+
+const iconMap: Record<string, any> = {
+    Server,
+    Database,
+    Cpu,
+    Clock,
+    Activity,
+    Network
+};
 
 export default function AdminSystemPage() {
+    const [healthData, setHealthData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHealth = async () => {
+            try {
+                setLoading(true);
+                const res = await adminApi.getHealth();
+                setHealthData(res.data);
+            } catch (error) {
+                console.error("Health fetch failed", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchHealth();
+    }, []);
+
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {systemHealth.map((item, idx) => (
-                    <Card key={idx} className="border-0 shadow-xl rounded-[32px] bg-white border-white overflow-hidden group hover:shadow-2xl transition-all">
-                        <CardContent className="p-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="p-4 rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shadow-inner">
-                                    <item.icon className="w-8 h-8" />
+                {healthData.map((item, idx) => {
+                    const Icon = iconMap[item.name] || Activity;
+                    return (
+                        <Card key={idx} className="border-0 shadow-xl rounded-[32px] bg-white border-white overflow-hidden group hover:shadow-2xl transition-all">
+                            <CardContent className="p-8">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="p-4 rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shadow-inner">
+                                        <Icon className="w-8 h-8" />
+                                    </div>
+                                    <Badge className={`text-[10px] font-black rounded-lg px-2.5 py-1 uppercase tracking-widest ${item.status === 'healthy' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                        {item.status}
+                                    </Badge>
                                 </div>
-                                <Badge className={`text-[10px] font-black rounded-lg px-2.5 py-1 uppercase tracking-widest ${item.status === 'healthy' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                    {item.status}
-                                </Badge>
-                            </div>
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">{item.name}</h3>
-                            <p className="text-3xl font-black text-slate-900 tracking-tight">{item.value}</p>
+                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">{item.name}</h3>
+                                <p className="text-3xl font-black text-slate-900 tracking-tight">{item.value}</p>
 
-                            <div className="mt-6 pt-6 border-t border-slate-50">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Efficiency</span>
-                                    <span className="text-xs font-black text-slate-700">98%</span>
+                                <div className="mt-6 pt-6 border-t border-slate-50">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Efficiency</span>
+                                        <span className="text-xs font-black text-slate-700">98%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500 w-[98%] rounded-full" />
+                                    </div>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 w-[98%] rounded-full" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+                {loading && Array(6).fill(0).map((_, i) => (
+                    <div key={i} className="h-64 rounded-[32px] bg-slate-100 animate-pulse" />
                 ))}
             </div>
 
