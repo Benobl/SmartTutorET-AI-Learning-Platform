@@ -222,30 +222,42 @@ export default function CourseDetailPage() {
                                     </Button>
                                 </div>
                                 <div className="w-full h-full aspect-video bg-black relative">
-                                    <iframe
-                                        width="100%" height="100%"
-                                        src={`https://www.youtube-nocookie.com/embed/${(() => {
-                                            const urlStr = activeLesson.videoUrl || "";
-                                            if (urlStr.includes('youtu.be/')) return urlStr.split('youtu.be/')[1].split(/[?#]/)[0];
-                                            if (urlStr.includes('v=')) return urlStr.split('v=')[1].split('&')[0];
-                                            if (urlStr.includes('embed/')) return urlStr.split('embed/')[1].split(/[?#]/)[0];
-                                            return urlStr;
-                                        })()}?autoplay=1&modestbranding=1&rel=0&showinfo=0`}
-                                        frameBorder="0" 
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowFullScreen
-                                        className="w-full h-full"
-                                    />
-                                    {/* Fallback for restricted videos */}
-                                    <div className="absolute bottom-6 right-6 z-30">
-                                        <Button 
-                                            variant="secondary"
-                                            onClick={() => window.open(activeLesson.videoUrl, '_blank')}
-                                            className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-md rounded-xl font-black text-[8px] uppercase h-8 px-4"
-                                        >
-                                            <ExternalLink className="w-3 h-3 mr-2" /> Open in YouTube
-                                        </Button>
-                                    </div>
+                                    {(activeLesson.isUploadedFile || activeLesson.videoUrl?.startsWith('/uploads')) ? (
+                                        <video
+                                            controls
+                                            controlsList="nodownload"
+                                            onContextMenu={(e) => e.preventDefault()}
+                                            className="w-full h-full object-contain"
+                                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001'}${activeLesson.videoUrl}`}
+                                        />
+                                    ) : (
+                                        <>
+                                            <iframe
+                                                width="100%" height="100%"
+                                                src={`https://www.youtube-nocookie.com/embed/${(() => {
+                                                    const urlStr = activeLesson.videoUrl || "";
+                                                    if (urlStr.includes('youtu.be/')) return urlStr.split('youtu.be/')[1].split(/[?#]/)[0];
+                                                    if (urlStr.includes('v=')) return urlStr.split('v=')[1].split('&')[0];
+                                                    if (urlStr.includes('embed/')) return urlStr.split('embed/')[1].split(/[?#]/)[0];
+                                                    return urlStr;
+                                                })()}?autoplay=1&modestbranding=1&rel=0&showinfo=0`}
+                                                frameBorder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                allowFullScreen
+                                                className="w-full h-full"
+                                            />
+                                            {/* Fallback for restricted videos */}
+                                            <div className="absolute bottom-6 right-6 z-30">
+                                                <Button 
+                                                    variant="secondary"
+                                                    onClick={() => window.open(activeLesson.videoUrl, '_blank')}
+                                                    className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-md rounded-xl font-black text-[8px] uppercase h-8 px-4"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 mr-2" /> Open in YouTube
+                                                </Button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </>
                         )}

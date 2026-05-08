@@ -79,13 +79,32 @@ app.use(morgan("dev"));
 app.use(requestLogger);
 app.use(csrfProtection);
 
-// Serve uploaded documents as static files
-app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+// Serve uploaded documents (syllabus, images) as static files
+app.use("/uploads/syllabus", express.static(path.join(__dirname, "uploads/syllabus"), {
   setHeaders: (res) => {
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
 }));
+
+// Serve uploaded videos — force inline playback, prevent download
+app.use("/uploads/videos", (req, res, next) => {
+  // Block direct download attempts via query strings
+  if (req.query.download) {
+    return res.status(403).json({ error: "Downloading videos is not permitted." });
+  }
+  next();
+}, express.static(path.join(__dirname, "uploads/videos"), {
+  setHeaders: (res, filePath) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Force inline viewing — prevents the browser from offering a download dialog
+    res.setHeader("Content-Disposition", "inline");
+    // Prevent caching of private video content
+    res.setHeader("Cache-Control", "no-store, private");
+  }
+}));
+
 
 // Global Rate Limiter
 const globalLimiter = rateLimit({
