@@ -1,9 +1,18 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import dns from "dns";
 export const connectDB = async () => {
     try {
+        // Force public resolvers for Atlas SRV lookups when local router DNS is unreliable.
+        dns.setServers(["8.8.8.8", "1.1.1.1"]);
         const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/smarttutor";
-        const con = await mongoose.connect(mongoUri);
+        if (!mongoUri) {
+            throw new Error("MONGO_URI is not configured");
+        }
+        const con = await mongoose.connect(mongoUri, {
+            serverSelectionTimeoutMS: 10000,
+            family: 4 // Force IPv4 to fix DNS resolution issues on Windows/Node 18+
+        });
         console.log(`✅ MongoDB Connected: ${con.connection.host}`);
 
         // --- Auto-Seed Admin ---
@@ -179,6 +188,16 @@ export const connectDB = async () => {
 
     } catch (error) {
         console.log("❌ Error in connecting to MongoDB:", error.message);
+        if (String(error.message || "").includes("querySrv")) {
+            console.log("💡 Mongo SRV DNS lookup failed. Check internet/DNS or use a non-SRV Mongo URI.");
+        }
         console.error(error);
+        try {
+            const fs = await import("fs");
+            const path = await import("path");
+            const errPath = path.join(process.cwd(), "scratch_mongo_error.txt");
+            fs.writeFileSync(errPath, error.toString() + "\n" + (error.stack || ""));
+        } catch(e) {}
+        throw error;
     }
 };

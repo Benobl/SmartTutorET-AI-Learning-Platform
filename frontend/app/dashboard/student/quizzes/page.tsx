@@ -15,6 +15,7 @@ import Link from "next/link"
 
 export default function StudentQuizzesPage() {
     const [assessments, setAssessments] = useState<any[]>([])
+    const [submissionByAssessment, setSubmissionByAssessment] = useState<Record<string, any>>({})
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [activeTab, setActiveTab] = useState("all") // all, ai, manual, uploaded
@@ -23,8 +24,24 @@ export default function StudentQuizzesPage() {
         const loadQuizzes = async () => {
             try {
                 setLoading(true)
-                const res = await assessmentApi.getAll()
+                const [res, subRes] = await Promise.all([
+                    assessmentApi.getAll(),
+                    assessmentApi.getSubmissions(),
+                ])
                 setAssessments(res.data || [])
+                const map: Record<string, any> = {}
+                ;(subRes.data || []).forEach((sub: any) => {
+                    const assessmentId = String(sub?.assessment?._id || sub?.assessment || "")
+                    if (!assessmentId) return
+                    if (!map[assessmentId]) {
+                        map[assessmentId] = sub
+                        return
+                    }
+                    const oldTs = new Date(map[assessmentId]?.updatedAt || 0).getTime()
+                    const newTs = new Date(sub?.updatedAt || 0).getTime()
+                    if (newTs > oldTs) map[assessmentId] = sub
+                })
+                setSubmissionByAssessment(map)
             } catch (error) {
                 console.error("Failed to load assessments:", error)
             } finally {
@@ -107,6 +124,7 @@ export default function StudentQuizzesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
                     {filteredAssessments.map((quiz) => {
                         const isAI = quiz.title.toLowerCase().includes("ai")
+                        const mySubmission = submissionByAssessment[String(quiz._id)]
                         return (
                             <Link 
                                 key={quiz._id} 
@@ -152,6 +170,19 @@ export default function StudentQuizzesPage() {
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{quiz.totalMarks} Points</span>
                                             </div>
                                         </div>
+
+                                        {mySubmission && (
+                                            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
+                                                <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">
+                                                    Result: {mySubmission.percentage}% {mySubmission.passed ? "Passed" : "Needs Improvement"}
+                                                </p>
+                                                {mySubmission?.result?.rank && mySubmission?.result?.totalEvaluated ? (
+                                                    <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+                                                        Rank #{mySubmission.result.rank}/{mySubmission.result.totalEvaluated}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center justify-between group/btn">
                                             <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest group-hover/btn:text-sky-600 transition-colors">Start Assessment</span>

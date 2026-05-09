@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { announcements, upcomingDeadlines, recentActivity } from "@/lib/mock-data"
-import { userApi, courseApi } from "@/lib/api"
+import { userApi, courseApi, assignmentApi, assessmentApi } from "@/lib/api"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -32,6 +32,8 @@ export default function StudentOverview() {
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
   const [stats, setStats] = useState<any>(null)
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
+  const [assignmentResults, setAssignmentResults] = useState<any[]>([])
+  const [quizResults, setQuizResults] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const user = getCurrentUser()
@@ -40,12 +42,16 @@ export default function StudentOverview() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [statsRes, coursesRes] = await Promise.all([
+      const [statsRes, coursesRes, marksRes, quizRes] = await Promise.allSettled([
         userApi.getStats(),
-        courseApi.getMyCourses()
+        courseApi.getMyCourses(),
+        assignmentApi.getMyMarks(),
+        assessmentApi.getSubmissions(),
       ])
-      setStats(statsRes.data)
-      setEnrolledCourses(coursesRes.data)
+      if (statsRes.status === "fulfilled") setStats(statsRes.value?.data || null)
+      if (coursesRes.status === "fulfilled") setEnrolledCourses(coursesRes.value?.data || [])
+      if (marksRes.status === "fulfilled") setAssignmentResults(marksRes.value?.data || [])
+      if (quizRes.status === "fulfilled") setQuizResults((quizRes.value?.data || []).filter((row: any) => row?.gradedAt))
     } catch (error) {
       console.error("Failed to fetch student data", error)
     } finally {
@@ -59,6 +65,32 @@ export default function StudentOverview() {
 
   const topCourses = enrolledCourses.slice(0, 2)
   const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
+  const latestResults = [
+    ...(assignmentResults || []).map((result: any) => ({
+      id: `as-${result._id}`,
+      title: result?.assignment?.title,
+      subject: result?.assignment?.subject?.title || "Subject",
+      score: `${result?.marksObtained}/${result?.assignment?.maxMarks}`,
+      rank: result?.result?.rank && result?.result?.totalEvaluated
+        ? `Rank #${result.result.rank}/${result.result.totalEvaluated}`
+        : "Graded",
+      updatedAt: result?.updatedAt,
+      type: "Assignment",
+    })),
+    ...(quizResults || []).map((result: any) => ({
+      id: `qz-${result._id}`,
+      title: result?.assessment?.title,
+      subject: result?.assessment?.type || "Quiz",
+      score: `${result?.percentage}%`,
+      rank: result?.result?.rank && result?.result?.totalEvaluated
+        ? `Rank #${result.result.rank}/${result.result.totalEvaluated}`
+        : "Graded",
+      updatedAt: result?.updatedAt || result?.submittedAt,
+      type: "Quiz",
+    })),
+  ]
+    .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
+    .slice(0, 3)
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -341,6 +373,39 @@ export default function StudentOverview() {
 
         {/* Improved Sidebar */}
         <div className="space-y-10">
+
+          {/* Latest Results */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Latest Results</h2>
+              <Link href="/dashboard/student/grades" className="text-[10px] font-black text-sky-600 uppercase tracking-widest hover:underline">
+                View All
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {latestResults.map((result) => (
+                <div key={result.id} className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                  <p className="text-xs font-black text-slate-900 uppercase italic truncate">{result.title}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                    {result.subject} • {result.type}
+                  </p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-sm font-black text-sky-600">
+                      {result.score}
+                    </p>
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                      {result.rank}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {latestResults.length === 0 && (
+                <div className="p-5 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No graded results yet</p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Notifications / Announcements */}
           <div className="space-y-6">

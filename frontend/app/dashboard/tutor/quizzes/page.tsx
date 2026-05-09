@@ -34,7 +34,7 @@ import {
     DialogDescription
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { assessmentApi, courseApi } from "@/lib/api"
+import { assessmentApi, courseApi, userApi } from "@/lib/api"
 
 export default function TeacherQuizzes() {
     const { toast } = useToast()
@@ -80,7 +80,7 @@ export default function TeacherQuizzes() {
             setLoading(true)
             const [qRes, cRes, sRes] = await Promise.all([
                 assessmentApi.getAll(),
-                courseApi.getAll(),
+                courseApi.getMyCourses(),
                 userApi.getAllStudents()
             ])
             setQuizzes(qRes.data || [])
@@ -635,6 +635,11 @@ export default function TeacherQuizzes() {
                                                 <div className="text-right">
                                                     <p className={cn("text-lg font-black", sub.passed ? "text-emerald-600" : "text-rose-600")}>{sub.percentage}%</p>
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{sub.score}/{selectedQuiz?.totalMarks} PTS</p>
+                                                    {sub?.result?.rank && sub?.result?.totalEvaluated ? (
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600 mt-1">
+                                                            Rank #{sub.result.rank}/{sub.result.totalEvaluated}
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                         ))}

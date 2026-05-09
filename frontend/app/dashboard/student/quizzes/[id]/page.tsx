@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { assessmentApi } from "@/lib/api"
 import { 
-    Clock, Timer, CheckCircle2, 
-    AlertCircle, ChevronRight, Brain,
+    Clock, CheckCircle2, 
+    ChevronRight, Brain,
     Send, Sparkles, Trophy
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -36,24 +36,29 @@ export default function StudentQuizView() {
                 const res = await assessmentApi.getById(id as string)
                 setQuiz(res.data)
                 
-                // Initialize timer if not completed
+                // Check existing submission for this quiz
                 const subRes = await assessmentApi.getSubmissions(id as string)
                 if (subRes.data && subRes.data.length > 0) {
                     const latestSubmission = subRes.data[0]
                     setResult(latestSubmission)
                     setIsCompleted(true)
-                    if (latestSubmission.responses) {
+
+                    if (latestSubmission.answers) {
                         const savedAnswers: Record<string, string> = {}
-                        latestSubmission.responses.forEach((r: any) => {
-                            savedAnswers[r.question] = r.selectedOption
+                        latestSubmission.answers.forEach((row: any) => {
+                            savedAnswers[String(row.questionId)] = row.selectedAnswer
                         })
                         setAnswers(savedAnswers)
-                        const feedback: Record<string, boolean> = {}
-                        res.data.questions.forEach((q: any) => feedback[q._id] = true)
-                        setShowFeedback(feedback)
                     }
                 } else {
-                    // Start timer for new attempts
+                    // Start server-side attempt to support timed exams.
+                    try {
+                        await assessmentApi.start(id as string)
+                    } catch (startError: any) {
+                        // If already started/attempted, continue silently.
+                    }
+
+                    // Initialize timer for new attempts
                     if (res.data.duration) {
                         setTimeLeft(res.data.duration * 60)
                         setTimerActive(true)
@@ -66,7 +71,7 @@ export default function StudentQuizView() {
             }
         }
         loadQuiz()
-    }, [id])
+    }, [id, toast])
 
     // Timer Logic
     useEffect(() => {
@@ -82,7 +87,7 @@ export default function StudentQuizView() {
         }, 1000)
 
         return () => clearInterval(timer)
-    }, [timerActive, timeLeft])
+    }, [timerActive, timeLeft, isCompleted, isSubmitting])
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60)
@@ -102,13 +107,7 @@ export default function StudentQuizView() {
         const qId = currentQuestion._id
         setAnswers(prev => ({ ...prev, [qId]: option }))
         setShowFeedback(prev => ({ ...prev, [qId]: true }))
-        
-        const isCorrect = option === currentQuestion.correctAnswer
-        if (isCorrect) {
-            toast({ title: "Correct!", description: "Well done!" })
-        } else {
-            toast({ title: "Incorrect", description: `The correct answer was: ${currentQuestion.correctAnswer}`, variant: "destructive" })
-        }
+        toast({ title: "Answer saved", description: "Move to the next question when ready." })
     }
 
     const handleSubmit = async () => {
@@ -156,7 +155,14 @@ export default function StudentQuizView() {
                     {[
                         { label: "Score", value: `${result?.percentage}%`, sub: `${result?.score}/${quiz?.totalMarks} pts`, color: "sky" },
                         { label: "Result", value: result?.passed ? "PASSED" : "FAILED", sub: "Based on 60% threshold", color: result?.passed ? "emerald" : "rose" },
-                        { label: "Rank", value: "Top 12%", sub: "Among Grade 9 students", color: "amber" }
+                        {
+                            label: "Rank",
+                            value: result?.result?.rank ? `#${result.result.rank}` : "Pending",
+                            sub: result?.result?.totalEvaluated
+                                ? `Out of ${result.result.totalEvaluated} graded attempts`
+                                : "Ranking updates after submission",
+                            color: "amber",
+                        }
                     ].map((stat, i) => (
                         <div key={i} className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl shadow-slate-200/10 text-center space-y-2">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
@@ -172,7 +178,10 @@ export default function StudentQuizView() {
                     <div className="space-y-4">
                         {quiz.questions.map((q: any, i: number) => {
                             const userAnswer = answers[q._id];
-                            const isCorrect = userAnswer === q.correctAnswer;
+                            const attemptRow = (result?.answers || []).find(
+                                (row: any) => String(row.questionId) === String(q._id)
+                            );
+                            const isCorrect = Boolean(attemptRow?.isCorrect);
                             return (
                                 <div key={i} className="p-8 rounded-[32px] bg-white border border-slate-100 shadow-sm space-y-4">
                                     <div className="flex items-start justify-between gap-4">
@@ -185,7 +194,7 @@ export default function StudentQuizView() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                         <p className="text-slate-500">Your Answer: <span className={isCorrect ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>{userAnswer || "Skipped"}</span></p>
-                                        <p className="text-slate-500">Correct Answer: <span className="text-emerald-600 font-bold">{q.correctAnswer}</span></p>
+                                        <p className="text-slate-500">Points Earned: <span className="text-emerald-600 font-bold">{attemptRow?.pointsEarned ?? 0}</span></p>
                                     </div>
                                     {q.explanation && (
                                         <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 mt-2">
@@ -260,13 +269,11 @@ export default function StudentQuizView() {
                     <div className="grid grid-cols-1 gap-4">
                         {currentQuestion.options.map((option: string, i: number) => {
                             const isSelected = answers[currentQuestion._id] === option
-                            const isCorrect = option === currentQuestion.correctAnswer
                             const isRevealed = showFeedback[currentQuestion._id]
                             
                             let stateStyles = "bg-slate-50 border-transparent text-slate-600 hover:bg-white hover:border-slate-200"
                             if (isRevealed) {
-                                if (isCorrect) stateStyles = "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-lg"
-                                else if (isSelected) stateStyles = "bg-rose-50 border-rose-500 text-rose-900 shadow-lg"
+                                if (isSelected) stateStyles = "bg-sky-50 border-sky-600 text-sky-900 shadow-xl shadow-sky-500/10"
                                 else stateStyles = "bg-slate-50 border-transparent text-slate-300 opacity-50"
                             } else if (isSelected) {
                                 stateStyles = "bg-sky-50 border-sky-600 text-sky-900 shadow-xl shadow-sky-500/10"
@@ -294,8 +301,7 @@ export default function StudentQuizView() {
                                         <span className="font-bold text-lg">{option}</span>
                                     </div>
                                     <div className="relative z-10">
-                                        {isRevealed && isCorrect && <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
-                                        {isRevealed && isSelected && !isCorrect && <AlertCircle className="w-6 h-6 text-rose-600" />}
+                                        {isRevealed && isSelected && <CheckCircle2 className="w-6 h-6 text-sky-600" />}
                                     </div>
                                 </button>
                             )

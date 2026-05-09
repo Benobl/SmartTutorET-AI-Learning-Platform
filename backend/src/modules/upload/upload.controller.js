@@ -12,7 +12,8 @@ export class UploadController {
 
             const fileType = req.body.type || "document"; // 'degree' or 'cv'
             const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
-            const fileUrl = `${backendUrl}/uploads/documents/${req.file.filename}`;
+            // Files are stored under uploads/syllabus by middleware, and served via /uploads/syllabus
+            const fileUrl = `${backendUrl}/uploads/syllabus/${req.file.filename}`;
 
             return res.status(200).json({
                 success: true,

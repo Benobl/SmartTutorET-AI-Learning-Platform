@@ -33,6 +33,7 @@ import uploadRoutes from "./src/modules/upload/upload.route.js";
 import assessmentRoutes from "./src/modules/assessments/assessment.route.js";
 import assignmentRoutes from "./src/modules/assessments/assignment.route.js";
 import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route.js";
+import learningRoutes from "./src/modules/learning/learning.route.js";
 import { fileURLToPath } from "url";
 import path from "path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -133,6 +134,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/assessments", assessmentRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/scheduling", masterScheduleRoutes);
+app.use("/api/v2/learning", learningRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {
@@ -163,8 +165,14 @@ process.on("unhandledRejection", (err) => {
   process.exit(1);
 });
 
-// Connect to Database
-await connectDB();
+// Connect to Database (allow API boot even if DB is temporarily down)
+try {
+  await connectDB();
+} catch (error) {
+  logger.error("Database connection failed during startup", {
+    error: error.message,
+  });
+}
 
 server.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
