@@ -35,5 +35,7 @@ const assignmentSubmissionSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+assignmentSubmissionSchema.index({ assignment: 1, student: 1 }, { unique: true });
+
 const AssignmentSubmission = mongoose.model("AssignmentSubmission", assignmentSubmissionSchema);
 export default AssignmentSubmission;

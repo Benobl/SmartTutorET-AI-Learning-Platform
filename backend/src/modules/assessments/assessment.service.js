@@ -6,6 +6,103 @@ import { ProgressService } from "../progress/progress.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class AssessmentService {
+    static getGradeBand(percentage) {
+        if (typeof percentage !== "number") return null;
+        if (percentage >= 90) return "A";
+        if (percentage >= 80) return "B";
+        if (percentage >= 70) return "C";
+        if (percentage >= 60) return "D";
+        return "F";
+    }
+
+    static async attachRankingMeta(attemptDocs = []) {
+        const attempts = attemptDocs.map((doc) =>
+            typeof doc?.toObject === "function" ? doc.toObject() : doc
+        );
+        if (attempts.length === 0) return attempts;
+
+        const assessmentIds = [...new Set(
+            attempts
+                .map((attempt) => String(attempt?.assessment?._id || attempt?.assessment || "").trim())
+                .filter(Boolean)
+        )];
+        if (assessmentIds.length === 0) return attempts;
+
+        const rankedRows = await Attempt.find({
+            assessment: { $in: assessmentIds },
+            gradedAt: { $ne: null },
+        }).select("_id assessment percentage score submittedAt gradedAt");
+
+        const grouped = new Map();
+        rankedRows.forEach((row) => {
+            const assessmentId = String(row.assessment);
+            if (!grouped.has(assessmentId)) grouped.set(assessmentId, []);
+            grouped.get(assessmentId).push(row);
+        });
+
+        const rankByAttemptId = new Map();
+        const totalsByAssessmentId = new Map();
+
+        grouped.forEach((rows, assessmentId) => {
+            rows.sort((a, b) => {
+                const aPct = Number(a.percentage ?? -Infinity);
+                const bPct = Number(b.percentage ?? -Infinity);
+                if (bPct !== aPct) return bPct - aPct;
+
+                const aScore = Number(a.score ?? -Infinity);
+                const bScore = Number(b.score ?? -Infinity);
+                if (bScore !== aScore) return bScore - aScore;
+
+                const aTime = new Date(a.submittedAt || a.gradedAt || 0).getTime();
+                const bTime = new Date(b.submittedAt || b.gradedAt || 0).getTime();
+                if (aTime !== bTime) return aTime - bTime;
+
+                return String(a._id).localeCompare(String(b._id));
+            });
+
+            totalsByAssessmentId.set(assessmentId, rows.length);
+
+            let processed = 0;
+            let currentRank = 0;
+            let lastPct = null;
+            let lastScore = null;
+
+            rows.forEach((row) => {
+                processed += 1;
+                const pct = Number(row.percentage ?? -Infinity);
+                const score = Number(row.score ?? -Infinity);
+                if (lastPct === null || pct !== lastPct || score !== lastScore) {
+                    currentRank = processed;
+                    lastPct = pct;
+                    lastScore = score;
+                }
+                rankByAttemptId.set(String(row._id), currentRank);
+            });
+        });
+
+        return attempts.map((attempt) => {
+            const assessmentId = String(attempt?.assessment?._id || attempt?.assessment || "");
+            const rank = rankByAttemptId.get(String(attempt._id)) ?? null;
+            const totalEvaluated = totalsByAssessmentId.get(assessmentId) || 0;
+            const percentage = typeof attempt?.percentage === "number" ? attempt.percentage : 0;
+            const percentile = rank && totalEvaluated > 0
+                ? Math.round(((totalEvaluated - rank + 1) / totalEvaluated) * 100)
+                : null;
+
+            return {
+                ...attempt,
+                result: {
+                    rank,
+                    percentile,
+                    totalEvaluated,
+                    totalSubmissions: totalEvaluated,
+                    percentage,
+                    gradeBand: this.getGradeBand(percentage),
+                },
+            };
+        });
+    }
+
     static async createAssessment(tutorId, data) {
         // If subject is provided, verify it exists
         if (data.subject) {
@@ -55,7 +152,7 @@ export class AssessmentService {
             .sort({ createdAt: -1 });
     }
 
-    static async getAssessmentById(id, userRole) {
+    static async getAssessmentById(id, userRole, userId = null) {
         const assessment = await Assessment.findById(id)
             .populate("subject", "title")
             .populate("createdBy", "name profile.avatar");
@@ -64,6 +161,18 @@ export class AssessmentService {
 
         // If student, hide correct answers
         if (userRole === "student") {
+            const hasCompletedAttempt = userId
+                ? await Attempt.exists({
+                    user: userId,
+                    assessment: id,
+                    gradedAt: { $ne: null },
+                })
+                : false;
+
+            if (hasCompletedAttempt) {
+                return assessment;
+            }
+
             const studentView = assessment.toObject();
             studentView.questions = studentView.questions.map(q => ({
                 ...q,
@@ -166,10 +275,12 @@ export class AssessmentService {
     }
 
     static async getSubmissions(filters = {}) {
-        return await Attempt.find(filters)
+        const attempts = await Attempt.find(filters)
             .populate("assessment", "title type totalMarks")
             .populate("user", "name email profile.avatar")
             .sort({ createdAt: -1 });
+
+        return this.attachRankingMeta(attempts);
     }
 
     static async publishAssessment(assessmentId, tutorId) {

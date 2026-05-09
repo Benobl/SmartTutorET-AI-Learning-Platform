@@ -98,6 +98,11 @@ export function AssessmentList() {
                                 {quiz.questions?.length || 0} Qs
                             </p>
                         </div>
+                        {submissions[quiz._id]?.result?.rank && submissions[quiz._id]?.result?.totalEvaluated ? (
+                            <p className="text-[9px] mt-1 font-black text-indigo-600 uppercase tracking-widest">
+                                Rank #{submissions[quiz._id].result.rank}/{submissions[quiz._id].result.totalEvaluated}
+                            </p>
+                        ) : null}
                     </div>
 
                     <div className="shrink-0">

@@ -1,6 +1,16 @@
 import { AuthService } from "./auth.service.js";
 import logger from "../../config/logger.js";
 
+const sanitizeUserForResponse = (userDoc) => {
+    const payload = userDoc.toObject ? userDoc.toObject() : userDoc;
+    delete payload.password;
+    delete payload.refreshTokens;
+    delete payload.resetPasswordToken;
+    delete payload.resetPasswordExpire;
+    delete payload.verificationToken;
+    return payload;
+};
+
 export class AuthController {
     static async signup(req, res, next) {
         try {
@@ -31,7 +41,7 @@ export class AuthController {
                 success: true,
                 message: "Registration successful. Please verify your email.",
                 token: accessToken,
-                data: user
+                data: sanitizeUserForResponse(user)
             });
         } catch (error) {
             next(error);
@@ -74,7 +84,7 @@ export class AuthController {
                 secure: process.env.NODE_ENV === "production",
             });
 
-            res.status(200).json({ success: true, token: accessToken, data: user });
+            res.status(200).json({ success: true, token: accessToken, data: sanitizeUserForResponse(user) });
         } catch (error) {
             next(error);
         }
@@ -151,7 +161,7 @@ export class AuthController {
                 secure: process.env.NODE_ENV === "production",
             });
 
-            res.status(200).json({ success: true, token: accessToken, data: user });
+            res.status(200).json({ success: true, token: accessToken, data: sanitizeUserForResponse(user) });
         } catch (error) {
             next(error);
         }

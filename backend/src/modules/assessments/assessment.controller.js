@@ -76,7 +76,11 @@ export class AssessmentController {
 
     static async getById(req, res, next) {
         try {
-            const assessment = await AssessmentService.getAssessmentById(req.params.id, req.user.role);
+            const assessment = await AssessmentService.getAssessmentById(
+                req.params.id,
+                req.user.role,
+                req.user._id
+            );
             res.json({ success: true, data: assessment });
         } catch (error) {
             next(error);
@@ -87,10 +91,11 @@ export class AssessmentController {
         try {
             const { answers } = req.body;
             const result = await AssessmentService.submitAttempt(req.user._id, req.params.id, answers);
+            const [rankedResult] = await AssessmentService.getSubmissions({ _id: result._id });
             res.json({ 
                 success: true, 
                 message: "Assessment submitted successfully", 
-                data: result 
+                data: rankedResult || result
             });
         } catch (error) {
             next(error);
@@ -99,14 +104,25 @@ export class AssessmentController {
 
     static async getSubmissions(req, res, next) {
         try {
-            const { assessment, student } = req.query;
+            const { assessment, assessmentId, student } = req.query;
             const filters = {};
-            if (assessment) filters.assessment = assessment;
+            if (assessment || assessmentId) filters.assessment = assessment || assessmentId;
             if (student) filters.user = student;
 
             // Students only see their own submissions
             if (req.user.role === "student") {
                 filters.user = req.user._id;
+            } else if (req.user.role === "tutor") {
+                // Tutors can only see submissions for assessments they created.
+                if (filters.assessment) {
+                    const owned = await AssessmentService.getAssessmentById(filters.assessment, req.user.role);
+                    if (String(owned.createdBy?._id || owned.createdBy) !== String(req.user._id)) {
+                        return res.status(403).json({ success: false, message: "Not authorized for this assessment." });
+                    }
+                } else {
+                    const ownAssessments = await AssessmentService.getAssessments({ createdBy: req.user._id });
+                    filters.assessment = { $in: ownAssessments.map((assessmentRow) => assessmentRow._id) };
+                }
             }
 
             const submissions = await AssessmentService.getSubmissions(filters);

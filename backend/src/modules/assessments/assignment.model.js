@@ -15,15 +15,22 @@ const assignmentSchema = new mongoose.Schema(
         title: {
             type: String,
             required: true,
+            trim: true,
         },
         description: {
             type: String,
-            required: true,
+            default: "",
+            trim: true,
         },
         maxMarks: {
             type: Number,
             required: true,
             default: 100,
+        },
+        priority: {
+            type: String,
+            enum: ["high", "medium", "low"],
+            default: "medium",
         },
         dueDate: {
             type: Date,

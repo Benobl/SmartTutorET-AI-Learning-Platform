@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
+import mongoose from "mongoose";
 import User from "../users/user.model.js";
 import { upsertStreamUser } from "../../lib/stream.js";
 import { sendEmail, sendPasswordResetEmail } from "../../lib/email.service.js";
@@ -59,6 +60,9 @@ export class AuthService {
     }
 
     static async login(email, password) {
+        if (mongoose.connection.readyState !== 1) {
+            throw new ApiError(503, "Database is temporarily unavailable. Please try again shortly.");
+        }
         const normalizedEmail = email.trim().toLowerCase();
         logger.info(`[AuthService] Attempting login for ${normalizedEmail}`);
         
