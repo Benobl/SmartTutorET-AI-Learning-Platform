@@ -31,7 +31,7 @@ const subjectSchema = new mongoose.Schema({
     lessons: [{
         title: { type: String, required: true },
         duration: { type: String, default: "15 min" },
-        type: { type: String, enum: ["video", "exercise", "quiz", "ppt"], default: "video" },
+        type: { type: String, enum: ["video", "exercise", "quiz", "ppt", "exam"], default: "video" },
         videoUrl: { type: String },
         pptUrl: { type: String },
         exerciseUrl: { type: String },

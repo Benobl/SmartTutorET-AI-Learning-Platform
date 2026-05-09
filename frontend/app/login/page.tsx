@@ -94,7 +94,7 @@ function LoginForm() {
         setError("Invalid email or password. Please check your credentials.")
       }
     } catch (err: any) {
-      console.error("[Login Error]", err);
+      console.warn("[Login Error]", err);
       if (err.message === "Failed to fetch") {
         setError("Network error: Unable to reach the server. This may be a CORS issue or the backend might be starting up. Please wait 1 minute and try again.");
       } else {

@@ -20,5 +20,6 @@ router.post("/:subjectId/enroll", verifyToken, SubjectController.enroll);
 router.post("/:subjectId/lessons", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.addLesson);
 router.post("/:subjectId/lessons/upload-video", verifyToken, allowRoles("tutor", "admin", "manager"), uploadVideo.single("video"), SubjectController.uploadLessonVideo);
 router.post("/:subjectId/lessons/auto-generate", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.autoGenerateLessons);
+router.get("/:subjectId/lessons", verifyToken, SubjectController.getLessons);
 
 export default router;

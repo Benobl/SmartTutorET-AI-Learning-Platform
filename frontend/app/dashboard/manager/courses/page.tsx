@@ -24,7 +24,13 @@ import {
     FileText,
     TrendingDown,
     TrendingUp,
-    ListPlus
+    ListPlus,
+    Youtube,
+    PenTool as Pen,
+    Activity,
+    Library,
+    ExternalLink, FileUp, UploadCloud,
+    Video as VideoIcon, FileType
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -37,6 +43,7 @@ import {
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { getCourses, addCourse, updateCourse, deleteCourse, exportToPDF, generateGradeCurriculum } from "@/lib/manager-utils"
@@ -63,6 +70,125 @@ export default function CourseManagement() {
     const [editingCourse, setEditingCourse] = useState<any>(null)
     const [targetGrade, setTargetGrade] = useState("9")
     const [targetStream, setTargetStream] = useState("Common")
+
+    // --- Module Architect States ---
+    const [isModuleManagerOpen, setIsModuleManagerOpen] = useState(false)
+    const [selectedCourseForModules, setSelectedCourseForModules] = useState<any>(null)
+    const [lessons, setLessons] = useState<any[]>([])
+    const [isLessonsLoading, setIsLessonsLoading] = useState(false)
+    const [lessonForm, setLessonForm] = useState({
+        title: "",
+        duration: "15 min",
+        type: "video" as "video" | "exercise" | "quiz" | "ppt" | "exam",
+        url: "",
+        content: ""
+    })
+    const [uploadType, setUploadType] = useState<"url" | "file">("url")
+
+    // Smart-Switch Logic: Auto-toggle uploader based on component type
+    useEffect(() => {
+        if (lessonForm.type === "video") {
+            setUploadType("url")
+        } else {
+            setUploadType("file")
+        }
+    }, [lessonForm.type])
+    const [videoFile, setVideoFile] = useState<File | null>(null)
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+    const [isApproved] = useState(true) // Managers are inherently approved
+    const [searchQuery_modules, setSearchQuery_modules] = useState("")
+
+    const loadCourseLessons = async () => {
+        if (!selectedCourseForModules) return
+        try {
+            setIsLessonsLoading(true)
+            const res = await courseApi.getLessons(selectedCourseForModules._id || selectedCourseForModules.id)
+            setLessons(res.data || [])
+        } catch (error: any) {
+            toast.error("Failed to load module sequence.")
+        } finally {
+            setIsLessonsLoading(false)
+        }
+    }
+
+    const getYoutubeEmbedUrl = (url: string) => {
+        if (!url) return ""
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+        const match = url.match(regExp)
+        if (match && match[2].length === 11) {
+            return `https://www.youtube.com/embed/${match[2]}`
+        }
+        return url
+    }
+
+    const handleAddLesson = async () => {
+        if (!lessonForm.title) return
+        try {
+            setIsUploadingVideo(true)
+            const { uploadToSupabase, supabase } = await import("@/lib/supabase")
+            let contentUrl = ""
+
+            if (uploadType === "file" && videoFile) {
+                try {
+                    contentUrl = await uploadToSupabase(videoFile)
+                    toast.success("File Uploaded: Securing resource in cloud storage...")
+                } catch (error: any) {
+                    toast.error(`Upload Failed: ${error.message}`)
+                    setIsUploadingVideo(false)
+                    return
+                }
+            } else if (uploadType === "url") {
+                contentUrl = lessonForm.type === "video" ? getYoutubeEmbedUrl(lessonForm.url) : lessonForm.url
+            }
+
+            // Prepare for DB insert
+            const payload = {
+                course_id: selectedCourseForModules._id || selectedCourseForModules.id,
+                type: lessonForm.type,
+                title: lessonForm.title,
+                content_url: contentUrl,
+                quiz_data: lessonForm.content ? JSON.parse(lessonForm.content) : null,
+                created_at: new Date().toISOString()
+            }
+
+            // 1. Save to Supabase Table (Critical Fix)
+            if (supabase) {
+                const { error: sbError } = await supabase
+                    .from('course_contents')
+                    .insert([payload])
+                
+                if (sbError) console.error("[SUPABASE DB ERROR]", sbError.message)
+            }
+
+            // 2. Sync with MongoDB Backend
+            const mongoPayload: any = { 
+                title: lessonForm.title,
+                duration: lessonForm.duration,
+                type: lessonForm.type,
+                content: lessonForm.content
+            }
+            if (lessonForm.type === "video") mongoPayload.videoUrl = contentUrl
+            else if (lessonForm.type === "ppt") mongoPayload.pptUrl = contentUrl
+            else mongoPayload.exerciseUrl = contentUrl
+
+            const res = await courseApi.addLesson(selectedCourseForModules._id, mongoPayload)
+            setLessons(res.data.lessons)
+            
+            toast.success("Curriculum Synchronized: Content is now live for students.")
+            setLessonForm({ title: "", duration: "15 min", type: "video", url: "", content: "" })
+            setVideoFile(null)
+        } catch (error: any) {
+            toast.error(`Failed to add lesson: ${error.message}`)
+        } finally {
+            setIsUploadingVideo(false)
+        }
+    }
+
+    useEffect(() => {
+        if (selectedCourseForModules && isModuleManagerOpen) {
+            loadCourseLessons()
+        }
+    }, [selectedCourseForModules, isModuleManagerOpen])
 
     // Form state
     const INITIAL_FORM_STATE = {
@@ -404,12 +530,22 @@ export default function CourseManagement() {
                                          </Button>
                                      ) : (
                                          <div className="flex gap-2">
-                                             <Button
-                                                 onClick={() => openEdit(course)}
-                                                 className="flex-1 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-12 border border-slate-200 text-[10px] uppercase tracking-widest transition-all"
-                                             >
-                                                 Edit
-                                             </Button>
+                                              <Button
+                                                  onClick={() => {
+                                                      setSelectedCourseForModules(course)
+                                                      setIsModuleManagerOpen(true)
+                                                  }}
+                                                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest transition-all"
+                                              >
+                                                  Manage Modules
+                                              </Button>
+                                              <Button
+                                                  variant="outline"
+                                                  onClick={() => openEdit(course)}
+                                                  className="bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black h-12 w-12 border border-slate-200 text-[10px] uppercase tracking-widest transition-all p-0 flex items-center justify-center"
+                                              >
+                                                  <Edit3 className="w-4 h-4" />
+                                              </Button>
                                              <Button
                                                  variant="ghost"
                                                  onClick={() => handleDelete(course._id || course.id)}
@@ -909,6 +1045,183 @@ export default function CourseManagement() {
                             Confirm Rejection
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Module Architect Dialog [SYNCED FROM TUTOR] */}
+            <Dialog open={isModuleManagerOpen} onOpenChange={setIsModuleManagerOpen}>
+                <DialogContent className="sm:max-w-[1100px] h-[85vh] rounded-[40px] border-slate-100 p-0 overflow-hidden bg-white shadow-3xl flex flex-col">
+                    <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-white/50 backdrop-blur-xl sticky top-0 z-10">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="px-3 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest border border-blue-100">Module Architect</span>
+                                <Library className="w-3.5 h-3.5 text-blue-400" />
+                            </div>
+                            <DialogTitle className="text-2xl font-black text-slate-900 uppercase italic leading-none">Curriculum <span className="text-blue-600">Structure</span></DialogTitle>
+                            <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-2">{selectedCourseForModules?.title || selectedCourseForModules?.name}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-hidden flex">
+                        <div className="w-[380px] p-8 border-r border-slate-100 flex-shrink-0 bg-white">
+                            <div className="space-y-8">
+                                <div>
+                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-1">Lesson Architect</h4>
+                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Construct your curriculum module</p>
+                                </div>
+
+                                <div className="space-y-5">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Component Type</Label>
+                                        <select 
+                                            className="w-full h-12 rounded-2xl bg-slate-50 border border-slate-100 font-black text-[10px] uppercase px-4 outline-none cursor-pointer"
+                                            value={lessonForm.type}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value as any })}
+                                        >
+                                            <option value="video">Lectures (Video Content)</option>
+                                            <option value="ppt">Resources (Slides & Docs)</option>
+                                            <option value="exercise">Practice (Interactive Exercise)</option>
+                                            <option value="quiz">Assessment (Timed Quiz)</option>
+                                            <option value="exam">Official Exam (Mid/Final)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Module Title</Label>
+                                        <Input 
+                                            placeholder="e.g. Intro to Quantum Mechanics"
+                                            className="h-12 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm focus:bg-white"
+                                            value={lessonForm.title}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+                                            <button 
+                                                onClick={() => setUploadType("url")}
+                                                type="button"
+                                                className={cn(
+                                                    "flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2",
+                                                    uploadType === "url" ? "bg-white text-sky-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                                )}
+                                            >
+                                                <Youtube className="w-3.5 h-3.5" />
+                                                YouTube Link
+                                            </button>
+                                            <button 
+                                                onClick={() => setUploadType("file")}
+                                                type="button"
+                                                className={cn(
+                                                    "flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2",
+                                                    uploadType === "file" ? "bg-white text-sky-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                                )}
+                                            >
+                                                <FileUp className="w-3.5 h-3.5" />
+                                                From My PC
+                                            </button>
+                                        </div>
+
+                                        <div className="min-h-[120px] py-2">
+                                            {uploadType === "url" ? (
+                                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center justify-between ml-1 mb-1">
+                                                        <Label className="text-[9px] font-black uppercase text-slate-400">
+                                                            {lessonForm.type === "video" ? "YouTube Video Resource" : 
+                                                             lessonForm.type === "ppt" ? "Cloud Document / Slide" : 
+                                                             "External Evaluation Link"}
+                                                        </Label>
+                                                        {lessonForm.type === "video" ? <Youtube className="w-3 h-3 text-rose-500" /> : 
+                                                         lessonForm.type === "ppt" ? <FileType className="w-3 h-3 text-amber-500" /> : 
+                                                         <Activity className="w-3 h-3 text-emerald-500" />}
+                                                    </div>
+                                                    <Input 
+                                                        placeholder="Paste shared URL here..."
+                                                        className="h-12 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm focus:bg-white transition-all"
+                                                        value={lessonForm.url}
+                                                        onChange={(e) => setLessonForm({ ...lessonForm, url: e.target.value })}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center justify-between ml-1 mb-1">
+                                                        <Label className="text-[9px] font-black uppercase text-slate-400">Local PC Selection</Label>
+                                                        <Badge className="bg-sky-50 text-sky-600 border-none text-[8px] font-black uppercase italic">Stored in Supabase Cloud</Badge>
+                                                    </div>
+                                                    <div className="group relative border-2 border-dashed border-slate-200 rounded-2xl p-8 hover:border-sky-400 hover:bg-sky-50/30 transition-all cursor-pointer bg-slate-50/50">
+                                                        <Input 
+                                                            type="file"
+                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                            onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                                                        />
+                                                        <div className="flex flex-col items-center gap-3 text-center">
+                                                            <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-sky-500 transition-colors">
+                                                                <FileUp className="w-6 h-6" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase text-slate-900 leading-tight">
+                                                                    {videoFile ? videoFile.name : "Select Desktop File"}
+                                                                </p>
+                                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Video, PDF, or PPTX</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {(lessonForm.type === "quiz" || lessonForm.type === "exercise" || lessonForm.type === "exam") && (
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[9px] font-black uppercase text-slate-400 ml-1">Timer</Label>
+                                            <Input 
+                                                placeholder="e.g. 45 min"
+                                                className="h-12 rounded-2xl bg-blue-50/30 border-blue-100 font-black text-blue-700 text-xs text-center"
+                                                value={lessonForm.duration}
+                                                onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <Button 
+                                        onClick={handleAddLesson}
+                                        disabled={isUploadingVideo}
+                                        className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest mt-4"
+                                    >
+                                        {isUploadingVideo ? "Synchronizing..." : "Commit to Registry"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 p-8 bg-slate-50/30 overflow-y-auto">
+                             <div className="space-y-4">
+                                {isLessonsLoading ? (
+                                    <div className="text-center py-20">
+                                        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compiling Modules...</p>
+                                    </div>
+                                ) : lessons.length === 0 ? (
+                                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100">
+                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No modules formalized yet.</p>
+                                    </div>
+                                ) : (
+                                    lessons.map((lesson, i) => (
+                                        <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 flex items-center justify-between shadow-sm">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                                    {lesson.type === 'video' ? <Youtube className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-slate-800 uppercase">{lesson.title}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lesson.type} • {lesson.duration}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                             </div>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

@@ -108,7 +108,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
                 errorData = JSON.parse(text);
             } catch (e) {
                 const rawText = text || "No response body";
-                console.error(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
+                console.warn(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
                 errorData = { message: rawText || `Server error (${response.status})` };
             }
             throw new Error(errorData.message || "Something went wrong");
@@ -117,7 +117,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         const data = await response.json();
         return data;
     } catch (error: any) {
-        console.error(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
+        console.warn(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
         throw error;
     }
 }
