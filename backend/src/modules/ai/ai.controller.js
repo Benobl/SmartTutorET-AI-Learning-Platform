@@ -3,7 +3,12 @@ import { AIService } from "./ai.service.js";
 export class AIController {
     static async generateResponse(req, res, next) {
         try {
-            const studentResponse = await AIService.generateTutorResponse(req.body);
+            const { question, context } = req.body;
+            // Map the request body to the service expected format
+            const studentResponse = await AIService.generateTutorResponse({
+                studentQuery: question,
+                performanceData: context ? { context } : null
+            });
             res.json({
                 success: true,
                 data: {

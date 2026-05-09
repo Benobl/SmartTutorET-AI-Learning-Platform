@@ -161,12 +161,15 @@ export class SubjectController {
             const { title, duration } = req.body;
             if (!title) throw new ApiError(400, "Lesson title is required.");
 
-            const videoUrl = `/uploads/videos/${req.file.filename}`;
+            const fileUrl = `/uploads/videos/${req.file.filename}`;
+            const fileType = req.body.type || (req.file.mimetype.includes("video") ? "video" : "ppt");
+            
             const lessonData = {
                 title,
-                videoUrl,
-                duration: duration || "Unknown",
-                type: "video",
+                videoUrl: fileType === "video" ? fileUrl : undefined,
+                pptUrl: fileType === "ppt" ? fileUrl : undefined,
+                duration: duration || "15 min",
+                type: fileType,
                 isUploadedFile: true
             };
 

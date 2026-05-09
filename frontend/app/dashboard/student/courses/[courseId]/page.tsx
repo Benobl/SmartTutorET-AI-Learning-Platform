@@ -6,19 +6,43 @@ import {
     ArrowLeft, PlayCircle, Clock, Users, Star, CheckCircle,
     BookOpen, Video, MonitorPlay, Calendar, Zap, Lock,
     ChevronRight, GraduationCap, Sparkles, BrainCircuit, FileDown,
-    Youtube, Book, ExternalLink, Library, ArrowUpRight, Search
+    Youtube, Book, ExternalLink, Library, ArrowUpRight, Search,
+    MessageSquare, FileText, Send, X, PenTool, ChevronDown, ChevronUp
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { courseApi, paymentApi, aiApi } from "@/lib/api"
+import { courseApi, paymentApi, aiApi, assignmentApi, assessmentApi } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AIQuiz } from "@/components/dashboard/courses/ai-quiz"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+interface Message {
+    role: "user" | "assistant"
+    content: string
+}
+
+const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    } else if (url.includes("youtube.com/watch?v=")) {
+        videoId = url.split("v=")[1]?.split("&")[0];
+    } else if (url.includes("youtube.com/embed/")) {
+        videoId = url.split("embed/")[1]?.split("?")[0];
+    } else if (url.includes("youtube.com/shorts/")) {
+        videoId = url.split("shorts/")[1]?.split("?")[0];
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : url;
+};
 
 export default function CourseDetailPage() {
     const params = useParams()
-    const searchParams = useSearchParams()
     const router = useRouter()
     const { toast } = useToast()
     const courseId = params.courseId as string
@@ -29,17 +53,16 @@ export default function CourseDetailPage() {
     const [activeLesson, setActiveLesson] = useState<any>(null)
     const [showQuiz, setShowQuiz] = useState(false)
     const [lessons, setLessons] = useState<any[]>([])
-    const [aiResources, setAiResources] = useState<any>(null)
-    const [isAiLoading, setIsAiLoading] = useState(false)
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [assignments, setAssignments] = useState<any[]>([])
     const [submissions, setSubmissions] = useState<any[]>([])
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [submittingAssignmentId, setSubmittingAssignmentId] = useState<string | null>(null)
-    const [submissionContent, setSubmissionContent] = useState("")
+    const [aiMessages, setAiMessages] = useState<Message[]>([])
+    const [aiInput, setAiInput] = useState("")
+    const [isAiTyping, setIsAiTyping] = useState(false)
+    const [activeTab, setActiveTab] = useState("lectures")
 
     useEffect(() => {
-        const userStr = localStorage.getItem("user")
+        const userStr = localStorage.getItem("smarttutor_user")
         if (userStr) setCurrentUser(JSON.parse(userStr))
     }, [])
 
@@ -47,676 +70,396 @@ export default function CourseDetailPage() {
         const loadCourse = async () => {
             setIsLoading(true)
             try {
-                const data = await courseApi.getById(courseId)
-                const courseData = {
+                const res = await courseApi.getById(courseId)
+                const data = res.data || res
+                
+                setCourse({
                     id: data._id || data.id,
                     name: data.title || data.name || "Untitled Course",
                     tutor: data.instructor?.name || data.tutor?.name || "Expert Tutor",
                     image: data.thumbnail || data.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
                     grade: data.gradeLevel || data.grade || "All Grades",
                     semester: data.semester || "Semester 1",
-                    rating: data.rating || 4.8,
                     students: data.students?.length || 0,
-                    description: data.description || "Master the fundamental concepts and advanced techniques in this comprehensive course.",
-                    delivery: data.deliveryMethod || data.delivery || "Recorded",
+                    description: data.description || "Master the fundamental concepts in this comprehensive course.",
                     progress: 0,
                     lessonsCount: data.lessons?.length || 0,
                     completed: 0,
                     priceValue: data.price || 0,
-                    isPremium: (data.price > 0) || data.isPremium || false,
-                    syllabusUrl: data.syllabusUrl,
-                    enrolled: data.isEnrolled || false // Check real enrollment state from backend if possible
-                }
-
-                // If backend does not send isEnrolled, we can check myCourses locally.
-                try {
-                    const myCoursesData = await courseApi.getMyCourses();
-                    if (myCoursesData.data?.some((c: any) => c._id === courseId || c.id === courseId)) {
-                        courseData.enrolled = true;
-                    }
-                } catch(e) {}
-
-                const txRef = searchParams.get("tx_ref")
-                const status = searchParams.get("status")
-                
-                if (txRef && status === "success" && !courseData.enrolled) {
-                    try {
-                        await paymentApi.verify(txRef)
-                        courseData.enrolled = true
-                        toast({ title: "Welcome to Premium!", description: "Access granted successfully.", className: "bg-emerald-500 text-white" })
-                    } catch (e) {
-                        console.error("Verification failed:", e)
-                    }
-                }
-
-                setCourse(courseData)
+                    enrolled: data.isEnrolled || false
+                })
                 setLessons(data.lessons || [])
-
-                if (searchParams.get("continue") === "true" || courseData.enrolled) {
-                    const firstIncomplete = (data.lessons || []).find((l: any) => !l.completed) || data.lessons?.[0]
-                    if (firstIncomplete) setActiveLesson(firstIncomplete)
-                }
-
-                loadAiResources(courseData.name, courseData.grade, data.roadmap)
-                loadAssignments(courseId)
+                
+                // Load assignments & submissions
+                const [assignRes, subRes] = await Promise.all([
+                    assignmentApi.getByCourse(courseId),
+                    assignmentApi.getMySubmissionsForCourse(courseId)
+                ])
+                setAssignments(assignRes.data || [])
+                setSubmissions(subRes.data || [])
             } catch (error) {
-                console.error("Load Error:", error)
-                setCourse(null)
+                console.error("Failed to load course", error)
+                toast({ title: "Error", description: "Failed to load course data.", variant: "destructive" })
             } finally {
                 setIsLoading(false)
             }
         }
         if (courseId) loadCourse()
-    }, [courseId, searchParams, currentUser?._id])
-
-    const loadAssignments = async (id: string) => {
-        try {
-            const [assignRes, subRes] = await Promise.all([
-                assignmentApi.getByCourse(id),
-                assignmentApi.getMySubmissionsForCourse(id)
-            ])
-            setAssignments(assignRes.data || [])
-            setSubmissions(subRes.data || [])
-        } catch (error) {
-            console.error("Error loading assignments:", error)
-        }
-    }
-
-    const handleSubmitAssignment = async () => {
-        if (!submittingAssignmentId || !submissionContent) return
-        setIsSubmitting(true)
-        try {
-            await assignmentApi.submit(submittingAssignmentId, { content: submissionContent })
-            toast({ title: "Submitted!", description: "Your assignment has been sent to the tutor." })
-            setSubmittingAssignmentId(null)
-            setSubmissionContent("")
-            loadAssignments(courseId)
-        } catch (error: any) {
-            toast({ title: "Submission Error", description: error.message, variant: "destructive" })
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
-    const loadAiResources = async (subject: string, grade: any, roadmap?: any) => {
-        setIsAiLoading(true)
-        try {
-            const outline = roadmap ? JSON.stringify(roadmap) : ""
-            const res = await aiApi.getResourceSuggestions(subject, grade, outline)
-            setAiResources(res.data)
-        } catch (error) {
-            console.error("AI Error:", error)
-        } finally {
-            setIsAiLoading(false)
-        }
-    }
+    }, [courseId])
 
     const handleEnroll = async () => {
-        if (!course) return
+        if (!currentUser) return router.push("/auth/login")
         setEnrolling(true)
         try {
-            if (course.isPremium && course.priceValue > 0) {
-                const res = await paymentApi.initialize({
-                    amount: course.priceValue,
-                    subjectId: courseId,
-                    method: "chapa"
-                })
-                if (res.data?.checkout_url) {
-                    window.location.href = res.data.checkout_url
-                } else {
-                    throw new Error("Failed to initialize payment gateway")
-                }
-            } else {
-                // Free course
-                await courseApi.enroll(courseId).catch(err => {
-                    if (err.message?.includes("not found")) {
-                        toast({ title: "Enrollment Simulated", description: "Backend endpoint missing for free enrolls. Adding to local state." })
-                    } else {
-                        throw err;
-                    }
-                })
-                toast({ title: "Enrollment Successful!", className: "bg-emerald-500 text-white border-none" })
-                setCourse((prev: any) => ({ ...prev, enrolled: true }))
-                router.refresh()
-            }
+            await paymentApi.enrollFree(course.id)
+            setCourse((prev: any) => ({ ...prev, enrolled: true }))
+            toast({ title: "Enrolled Successfully!", description: "Welcome to the course community." })
         } catch (error: any) {
-            toast({ title: "Enrollment Error", description: error.message, variant: "destructive" })
+            toast({ title: "Enrollment Failed", description: error.message, variant: "destructive" })
         } finally {
             setEnrolling(false)
         }
     }
 
-    const handleLessonComplete = (score: number) => {
-        setShowQuiz(false)
-        if (activeLesson) {
-            setLessons(prev => prev.map(l => l.id === activeLesson.id ? { ...l, completed: true } : l))
-            toast({ title: "Lesson Completed!", className: "bg-emerald-500 text-white border-none" })
-            setCourse((prev: any) => ({
-                ...prev,
-                completed: (prev.completed || 0) + 1,
-                progress: Math.min(100, Math.round(((prev.completed + 1) / (prev.lessonsCount || 1)) * 100))
-            }))
-            setActiveLesson(null)
+    const handleAskAi = async () => {
+        if (!aiInput.trim() || isAiTyping) return
+        const userMsg: Message = { role: "user", content: aiInput }
+        setAiMessages(prev => [...prev, userMsg])
+        setAiInput("")
+        setIsAiTyping(true)
+
+        try {
+            const performanceData = { lesson: activeLesson?.title, course: course?.name }
+            const res = await aiApi.askTutor(aiInput, performanceData)
+            const assistantMsg: Message = { role: "assistant", content: res.data.response }
+            setAiMessages(prev => [...prev, assistantMsg])
+        } catch (error: any) {
+            toast({ title: "AI Error", description: error.message, variant: "destructive" })
+        } finally {
+            setIsAiTyping(false)
         }
     }
 
-    if (isLoading) {
-        return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 p-8">
-                <Skeleton className="h-10 w-48 rounded-2xl" />
-                <Skeleton className="h-[400px] w-full rounded-[40px]" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
-                    <div className="lg:col-span-2 space-y-4">
-                        <Skeleton className="h-10 w-3/4 rounded-xl" />
-                        <Skeleton className="h-32 w-full rounded-2xl" />
-                        <Skeleton className="h-64 w-full rounded-3xl" />
-                    </div>
-                    <div className="space-y-4">
-                        {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
-                    </div>
-                </div>
+    if (isLoading) return (
+        <div className="min-h-screen bg-slate-50 p-8 space-y-8 max-w-7xl mx-auto">
+            <Skeleton className="h-10 w-48 rounded-2xl" />
+            <Skeleton className="h-[400px] w-full rounded-[40px]" />
+            <div className="grid grid-cols-3 gap-8">
+                <Skeleton className="h-64 col-span-2 rounded-[32px]" />
+                <Skeleton className="h-64 rounded-[32px]" />
             </div>
-        )
-    }
+        </div>
+    )
 
-    if (!course) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center">
-                    <Search className="w-10 h-10 text-slate-200" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 uppercase">Course Not Found</h2>
-                <Button onClick={() => router.push('/dashboard/student/courses')} variant="outline" className="rounded-xl uppercase font-black text-[10px]">Back to Library</Button>
-            </div>
-        )
-    }
+    if (!course) return <div className="p-20 text-center font-black uppercase text-slate-400">Course Not Found</div>
+
+    const lectures = lessons.filter(l => l.type === 'video' || !l.type)
+    const materials = lessons.filter(l => l.type === 'ppt' || l.type === 'document')
+    const practice = [...lessons.filter(l => l.type === 'quiz' || l.type === 'exercise'), ...assignments]
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 px-4 lg:px-8">
-            
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2.5 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-600 transition-colors group"
-                >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to Library
-                </button>
-                <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
-                        ))}
-                    </div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{course.students.toLocaleString()}+ Students Enrolled</span>
-                </div>
-            </div>
-
-            {/* ── Hero / Video Player ── */}
-            <div className="relative rounded-[48px] overflow-hidden shadow-2xl bg-slate-900 group transition-all duration-700">
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+            {/* ── High-Fidelity Focus Player ── */}
+            <div className="bg-[#0F172A] h-[55vh] min-h-[450px] relative overflow-hidden group shadow-2xl">
                 {activeLesson ? (
-                    <div className="w-full h-[60vh] max-h-[600px] flex flex-col items-center justify-center relative">
-                        {showQuiz ? (
-                            <div className="w-full max-w-2xl p-8">
-                                <AIQuiz lessonTitle={activeLesson.title} onComplete={handleLessonComplete} />
-                            </div>
-                        ) : (
-                            <>
-                                <div className="absolute top-6 left-6 z-20">
+                    <div className="w-full h-full animate-in fade-in zoom-in duration-700">
+                        {activeLesson.type === 'video' || !activeLesson.type ? (
+                            <iframe 
+                                className="w-full h-full shadow-inner bg-black"
+                                src={getYouTubeEmbedUrl(activeLesson.videoUrl)}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                allowFullScreen
+                            />
+                        ) : activeLesson.type === 'ppt' || activeLesson.type === 'document' ? (
+                            <div className="w-full h-full bg-white flex flex-col items-center justify-center p-20 text-center relative">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-100 via-transparent to-transparent opacity-50" />
+                                <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center mb-10 shadow-sm border border-slate-100 group-hover:scale-105 transition-transform duration-500">
+                                    <FileText className="w-8 h-8 text-slate-400" />
+                                </div>
+                                <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter mb-8 max-w-3xl leading-tight">{activeLesson.title}</h2>
+                                <div className="flex items-center gap-4">
                                     <Button 
-                                        onClick={() => setActiveLesson(null)} 
-                                        variant="outline" 
-                                        className="bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-xl rounded-2xl font-black text-[9px] uppercase h-10 px-5"
+                                        onClick={() => window.open(activeLesson.pptUrl || activeLesson.videoUrl, '_blank')}
+                                        className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95"
                                     >
-                                        <ArrowLeft className="w-4 h-4 mr-2" /> Exit Lesson
+                                        Open Document <ExternalLink className="w-4 h-4 ml-3" />
+                                    </Button>
+                                    <Button 
+                                        variant="outline"
+                                        onClick={() => window.open(activeLesson.pptUrl || activeLesson.videoUrl, '_blank')}
+                                        className="h-14 px-10 rounded-2xl border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
+                                    >
+                                        Download PDF <FileDown className="w-4 h-4 ml-3" />
                                     </Button>
                                 </div>
-                                <div className="w-full h-full aspect-video bg-black relative">
-                                    {(activeLesson.isUploadedFile || activeLesson.videoUrl?.startsWith('/uploads')) ? (
-                                        <video
-                                            controls
-                                            controlsList="nodownload"
-                                            onContextMenu={(e) => e.preventDefault()}
-                                            className="w-full h-full object-contain"
-                                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001'}${activeLesson.videoUrl}`}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-800 space-y-4">
-                                            <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-2">
-                                                <ExternalLink className="w-8 h-8 text-indigo-400" />
-                                            </div>
-                                            <h4 className="text-white font-black uppercase tracking-widest text-sm">External Resource Link</h4>
-                                            <p className="text-slate-400 text-[10px] uppercase font-bold text-center max-w-xs mb-4">This lesson is hosted on the official Ministry of Education portal.</p>
-                                            <Button 
-                                                variant="secondary"
-                                                onClick={() => window.open('https://learn-english.moe.gov.et/', '_blank')}
-                                                className="bg-indigo-600 hover:bg-indigo-700 text-white border-transparent backdrop-blur-md rounded-2xl font-black text-[10px] uppercase h-12 px-8 shadow-xl shadow-indigo-600/20 transition-all"
-                                            >
-                                                Open MoE Portal <ArrowUpRight className="w-4 h-4 ml-2" />
-                                            </Button>
-                                        </div>
-                                    )}
+                            </div>
+                        ) : activeLesson.type === 'quiz' || activeLesson.type === 'exercise' ? (
+                            <div className="w-full h-full bg-slate-50/50 flex flex-col items-center justify-center p-12 overflow-y-auto">
+                                <div className="w-full max-w-4xl">
+                                    <AIQuiz 
+                                        lessonTitle={activeLesson.title}
+                                        type={activeLesson.type as any}
+                                        onComplete={(percentage) => {
+                                            toast({ title: "Module Complete", description: `You scored ${percentage}% in ${activeLesson.title}` })
+                                        }}
+                                    />
                                 </div>
-                            </>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full bg-white flex flex-col items-center justify-center text-slate-900 p-20 text-center relative">
+                                <Sparkles className="w-20 h-20 mb-8 text-sky-400 opacity-20" />
+                                <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-4 text-slate-900">Interactive Content</h2>
+                                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] opacity-80">{activeLesson.title}</p>
+                            </div>
                         )}
                     </div>
                 ) : (
-                    <div className="w-full h-[45vh] max-h-[450px] relative">
-                        <img src={course.image} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                        
-                        <div className="absolute top-8 left-8 flex gap-3">
-                            <Badge className="bg-indigo-500/90 text-white border-indigo-400 px-4 py-2 rounded-2xl font-black text-[9px] uppercase tracking-widest backdrop-blur-md">
-                                {course.delivery} Mode
-                            </Badge>
-                            {course.isPremium && (
-                                <Badge className="bg-amber-400 text-amber-950 border-amber-300 px-4 py-2 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl">
-                                    <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Premium Access
-                                </Badge>
-                            )}
-                        </div>
-
-                        <div className="absolute bottom-12 left-12 right-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                            <div className="max-w-2xl space-y-3">
-                                <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em]">Grade {course.grade} • {course.semester}</p>
-                                <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl italic uppercase">
-                                    {course.name}
-                                </h1>
-                                <div className="flex items-center gap-3 pt-2">
-                                    <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                                        <GraduationCap className="w-5 h-5 text-indigo-300" />
-                                    </div>
-                                    <p className="text-white/80 text-sm font-bold">{course.tutor}</p>
-                                </div>
-                            </div>
-                            {course.enrolled && (
+                    <div className="w-full h-full relative">
+                        <div className="absolute inset-0 bg-white" />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 max-w-5xl mx-auto">
+                            <Badge className="bg-sky-50 text-sky-600 border border-sky-100 px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase mb-10 shadow-sm">Grade {course.grade} • Academic Track</Badge>
+                            <h1 className="text-6xl lg:text-8xl font-black text-slate-900 italic uppercase tracking-tighter mb-10 leading-[0.9]">
+                                {course.name.split(' ').map((word: string, i: number) => (
+                                    <span key={i} className={i % 2 === 1 ? "text-sky-600" : ""}>{word} </span>
+                                ))}
+                            </h1>
+                            
+                            {!course.enrolled ? (
+                                <Button 
+                                    onClick={handleEnroll} 
+                                    disabled={enrolling}
+                                    className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4"
+                                >
+                                    {enrolling ? "Synchronizing..." : `Initialize Learning for ${course.priceValue} ETB`}
+                                    <ArrowRight className="w-6 h-6" />
+                                </Button>
+                            ) : (
                                 <Button 
                                     onClick={() => setActiveLesson(lessons[0])}
-                                    className="bg-white hover:bg-indigo-50 text-indigo-600 h-16 px-10 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+                                    className="h-20 px-16 rounded-[32px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-sky-100 hover:scale-105 transition-all active:scale-95 flex items-center gap-4"
                                 >
-                                    <PlayCircle className="w-5 h-5 mr-3 fill-indigo-600/10" /> Resume Course
+                                    <PlayCircle className="w-6 h-6" />
+                                    Resume Mastering
                                 </Button>
                             )}
                         </div>
                     </div>
                 )}
+                {activeLesson && (
+                    <Button 
+                        onClick={() => setActiveLesson(null)}
+                        className="absolute top-10 left-10 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-2xl font-black uppercase text-[10px] tracking-[0.2em] z-50 transition-all"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-3" /> Minimize View
+                    </Button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* ── Left Column ── */}
-                <div className="lg:col-span-2 space-y-10">
-                    
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { icon: Users, label: "Community", value: `${course.students}+`, color: "sky" },
-                            { icon: BookOpen, label: "Curriculum", value: `${course.lessonsCount} Modules`, color: "indigo" },
-                            { icon: Star, label: "Expert Rating", value: course.rating, color: "amber" },
-                            { icon: Clock, label: "Format", value: course.delivery, color: "emerald" },
-                        ].map((s) => (
-                            <div key={s.label} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-3">
-                                <div className={`w-10 h-10 rounded-xl bg-${s.color}-50 flex items-center justify-center text-${s.color}-500`}>
-                                    <s.icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
-                                    <p className="text-sm font-black text-slate-900">{s.value}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {/* ── Modern Content Architecture ── */}
+            <div className="flex-1 max-w-7xl mx-auto w-full px-8 py-20">
+                <Tabs defaultValue="lectures" className="w-full" onValueChange={setActiveTab}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
+                        <TabsList className="h-20 bg-white p-2 rounded-[32px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex items-stretch min-w-[600px]">
+                            <TabsTrigger value="lectures" className="flex-1 rounded-[24px] data-[state=active]:bg-[#0F172A] data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                                <Video className="w-4 h-4 mr-3" /> Lectures
+                            </TabsTrigger>
+                            <TabsTrigger value="materials" className="flex-1 rounded-[24px] data-[state=active]:bg-amber-500 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                                <Book className="w-4 h-4 mr-3" /> Resources
+                            </TabsTrigger>
+                            <TabsTrigger value="practice" className="flex-1 rounded-[24px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                                <Zap className="w-4 h-4 mr-3" /> Practice
+                            </TabsTrigger>
+                            <TabsTrigger value="ai" className="flex-1 rounded-[24px] data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                                <BrainCircuit className="w-4 h-4 mr-3" /> Smart Tutor
+                            </TabsTrigger>
+                        </TabsList>
 
-                    {/* About Section */}
-                    <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest italic">Course Overview</h3>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[8px] font-black text-slate-400 uppercase">Live Verification Active</span>
+                        <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-[28px] border border-slate-100 shadow-sm">
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Your Progress</p>
+                                <p className="text-xl font-black text-slate-900 italic leading-none">{course.progress}%</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                                <CheckCircle className="w-6 h-6 text-indigo-600" />
                             </div>
                         </div>
-                        <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                            {course.description}
-                        </p>
                     </div>
 
-                    {/* Assignments Section */}
-                    <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm space-y-8">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center border border-rose-100">
-                                    <FileText className="w-6 h-6 text-rose-500" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900 uppercase italic">Course Assignments</h3>
-                            </div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{assignments.length} Total</span>
-                        </div>
 
-                        {assignments.length === 0 ? (
-                            <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 opacity-30">
-                                <Clock className="w-10 h-10 text-slate-300" />
-                                <p className="text-[10px] font-black uppercase tracking-widest">No active assignments</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-4">
-                                {assignments.map(assignment => {
-                                    const submission = submissions.find(s => s.assignment === assignment._id)
-                                    const isClosed = new Date(assignment.dueDate) < new Date()
-                                    
-                                    return (
-                                        <div key={assignment._id} className="p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:border-rose-100 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                            <div className="space-y-1">
-                                                <h4 className="text-sm font-black text-slate-900 uppercase italic">{assignment.title}</h4>
-                                                <div className="flex items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
-                                                    <span>•</span>
-                                                    <span>{assignment.maxMarks} Max Marks</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                {submission ? (
-                                                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase border border-emerald-100">
-                                                        <CheckCircle className="w-4 h-4" /> 
-                                                        {submission.status === "evaluated" ? `Score: ${submission.marksObtained}/${assignment.maxMarks}` : "Submitted"}
-                                                    </div>
-                                                ) : isClosed ? (
-                                                    <div className="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-[9px] font-black uppercase border border-slate-200">
-                                                        <Lock className="w-4 h-4 mr-2 inline" /> Closed
-                                                    </div>
-                                                ) : (
-                                                    <Button 
-                                                        onClick={() => setSubmittingAssignmentId(assignment._id)}
-                                                        className="h-10 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 transition-all active:scale-95"
-                                                    >
-                                                        Submit Work
-                                                    </Button>
-                                                )}
+                    <div className="mt-12">
+                        {/* ── Lectures Tab ── */}
+                        <TabsContent value="lectures" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {lectures.map((l, i) => (
+                                    <div key={i} onClick={() => setActiveLesson(l)} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-2xl transition-all cursor-pointer">
+                                        <div className="aspect-video rounded-2xl bg-slate-50 mb-6 overflow-hidden relative border border-slate-100">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors">
+                                                <PlayCircle className="w-10 h-10 text-indigo-600 opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all" />
                                             </div>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Submit Assignment Modal */}
-                    {submittingAssignmentId && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-4">
-                            <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-2xl animate-in zoom-in-95 duration-300">
-                                <div className="flex items-center justify-between mb-8">
-                                    <div>
-                                        <h2 className="text-2xl font-black text-slate-900 uppercase italic">Submit Assignment</h2>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Upload or type your response</p>
+                                        <h4 className="font-black text-slate-900 uppercase italic text-sm mb-2 truncate">{l.title}</h4>
+                                        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> 15:00</span>
+                                            <span className="text-indigo-600">Video Lesson</span>
+                                        </div>
                                     </div>
-                                    <button onClick={() => setSubmittingAssignmentId(null)} className="p-3 rounded-2xl hover:bg-slate-100 text-slate-400">
-                                        <X className="w-5 h-5" />
-                                    </button>
+                                ))}
+                                {lectures.length === 0 && <div className="col-span-full py-20 text-center font-black uppercase text-slate-400 italic">No video lectures uploaded yet.</div>}
+                            </div>
+                        </TabsContent>
+
+                        {/* ── Materials Tab ── */}
+                        <TabsContent value="materials" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {materials.map((l, i) => (
+                                    <div key={i} onClick={() => setActiveLesson(l)} className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-amber-100 hover:shadow-2xl transition-all cursor-pointer flex items-center gap-8">
+                                        <div className="w-20 h-20 rounded-[32px] bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0 group-hover:scale-110 transition-transform">
+                                            <FileDown className="w-10 h-10 text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-slate-900 uppercase italic text-lg mb-2">{l.title}</h4>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{l.type?.toUpperCase() || "DOCUMENTATION"}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {materials.length === 0 && <div className="col-span-full py-20 text-center font-black uppercase text-slate-400 italic">No study materials found.</div>}
+                            </div>
+                        </TabsContent>
+
+                        {/* ── Practice Tab ── */}
+                        <TabsContent value="practice" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                            {practice.map((l, i) => (
+                                <div key={i} className="group p-8 rounded-[48px] bg-white border border-slate-100 hover:border-emerald-100 hover:shadow-2xl transition-all flex flex-col md:flex-row md:items-center justify-between gap-8">
+                                    <div className="flex items-center gap-8">
+                                        <div className="w-20 h-20 rounded-[32px] bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0">
+                                            <Zap className="w-10 h-10 text-emerald-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-slate-900 uppercase italic text-xl mb-2">{l.title}</h4>
+                                            <div className="flex items-center gap-4">
+                                                <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase">10 Questions</Badge>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Required Activity</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => { setActiveLesson(l); setShowQuiz(true); }}
+                                        className="h-16 px-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100 active:scale-95 transition-all"
+                                    >
+                                        Start Assessment
+                                    </Button>
                                 </div>
-                                <div className="space-y-6">
-                                    <textarea 
-                                        value={submissionContent}
-                                        onChange={e => setSubmissionContent(e.target.value)}
-                                        placeholder="Type your answer here or provide a link to your work..."
-                                        rows={8}
-                                        className="w-full rounded-[32px] border border-slate-100 bg-slate-50/50 p-6 text-sm font-medium focus:ring-2 focus:ring-rose-500/10 outline-none transition-all resize-none"
-                                    />
-                                    <div className="flex gap-4">
-                                        <button onClick={() => setSubmittingAssignmentId(null)} className="flex-1 py-4 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50">
-                                            Cancel
-                                        </button>
+                            ))}
+                            {practice.length === 0 && <div className="py-20 text-center font-black uppercase text-slate-400 italic">No assessments available yet.</div>}
+                        </TabsContent>
+
+                        {/* ── Smart Tutor Tab ── */}
+                        <TabsContent value="ai" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+                                <div className="w-full md:w-1/3 bg-slate-900 p-12 text-white flex flex-col justify-between">
+                                    <div className="space-y-6">
+                                        <div className="w-16 h-16 rounded-[28px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+                                            <BrainCircuit className="w-8 h-8 text-indigo-400" />
+                                        </div>
+                                        <h3 className="text-4xl font-black uppercase italic tracking-tighter">Academic <span className="text-indigo-400">Tutor</span></h3>
+                                        <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                                            Ask Gemini anything about your course. It's trained on your specific grade and curriculum.
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-2">Live Context</p>
+                                        <p className="text-xs font-bold">{activeLesson?.title || course.name}</p>
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex flex-col bg-slate-50 p-12">
+                                    <ScrollArea className="flex-1 pr-6">
+                                        <div className="space-y-8">
+                                            {aiMessages.length === 0 ? (
+                                                <div className="py-20 text-center space-y-6 opacity-30">
+                                                    <Sparkles className="w-16 h-16 mx-auto text-indigo-500" />
+                                                    <p className="font-black uppercase text-sm tracking-[0.3em]">How can I guide your learning?</p>
+                                                </div>
+                                            ) : aiMessages.map((msg, i) => (
+                                                <div key={i} className={cn("flex flex-col gap-3", msg.role === 'user' ? "items-end" : "items-start")}>
+                                                    <div className={cn("p-6 rounded-[32px] text-sm font-medium leading-relaxed max-w-[85%] shadow-xl", 
+                                                        msg.role === 'user' ? "bg-slate-900 text-white rounded-tr-none" : "bg-white text-slate-700 rounded-tl-none")}>
+                                                        {msg.content}
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase px-4">{msg.role === 'user' ? 'You' : 'Smart Tutor'}</span>
+                                                </div>
+                                            ))}
+                                            {isAiTyping && (
+                                                <div className="flex items-start gap-4 animate-pulse">
+                                                    <div className="bg-white p-6 rounded-[32px] rounded-tl-none shadow-sm">
+                                                        <div className="flex gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" />
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ScrollArea>
+                                    <div className="mt-10 relative group">
+                                        <Input 
+                                            value={aiInput}
+                                            onChange={e => setAiInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleAskAi()}
+                                            placeholder="Type your academic question here..."
+                                            className="h-16 pl-8 pr-20 rounded-3xl bg-white border-slate-200 font-bold text-sm shadow-xl focus:ring-4 focus:ring-indigo-100 transition-all"
+                                        />
                                         <Button 
-                                            disabled={isSubmitting || !submissionContent}
-                                            onClick={handleSubmitAssignment}
-                                            className="flex-1 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-rose-100 transition-all"
+                                            onClick={handleAskAi}
+                                            disabled={!aiInput.trim() || isAiTyping}
+                                            className="absolute right-3 top-3 h-10 w-10 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white shadow-xl transition-all active:scale-90"
                                         >
-                                            {isSubmitting ? "Submitting..." : "Send to Tutor"}
+                                            <Send className="w-4 h-4" />
                                         </Button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* AI Academic Library */}
-                    <div className="bg-white rounded-[40px] border border-slate-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-10 opacity-5">
-                            <Sparkles className="w-32 h-32 text-indigo-500" />
-                        </div>
-
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-50 pb-8 relative z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-[24px] bg-indigo-50 flex items-center justify-center border border-indigo-100/50 shadow-inner">
-                                    <Library className="w-7 h-7 text-indigo-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1.5">AI Academic Library</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Curated by Gemini • Grade {course.grade} Specialized</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {course.syllabusUrl && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => window.open(course.syllabusUrl, '_blank')}
-                                        className="h-11 px-6 rounded-2xl border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm"
-                                    >
-                                        <FileDown className="w-4 h-4" /> Curriculum Outline
-                                    </Button>
-                                )}
-                                <Button
-                                    onClick={() => {
-                                        loadAiResources(course.name, course.grade);
-                                        toast({ title: "Refreshing Library", description: "Finding new specialized resources...", className: "bg-indigo-600 text-white" })
-                                    }}
-                                    className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 transition-all"
-                                >
-                                    <BrainCircuit className="w-4 h-4" /> Re-curate Resources
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
-                            {/* Videos */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between px-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Youtube className="w-4 h-4 text-rose-500" /> Masterclass Videos
-                                    </h4>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[8px] font-black text-rose-400 uppercase bg-rose-50 px-2 py-0.5 rounded-full">HQ Streams</span>
-                                        <button 
-                                            onClick={() => window.open('https://support.google.com/youtube/answer/3037019', '_blank')}
-                                            className="text-[8px] font-black text-slate-400 hover:text-indigo-500 transition-colors uppercase flex items-center gap-1"
-                                        >
-                                            <Search className="w-2.5 h-2.5" /> Troubleshooting
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    {isAiLoading ? (
-                                        [1, 2].map(i => <Skeleton key={i} className="h-24 rounded-3xl w-full" />)
-                                    ) : aiResources?.videos?.map((res: any, i: number) => (
-                                        <div 
-                                            key={i}
-                                            onClick={() => {
-                                                setActiveLesson({ title: res.title, videoUrl: res.url, duration: "AI Curation", type: "video", isAI: true })
-                                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                                            }}
-                                            className="w-full group/res bg-slate-50/30 hover:bg-white p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all flex items-center justify-between cursor-pointer active:scale-[0.98]"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover/res:bg-rose-50 transition-colors">
-                                                    <PlayCircle className="w-5 h-5 text-slate-300 group-hover/res:text-rose-500" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-tight group-hover/res:text-indigo-600 transition-colors line-clamp-2 italic">{res.title}</p>
-                                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 inline-block">{res.language} Lecture</span>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover/res:translate-x-1 transition-all" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Books */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between px-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Book className="w-4 h-4 text-indigo-500" /> Digital Textbooks
-                                    </h4>
-                                    <span className="text-[8px] font-black text-indigo-400 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">Official MoE</span>
-                                </div>
-                                <div className="space-y-4">
-                                    {isAiLoading ? (
-                                        [1].map(i => <Skeleton key={i} className="h-24 rounded-3xl w-full" />)
-                                    ) : aiResources?.books?.map((res: any, i: number) => (
-                                        <div 
-                                            key={i}
-                                            onClick={() => window.open('https://learn-english.moe.gov.et/', '_blank')}
-                                            className="w-full group/book bg-slate-50/30 hover:bg-white p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all flex items-center justify-between cursor-pointer active:scale-[0.98]"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover/book:bg-indigo-50 transition-colors">
-                                                    <BookOpen className="w-5 h-5 text-slate-300 group-hover/book:text-indigo-500" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-tight group-hover/book:text-indigo-600 transition-colors line-clamp-2 italic">{res.title}</p>
-                                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 inline-block">{res.type} Portal</span>
-                                                </div>
-                                            </div>
-                                            <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover/book:translate-x-0.5 group-hover/book:-translate-y-0.5 transition-all" />
-                                        </div>
-                                    ))}
-                                </div>
-                                {!isAiLoading && (
-                                    <div className="p-8 rounded-[32px] bg-slate-50/50 border border-slate-100 flex flex-col items-center text-center space-y-3">
-                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                            <Sparkles className="w-5 h-5 text-indigo-400" />
-                                        </div>
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Can't find a specific book?</p>
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed max-w-[180px]">Ask our AI to generate a summary guide for any topic in this course!</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        </TabsContent>
                     </div>
-                </div>
+                </Tabs>
+            </div>
 
-                {/* ── Right Column ── */}
-                <div className="space-y-8">
-                    
-                    {/* Progress Bar (Sticky-ish) */}
-                    {course.enrolled && (
-                        <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-6 opacity-20">
-                                <Zap className="w-12 h-12 text-indigo-400 fill-indigo-400" />
-                            </div>
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-2">Platform Mastery</h4>
-                            <div className="flex items-end justify-between mb-4">
-                                <span className="text-4xl font-black tracking-tighter italic">{course.progress}%</span>
-                                <span className="text-[9px] font-black uppercase text-indigo-300 mb-1">Rank: Rising Star</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Enrollment CTA */}
-                    {!course.enrolled && (
-                        <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-xl space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-black text-slate-900 uppercase italic">Get Started</h3>
-                                {course.isPremium && (
-                                    <div className="text-right">
-                                        <span className="text-2xl font-black text-slate-900">{course.priceValue}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 ml-1">ETB</span>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-slate-500 text-xs font-medium leading-relaxed">
-                                Join our specialized community and unlock expert-led curriculum, AI-powered quizzes, and official certificates.
-                            </p>
-                            <Button
-                                onClick={handleEnroll}
-                                disabled={enrolling}
-                                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-200 active:scale-[0.98] transition-all"
-                            >
-                                {enrolling ? "Enrolling..." : course.isPremium ? "Unlock Premium" : "Enroll Now"}
+            {/* Quiz Overlay */}
+            {showQuiz && activeLesson && (
+                <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-3xl z-[300] p-8 lg:p-20 overflow-y-auto">
+                    <div className="max-w-5xl mx-auto space-y-12">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Assessment <span className="text-emerald-400">Mode</span></h2>
+                            <Button variant="ghost" onClick={() => setShowQuiz(false)} className="rounded-2xl text-white hover:bg-white/10">
+                                <X className="w-8 h-8 mr-3" /> <span className="font-black uppercase text-xs">Exit</span>
                             </Button>
                         </div>
-                    )}
-
-                    {/* Content List */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-8">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-slate-900 uppercase italic">Curriculum</h3>
-                            <Badge variant="secondary" className="rounded-lg text-[9px] font-black uppercase bg-slate-50">{lessons.length} Modules</Badge>
-                        </div>
-
-                        <div className="space-y-3">
-                            {lessons.length > 0 ? lessons.map((lesson, idx) => {
-                                const isLocked = !course.enrolled && idx > 0;
-                                const isActive = activeLesson?.id === lesson.id || activeLesson?.title === lesson.title;
-                                return (
-                                    <div
-                                        key={lesson._id || idx}
-                                        onClick={() => {
-                                            if (isLocked) {
-                                                toast({ title: "Module Locked", description: "Enroll to unlock full access.", variant: "destructive" })
-                                                return
-                                            }
-                                            setActiveLesson(lesson)
-                                            setShowQuiz(false)
-                                            window.scrollTo({ top: 0, behavior: 'smooth' })
-                                        }}
-                                        className={cn(
-                                            "w-full p-4 rounded-2xl border transition-all cursor-pointer group/item flex items-center justify-between",
-                                            isActive ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50 hover:border-slate-200 hover:bg-slate-50/50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            <div className={cn(
-                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
-                                                lesson.completed ? "bg-emerald-50 border-emerald-100" :
-                                                isActive ? "bg-white border-indigo-200 shadow-sm" : "bg-white border-slate-100"
-                                            )}>
-                                                {lesson.completed ? <CheckCircle className="w-5 h-5 text-emerald-500" /> :
-                                                 isLocked ? <Lock className="w-4 h-4 text-slate-300" /> :
-                                                 <PlayCircle className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-slate-300")} />}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className={cn("text-[11px] font-black uppercase truncate italic", isActive ? "text-indigo-600" : "text-slate-900")}>
-                                                    {lesson.title}
-                                                </h4>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{lesson.duration || "15 min"} • {lesson.type || "Video"}</p>
-                                            </div>
-                                        </div>
-                                        {isActive && <ChevronRight className="w-4 h-4 text-indigo-400" />}
-                                    </div>
-                                )
-                            }) : (
-                                <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 opacity-40">
-                                    <MonitorPlay className="w-10 h-10 text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest">No Modules Uploaded</p>
-                                </div>
-                            )}
+                        <div className="bg-white rounded-[56px] p-2 shadow-2xl overflow-hidden">
+                            <AIQuiz 
+                                courseId={courseId} 
+                                lessonId={activeLesson._id || activeLesson.id} 
+                                onComplete={() => { setShowQuiz(false); toast({ title: "Lesson Completed!", className: "bg-emerald-500 text-white" }) }}
+                            />
                         </div>
                     </div>
-
                 </div>
-            </div>
-        </div>
-    )
-}
+            )}
 
-function Badge({ children, className, variant = "default" }: { children: React.ReactNode, className?: string, variant?: "default" | "secondary" }) {
-    return (
-        <div className={cn("px-2 py-1 rounded-md text-xs font-bold", className)}>
-            {children}
+            {/* Global AI Floating Toggle (For when not in AI tab) */}
+            {activeTab !== "ai" && (
+                <div className="fixed bottom-12 right-12 z-[200]">
+                    <Button 
+                        onClick={() => setActiveTab("ai")}
+                        className="w-20 h-20 rounded-[32px] bg-slate-900 hover:bg-indigo-600 text-white shadow-2xl transition-all duration-500 hover:scale-110 group relative"
+                    >
+                        <BrainCircuit className="w-10 h-10 group-hover:rotate-12 transition-transform" />
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-50 flex items-center justify-center animate-bounce">
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        </div>
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

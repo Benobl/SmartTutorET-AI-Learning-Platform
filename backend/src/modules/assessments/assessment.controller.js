@@ -54,8 +54,21 @@ export class AssessmentController {
 
     static async generateAI(req, res, next) {
         try {
-            const assessment = await AssessmentService.generateAIQuiz(req.user._id, req.body);
+            const isOfficial = req.user.role !== "student";
+            const assessment = await AssessmentService.generateAIQuiz(req.user._id, { 
+                ...req.body, 
+                isOfficial 
+            });
             res.status(201).json({ success: true, message: "AI Quiz generated successfully", data: assessment });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async start(req, res, next) {
+        try {
+            const attempt = await AssessmentService.startAttempt(req.user._id, req.params.id);
+            res.json({ success: true, message: "Assessment started", data: attempt });
         } catch (error) {
             next(error);
         }

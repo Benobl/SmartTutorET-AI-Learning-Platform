@@ -57,9 +57,14 @@ const videoStorage = multer.diskStorage({
 export const uploadVideo = multer({
     storage: videoStorage,
     fileFilter: (req, file, cb) => {
-        const allowedTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-matroska"];
+        const allowedTypes = [
+            "video/mp4", "video/webm", "video/quicktime", "video/x-matroska",
+            "application/pdf", 
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        ];
         if (allowedTypes.includes(file.mimetype)) cb(null, true);
-        else cb(new Error("Invalid video type. Only MP4, WebM, and MOV files are allowed."), false);
+        else cb(new Error("Invalid file type. Only videos, PDFs, and PPTs are allowed."), false);
     },
     limits: { fileSize: 500 * 1024 * 1024 } // 500MB
 });

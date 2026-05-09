@@ -23,6 +23,7 @@ import {
     BarChart3,
     Shield,
     Activity,
+    AlertCircle,
 } from "lucide-react"
 import {
     Sidebar,
@@ -276,12 +277,24 @@ const adminNavItems: NavItem[] = [
         activeColor: "amber",
     },
     {
+        title: "Moderation",
+        url: "/dashboard/admin/moderation",
+        icon: AlertCircle,
+        activeColor: "rose",
+    },
+    {
+        title: "System Health",
+        url: "/dashboard/admin/system",
+        icon: Activity,
+        activeColor: "sky",
+    },
+    {
         title: "Settings",
         url: "/dashboard/admin/settings",
         icon: Settings,
         activeColor: "slate",
     },
-]
+];
 
 
 /**

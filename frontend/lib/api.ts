@@ -255,6 +255,10 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify({ subject, grade, outline })
     }),
+    askTutor: (studentQuery: string, performanceData: any) => fetchWithAuth("/ai/tutor-response", {
+        method: "POST",
+        body: JSON.stringify({ studentQuery, performanceData })
+    }),
     generateGradeCurriculum: (grade: string, stream: string) => fetchWithAuth("/ai/generate-grade-curriculum", {
         method: "POST",
         body: JSON.stringify({ grade, stream })
@@ -384,6 +388,12 @@ export const adminApi = {
     getAnalytics: (range?: string) => fetchWithAuth(`/admin/analytics${range ? `?range=${range}` : ""}`),
     getSettings: () => fetchWithAuth("/admin/settings"),
     updateSettings: (data: any) => fetchWithAuth("/admin/settings", { method: "PATCH", body: JSON.stringify(data) }),
+    getHealth: () => fetchWithAuth("/admin/health"),
+    getFlags: () => fetchWithAuth("/admin/flags"),
+    resolveFlag: (id: string, note?: string) => fetchWithAuth(`/admin/flags/${id}/resolve`, {
+        method: "PATCH",
+        body: JSON.stringify({ note })
+    }),
 };
 
 
@@ -441,6 +451,9 @@ export const assessmentApi = {
     submit: (id: string, data: any) => fetchWithAuth(`/assessments/${id}/submit`, {
         method: "POST",
         body: JSON.stringify(data)
+    }),
+    start: (id: string) => fetchWithAuth(`/assessments/${id}/start`, {
+        method: "POST"
     }),
     getSubmissions: (assessmentId?: string) => {
         const query = assessmentId ? `?assessmentId=${assessmentId}` : "";

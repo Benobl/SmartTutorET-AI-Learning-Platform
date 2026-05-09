@@ -221,4 +221,31 @@ export class AdminController {
             next(error);
         }
     }
+
+    static async getHealth(req, res, next) {
+        try {
+            const health = await AdminService.getSystemHealth();
+            res.json({ success: true, data: health });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getFlags(req, res, next) {
+        try {
+            const flags = await AdminService.getAllFlags();
+            res.json({ success: true, data: flags });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async resolveFlag(req, res, next) {
+        try {
+            const flag = await AdminService.resolveFlag(req.params.id, req.user._id, req.body.note);
+            res.json({ success: true, message: "Flag resolved successfully", data: flag });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

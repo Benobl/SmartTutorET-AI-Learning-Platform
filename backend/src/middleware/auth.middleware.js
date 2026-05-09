@@ -33,3 +33,15 @@ export const verifyToken = async (req, res, next) => {
 }
 
 export const protectRoute = verifyToken;
+
+export const authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).json({ 
+                message: `FORBIDDEN: Access denied for role '${req.user?.role || "unknown"}'` 
+            });
+        }
+        next();
+    };
+};
+

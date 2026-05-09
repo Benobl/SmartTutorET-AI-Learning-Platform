@@ -16,6 +16,8 @@ const attemptSchema = new mongoose.Schema(
       {
         questionId: { type: mongoose.Schema.Types.ObjectId },
         selectedAnswer: { type: String },
+        isCorrect: { type: Boolean },
+        pointsEarned: { type: Number }
       },
     ],
     score: {
@@ -39,6 +41,14 @@ const attemptSchema = new mongoose.Schema(
     },
     feedback: {
       type: String,
+    },
+    startedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    timeSpent: {
+      type: Number, // in seconds
+      default: 0,
     },
     submittedAt: {
       type: Date,
