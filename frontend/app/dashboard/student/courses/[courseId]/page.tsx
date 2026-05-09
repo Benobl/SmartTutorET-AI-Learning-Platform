@@ -141,6 +141,12 @@ export default function CourseDetailPage() {
         if (courseId) loadCourse()
     }, [courseId])
 
+    useEffect(() => {
+        if (lessons.length > 0 && !activeLesson) {
+            setActiveLesson(lessons[0])
+        }
+    }, [lessons, activeLesson])
+
     const handleEnroll = async () => {
         if (!currentUser) return router.push("/auth/login")
         setEnrolling(true)
@@ -234,7 +240,7 @@ export default function CourseDetailPage() {
                                             />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
-                                                <VideoIcon className="w-16 h-16 opacity-20" />
+                                                <Video className="w-16 h-16 opacity-20" />
                                                 <p className="font-bold text-sm uppercase tracking-widest">Video Stream Unavailable</p>
                                             </div>
                                         )}
@@ -330,14 +336,17 @@ export default function CourseDetailPage() {
                 <Tabs defaultValue="lectures" className="w-full" onValueChange={setActiveTab}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
                         <TabsList className="h-20 bg-white p-2 rounded-[32px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex items-stretch min-w-[600px]">
-                            <TabsTrigger value="lectures" className="flex-1 rounded-[24px] data-[state=active]:bg-[#0F172A] data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                            <TabsTrigger value="lectures" className="flex-1 rounded-[24px] data-[state=active]:bg-[#0F172A] data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
                                 <Video className="w-4 h-4 mr-3" /> Lectures
+                                {lectures.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{lectures.length}</span>}
                             </TabsTrigger>
-                            <TabsTrigger value="materials" className="flex-1 rounded-[24px] data-[state=active]:bg-amber-500 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                            <TabsTrigger value="materials" className="flex-1 rounded-[24px] data-[state=active]:bg-amber-500 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
                                 <Book className="w-4 h-4 mr-3" /> Resources
+                                {materials.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{materials.length}</span>}
                             </TabsTrigger>
-                            <TabsTrigger value="practice" className="flex-1 rounded-[24px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                            <TabsTrigger value="practice" className="flex-1 rounded-[24px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
                                 <Zap className="w-4 h-4 mr-3" /> Practice
+                                {practice.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-600 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{practice.length}</span>}
                             </TabsTrigger>
                             <TabsTrigger value="ai" className="flex-1 rounded-[24px] data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
                                 <BrainCircuit className="w-4 h-4 mr-3" /> Smart Tutor
