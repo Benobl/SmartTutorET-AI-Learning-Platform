@@ -3,22 +3,46 @@
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import {
-    ArrowLeft, PlayCircle, Clock, Users, Star, CheckCircle,
+    ArrowLeft, ArrowRight, PlayCircle, Clock, Users, Star, CheckCircle,
     BookOpen, Video, MonitorPlay, Calendar, Zap, Lock,
     ChevronRight, GraduationCap, Sparkles, BrainCircuit, FileDown,
-    Youtube, Book, ExternalLink, Library, ArrowUpRight, Search
+    Youtube, Book, ExternalLink, Library, ArrowUpRight, Search,
+    MessageSquare, FileText, Send, X, PenTool, ChevronDown, ChevronUp
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { courseApi, paymentApi, aiApi } from "@/lib/api"
+import { courseApi, paymentApi, aiApi, assignmentApi, assessmentApi } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AIQuiz } from "@/components/dashboard/courses/ai-quiz"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+interface Message {
+    role: "user" | "assistant"
+    content: string
+}
+
+const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    } else if (url.includes("youtube.com/watch?v=")) {
+        videoId = url.split("v=")[1]?.split("&")[0];
+    } else if (url.includes("youtube.com/embed/")) {
+        videoId = url.split("embed/")[1]?.split("?")[0];
+    } else if (url.includes("youtube.com/shorts/")) {
+        videoId = url.split("shorts/")[1]?.split("?")[0];
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : url;
+};
 
 export default function CourseDetailPage() {
     const params = useParams()
-    const searchParams = useSearchParams()
     const router = useRouter()
     const { toast } = useToast()
     const courseId = params.courseId as string
@@ -29,12 +53,16 @@ export default function CourseDetailPage() {
     const [activeLesson, setActiveLesson] = useState<any>(null)
     const [showQuiz, setShowQuiz] = useState(false)
     const [lessons, setLessons] = useState<any[]>([])
-    const [aiResources, setAiResources] = useState<any>(null)
-    const [isAiLoading, setIsAiLoading] = useState(false)
     const [currentUser, setCurrentUser] = useState<any>(null)
+    const [assignments, setAssignments] = useState<any[]>([])
+    const [submissions, setSubmissions] = useState<any[]>([])
+    const [aiMessages, setAiMessages] = useState<Message[]>([])
+    const [aiInput, setAiInput] = useState("")
+    const [isAiTyping, setIsAiTyping] = useState(false)
+    const [activeTab, setActiveTab] = useState("lectures")
 
     useEffect(() => {
-        const userStr = localStorage.getItem("user")
+        const userStr = localStorage.getItem("smarttutor_user")
         if (userStr) setCurrentUser(JSON.parse(userStr))
     }, [])
 
@@ -42,544 +70,497 @@ export default function CourseDetailPage() {
         const loadCourse = async () => {
             setIsLoading(true)
             try {
-                const data = await courseApi.getById(courseId)
-                const courseData = {
-                    id: data._id,
-                    name: data.title,
-                    tutor: data.instructor?.name || "Expert Tutor",
-                    image: data.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-                    grade: data.gradeLevel || 12,
-                    semester: "Semester 1",
-                    rating: 4.8,
+                const res = await courseApi.getById(courseId)
+                const data = res.data || res
+                
+                setCourse({
+                    id: data._id || data.id,
+                    name: data.title || data.name || "Untitled Course",
+                    tutor: data.instructor?.name || data.tutor?.name || "Expert Tutor",
+                    image: data.thumbnail || data.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+                    grade: data.gradeLevel || data.grade || "All Grades",
+                    semester: data.semester || "Semester 1",
                     students: data.students?.length || 0,
-                    description: data.description || "Master the fundamental concepts and advanced techniques in this comprehensive course.",
-                    delivery: data.deliveryMethod || "Recorded",
+                    description: data.description || "Master the fundamental concepts in this comprehensive course.",
                     progress: 0,
                     lessonsCount: data.lessons?.length || 0,
                     completed: 0,
                     priceValue: data.price || 0,
-                    isPremium: (data.price > 0) || data.isPremium || false,
-                    syllabusUrl: data.syllabusUrl,
-                    enrolled: data.students?.includes(currentUser?._id) || data.students?.some((s: any) => s._id === currentUser?._id || s === currentUser?._id)
-                }
-
-                const txRef = searchParams.get("tx_ref")
-                const status = searchParams.get("status")
-                
-                if (txRef && status === "success" && !courseData.enrolled) {
-                    try {
-                        await paymentApi.verify(txRef)
-                        courseData.enrolled = true
-                        toast({ title: "Welcome to Premium!", description: "Access granted successfully.", className: "bg-emerald-500 text-white" })
-                    } catch (e) {
-                        console.error("Verification failed:", e)
+                    enrolled: data.isEnrolled || false
+                })
+                const { supabase } = await import("@/lib/supabase")
+                if (supabase) {
+                    const { data: sbLessons, error: sbError } = await supabase
+                        .from('course_contents')
+                        .select('*')
+                        .eq('course_id', courseId)
+                    
+                    if (!sbError && sbLessons && sbLessons.length > 0) {
+                        // Merge lessons: prioritize Supabase content if title matches
+                        const mongoLessons = data.lessons || [];
+                        const lessonsMap = new Map();
+                        
+                        // First add all mongo lessons
+                        mongoLessons.forEach((ml: any) => lessonsMap.set(ml.title, ml));
+                        
+                        // Then add/override with Supabase lessons
+                        sbLessons.forEach(sbL => {
+                            lessonsMap.set(sbL.title, {
+                                _id: sbL.id,
+                                title: sbL.title,
+                                type: sbL.type,
+                                videoUrl: sbL.content_url,
+                                pptUrl: sbL.content_url,
+                                exerciseUrl: sbL.content_url,
+                                content: sbL.quiz_data ? JSON.stringify(sbL.quiz_data) : null
+                            });
+                        });
+                        
+                        setLessons(Array.from(lessonsMap.values()));
+                    } else {
+                        setLessons(data.lessons || [])
                     }
+                } else {
+                    setLessons(data.lessons || [])
                 }
-
-                setCourse(courseData)
-                setLessons(data.lessons || [])
-
-                if (searchParams.get("continue") === "true" || courseData.enrolled) {
-                    const firstIncomplete = (data.lessons || []).find((l: any) => !l.completed) || data.lessons?.[0]
-                    if (firstIncomplete) setActiveLesson(firstIncomplete)
-                }
-
-                loadAiResources(courseData.name, courseData.grade, data.roadmap)
+                
+                // Load assignments & submissions
+                const [assignRes, subRes] = await Promise.all([
+                    assignmentApi.getByCourse(courseId),
+                    assignmentApi.getMySubmissionsForCourse(courseId)
+                ])
+                setAssignments(assignRes.data || [])
+                setSubmissions(subRes.data || [])
             } catch (error) {
-                console.error("Load Error:", error)
-                setCourse(null)
+                console.error("Failed to load course", error)
+                toast({ title: "Error", description: "Failed to load course data.", variant: "destructive" })
             } finally {
                 setIsLoading(false)
             }
         }
         if (courseId) loadCourse()
-    }, [courseId, searchParams, currentUser?._id])
+    }, [courseId])
 
-    const loadAiResources = async (subject: string, grade: any, roadmap?: any) => {
-        setIsAiLoading(true)
-        try {
-            const outline = roadmap ? JSON.stringify(roadmap) : ""
-            const res = await aiApi.getResourceSuggestions(subject, grade, outline)
-            setAiResources(res.data)
-        } catch (error) {
-            console.error("AI Error:", error)
-        } finally {
-            setIsAiLoading(false)
+    useEffect(() => {
+        if (lessons.length > 0 && !activeLesson) {
+            setActiveLesson(lessons[0])
         }
-    }
+    }, [lessons, activeLesson])
 
     const handleEnroll = async () => {
-        if (!course) return
+        if (!currentUser) return router.push("/auth/login")
         setEnrolling(true)
         try {
-            if (course.isPremium && course.priceValue > 0) {
-                const res = await paymentApi.initialize({
-                    amount: course.priceValue,
-                    subjectId: courseId,
-                    method: "chapa"
-                })
-                if (res.data?.checkout_url) {
-                    window.location.href = res.data.checkout_url
-                } else {
-                    throw new Error("Failed to initialize payment gateway")
-                }
-            } else {
-                await courseApi.enroll(courseId)
-                toast({ title: "Enrollment Successful!", className: "bg-emerald-500 text-white border-none" })
-                setCourse((prev: any) => ({ ...prev, enrolled: true }))
-            }
+            await paymentApi.enrollFree(course.id)
+            setCourse((prev: any) => ({ ...prev, enrolled: true }))
+            toast({ title: "Enrolled Successfully!", description: "Welcome to the course community." })
         } catch (error: any) {
-            toast({ title: "Enrollment Error", description: error.message, variant: "destructive" })
+            toast({ title: "Enrollment Failed", description: error.message, variant: "destructive" })
         } finally {
             setEnrolling(false)
         }
     }
 
-    const handleLessonComplete = (score: number) => {
-        setShowQuiz(false)
-        if (activeLesson) {
-            setLessons(prev => prev.map(l => l.id === activeLesson.id ? { ...l, completed: true } : l))
-            toast({ title: "Lesson Completed!", className: "bg-emerald-500 text-white border-none" })
-            setCourse((prev: any) => ({
-                ...prev,
-                completed: (prev.completed || 0) + 1,
-                progress: Math.min(100, Math.round(((prev.completed + 1) / (prev.lessonsCount || 1)) * 100))
-            }))
-            setActiveLesson(null)
+    const handleAskAi = async () => {
+        if (!aiInput.trim() || isAiTyping) return
+        const userMsg: Message = { role: "user", content: aiInput }
+        setAiMessages(prev => [...prev, userMsg])
+        setAiInput("")
+        setIsAiTyping(true)
+
+        try {
+            const performanceData = { lesson: activeLesson?.title, course: course?.name }
+            const res = await aiApi.askTutor(aiInput, performanceData)
+            const assistantMsg: Message = { role: "assistant", content: res.data.response }
+            setAiMessages(prev => [...prev, assistantMsg])
+        } catch (error: any) {
+            toast({ title: "AI Error", description: error.message, variant: "destructive" })
+        } finally {
+            setIsAiTyping(false)
         }
     }
 
-    if (isLoading) {
-        return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 p-8">
-                <Skeleton className="h-10 w-48 rounded-2xl" />
-                <Skeleton className="h-[400px] w-full rounded-[40px]" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
-                    <div className="lg:col-span-2 space-y-4">
-                        <Skeleton className="h-10 w-3/4 rounded-xl" />
-                        <Skeleton className="h-32 w-full rounded-2xl" />
-                        <Skeleton className="h-64 w-full rounded-3xl" />
-                    </div>
-                    <div className="space-y-4">
-                        {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    if (!course) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center">
-                    <Search className="w-10 h-10 text-slate-200" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 uppercase">Course Not Found</h2>
-                <Button onClick={() => router.push('/dashboard/student/courses')} variant="outline" className="rounded-xl uppercase font-black text-[10px]">Back to Library</Button>
-            </div>
-        )
-    }
-
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 px-4 lg:px-8">
-            
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2.5 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-600 transition-colors group"
-                >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to Library
-                </button>
-                <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
-                        ))}
-                    </div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{course.students.toLocaleString()}+ Students Enrolled</span>
-                </div>
-            </div>
-
-            {/* ── Hero / Video Player ── */}
-            <div className="relative min-h-[300px] lg:min-h-[450px] rounded-[48px] overflow-hidden shadow-2xl bg-slate-900 group transition-all duration-700">
-                {activeLesson ? (
-                    <div className="w-full h-full min-h-[300px] lg:min-h-[450px] flex flex-col items-center justify-center relative">
-                        {showQuiz ? (
-                            <div className="w-full max-w-2xl p-8">
-                                <AIQuiz lessonTitle={activeLesson.title} onComplete={handleLessonComplete} />
-                            </div>
-                        ) : (
-                            <>
-                                <div className="absolute top-6 left-6 z-20">
-                                    <Button 
-                                        onClick={() => setActiveLesson(null)} 
-                                        variant="outline" 
-                                        className="bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-xl rounded-2xl font-black text-[9px] uppercase h-10 px-5"
-                                    >
-                                        <ArrowLeft className="w-4 h-4 mr-2" /> Exit Lesson
-                                    </Button>
-                                </div>
-                                <div className="w-full h-full aspect-video bg-black relative">
-                                    {(activeLesson.isUploadedFile || activeLesson.videoUrl?.startsWith('/uploads')) ? (
-                                        <video
-                                            controls
-                                            controlsList="nodownload"
-                                            onContextMenu={(e) => e.preventDefault()}
-                                            className="w-full h-full object-contain"
-                                            src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001'}${activeLesson.videoUrl}`}
-                                        />
-                                    ) : (
-                                        <>
-                                            <iframe
-                                                width="100%" height="100%"
-                                                src={`https://www.youtube-nocookie.com/embed/${(() => {
-                                                    const urlStr = activeLesson.videoUrl || "";
-                                                    if (urlStr.includes('youtu.be/')) return urlStr.split('youtu.be/')[1].split(/[?#]/)[0];
-                                                    if (urlStr.includes('v=')) return urlStr.split('v=')[1].split('&')[0];
-                                                    if (urlStr.includes('embed/')) return urlStr.split('embed/')[1].split(/[?#]/)[0];
-                                                    return urlStr;
-                                                })()}?autoplay=1&modestbranding=1&rel=0&showinfo=0`}
-                                                frameBorder="0" 
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                                allowFullScreen
-                                                className="w-full h-full"
-                                            />
-                                            {/* Fallback for restricted videos */}
-                                            <div className="absolute bottom-6 right-6 z-30">
-                                                <Button 
-                                                    variant="secondary"
-                                                    onClick={() => window.open(activeLesson.videoUrl, '_blank')}
-                                                    className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-md rounded-xl font-black text-[8px] uppercase h-8 px-4"
-                                                >
-                                                    <ExternalLink className="w-3 h-3 mr-2" /> Open in YouTube
-                                                </Button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    <>
-                        <img src={course.image} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                        
-                        <div className="absolute top-8 left-8 flex gap-3">
-                            <Badge className="bg-indigo-500/90 text-white border-indigo-400 px-4 py-2 rounded-2xl font-black text-[9px] uppercase tracking-widest backdrop-blur-md">
-                                {course.delivery} Mode
-                            </Badge>
-                            {course.isPremium && (
-                                <Badge className="bg-amber-400 text-amber-950 border-amber-300 px-4 py-2 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl">
-                                    <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Premium Access
-                                </Badge>
-                            )}
-                        </div>
-
-                        <div className="absolute bottom-12 left-12 right-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                            <div className="max-w-2xl space-y-3">
-                                <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em]">Grade {course.grade} • {course.semester}</p>
-                                <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl italic uppercase">
-                                    {course.name}
-                                </h1>
-                                <div className="flex items-center gap-3 pt-2">
-                                    <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                                        <GraduationCap className="w-5 h-5 text-indigo-300" />
-                                    </div>
-                                    <p className="text-white/80 text-sm font-bold">{course.tutor}</p>
-                                </div>
-                            </div>
-                            {course.enrolled && (
-                                <Button 
-                                    onClick={() => setActiveLesson(lessons[0])}
-                                    className="bg-white hover:bg-indigo-50 text-indigo-600 h-16 px-10 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
-                                >
-                                    <PlayCircle className="w-5 h-5 mr-3 fill-indigo-600/10" /> Resume Course
-                                </Button>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* ── Left Column ── */}
-                <div className="lg:col-span-2 space-y-10">
-                    
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { icon: Users, label: "Community", value: `${course.students}+`, color: "sky" },
-                            { icon: BookOpen, label: "Curriculum", value: `${course.lessonsCount} Modules`, color: "indigo" },
-                            { icon: Star, label: "Expert Rating", value: course.rating, color: "amber" },
-                            { icon: Clock, label: "Format", value: course.delivery, color: "emerald" },
-                        ].map((s) => (
-                            <div key={s.label} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-3">
-                                <div className={`w-10 h-10 rounded-xl bg-${s.color}-50 flex items-center justify-center text-${s.color}-500`}>
-                                    <s.icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
-                                    <p className="text-sm font-black text-slate-900">{s.value}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* About Section */}
-                    <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest italic">Course Overview</h3>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[8px] font-black text-slate-400 uppercase">Live Verification Active</span>
-                            </div>
-                        </div>
-                        <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                            {course.description}
-                        </p>
-                    </div>
-
-                    {/* AI Academic Library */}
-                    <div className="bg-white rounded-[40px] border border-slate-100 p-10 shadow-sm space-y-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-10 opacity-5">
-                            <Sparkles className="w-32 h-32 text-indigo-500" />
-                        </div>
-
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-50 pb-8 relative z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-[24px] bg-indigo-50 flex items-center justify-center border border-indigo-100/50 shadow-inner">
-                                    <Library className="w-7 h-7 text-indigo-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-1.5">AI Academic Library</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Curated by Gemini • Grade {course.grade} Specialized</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {course.syllabusUrl && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => window.open(course.syllabusUrl, '_blank')}
-                                        className="h-11 px-6 rounded-2xl border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm"
-                                    >
-                                        <FileDown className="w-4 h-4" /> Curriculum Outline
-                                    </Button>
-                                )}
-                                <Button
-                                    onClick={() => {
-                                        loadAiResources(course.name, course.grade);
-                                        toast({ title: "Refreshing Library", description: "Finding new specialized resources...", className: "bg-indigo-600 text-white" })
-                                    }}
-                                    className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 transition-all"
-                                >
-                                    <BrainCircuit className="w-4 h-4" /> Re-curate Resources
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
-                            {/* Videos */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between px-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Youtube className="w-4 h-4 text-rose-500" /> Masterclass Videos
-                                    </h4>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[8px] font-black text-rose-400 uppercase bg-rose-50 px-2 py-0.5 rounded-full">HQ Streams</span>
-                                        <button 
-                                            onClick={() => window.open('https://support.google.com/youtube/answer/3037019', '_blank')}
-                                            className="text-[8px] font-black text-slate-400 hover:text-indigo-500 transition-colors uppercase flex items-center gap-1"
-                                        >
-                                            <Search className="w-2.5 h-2.5" /> Troubleshooting
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    {isAiLoading ? (
-                                        [1, 2].map(i => <Skeleton key={i} className="h-24 rounded-3xl w-full" />)
-                                    ) : aiResources?.videos?.map((res: any, i: number) => (
-                                        <div 
-                                            key={i}
-                                            onClick={() => {
-                                                setActiveLesson({ title: res.title, videoUrl: res.url, duration: "AI Curation", type: "video", isAI: true })
-                                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                                            }}
-                                            className="w-full group/res bg-slate-50/30 hover:bg-white p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all flex items-center justify-between cursor-pointer active:scale-[0.98]"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover/res:bg-rose-50 transition-colors">
-                                                    <PlayCircle className="w-5 h-5 text-slate-300 group-hover/res:text-rose-500" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-tight group-hover/res:text-indigo-600 transition-colors line-clamp-2 italic">{res.title}</p>
-                                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 inline-block">{res.language} Lecture</span>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover/res:translate-x-1 transition-all" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Books */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between px-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Book className="w-4 h-4 text-indigo-500" /> Digital Textbooks
-                                    </h4>
-                                    <span className="text-[8px] font-black text-indigo-400 uppercase bg-indigo-50 px-2 py-0.5 rounded-full">Official MoE</span>
-                                </div>
-                                <div className="space-y-4">
-                                    {isAiLoading ? (
-                                        [1].map(i => <Skeleton key={i} className="h-24 rounded-3xl w-full" />)
-                                    ) : aiResources?.books?.map((res: any, i: number) => (
-                                        <div 
-                                            key={i}
-                                            onClick={() => window.open(res.url, '_blank')}
-                                            className="w-full group/book bg-slate-50/30 hover:bg-white p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all flex items-center justify-between cursor-pointer active:scale-[0.98]"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover/book:bg-indigo-50 transition-colors">
-                                                    <BookOpen className="w-5 h-5 text-slate-300 group-hover/book:text-indigo-500" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-tight group-hover/book:text-indigo-600 transition-colors line-clamp-2 italic">{res.title}</p>
-                                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 inline-block">{res.type} Portal</span>
-                                                </div>
-                                            </div>
-                                            <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover/book:translate-x-0.5 group-hover/book:-translate-y-0.5 transition-all" />
-                                        </div>
-                                    ))}
-                                </div>
-                                {!isAiLoading && (
-                                    <div className="p-8 rounded-[32px] bg-slate-50/50 border border-slate-100 flex flex-col items-center text-center space-y-3">
-                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                            <Sparkles className="w-5 h-5 text-indigo-400" />
-                                        </div>
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Can't find a specific book?</p>
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed max-w-[180px]">Ask our AI to generate a summary guide for any topic in this course!</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── Right Column ── */}
-                <div className="space-y-8">
-                    
-                    {/* Progress Bar (Sticky-ish) */}
-                    {course.enrolled && (
-                        <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-6 opacity-20">
-                                <Zap className="w-12 h-12 text-indigo-400 fill-indigo-400" />
-                            </div>
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-2">Platform Mastery</h4>
-                            <div className="flex items-end justify-between mb-4">
-                                <span className="text-4xl font-black tracking-tighter italic">{course.progress}%</span>
-                                <span className="text-[9px] font-black uppercase text-indigo-300 mb-1">Rank: Rising Star</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Enrollment CTA */}
-                    {!course.enrolled && (
-                        <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-xl space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-black text-slate-900 uppercase italic">Get Started</h3>
-                                {course.isPremium && (
-                                    <div className="text-right">
-                                        <span className="text-2xl font-black text-slate-900">{course.priceValue}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 ml-1">ETB</span>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-slate-500 text-xs font-medium leading-relaxed">
-                                Join our specialized community and unlock expert-led curriculum, AI-powered quizzes, and official certificates.
-                            </p>
-                            <Button
-                                onClick={handleEnroll}
-                                disabled={enrolling}
-                                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-200 active:scale-[0.98] transition-all"
-                            >
-                                {enrolling ? "Enrolling..." : course.isPremium ? "Unlock Premium" : "Enroll Now"}
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Content List */}
-                    <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-8">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-slate-900 uppercase italic">Curriculum</h3>
-                            <Badge variant="secondary" className="rounded-lg text-[9px] font-black uppercase bg-slate-50">{lessons.length} Modules</Badge>
-                        </div>
-
-                        <div className="space-y-3">
-                            {lessons.length > 0 ? lessons.map((lesson, idx) => {
-                                const isLocked = !course.enrolled && idx > 0;
-                                const isActive = activeLesson?.id === lesson.id || activeLesson?.title === lesson.title;
-                                return (
-                                    <div
-                                        key={lesson._id || idx}
-                                        onClick={() => {
-                                            if (isLocked) {
-                                                toast({ title: "Module Locked", description: "Enroll to unlock full access.", variant: "destructive" })
-                                                return
-                                            }
-                                            setActiveLesson(lesson)
-                                            setShowQuiz(false)
-                                            window.scrollTo({ top: 0, behavior: 'smooth' })
-                                        }}
-                                        className={cn(
-                                            "w-full p-4 rounded-2xl border transition-all cursor-pointer group/item flex items-center justify-between",
-                                            isActive ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-50 hover:border-slate-200 hover:bg-slate-50/50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            <div className={cn(
-                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
-                                                lesson.completed ? "bg-emerald-50 border-emerald-100" :
-                                                isActive ? "bg-white border-indigo-200 shadow-sm" : "bg-white border-slate-100"
-                                            )}>
-                                                {lesson.completed ? <CheckCircle className="w-5 h-5 text-emerald-500" /> :
-                                                 isLocked ? <Lock className="w-4 h-4 text-slate-300" /> :
-                                                 <PlayCircle className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-slate-300")} />}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className={cn("text-[11px] font-black uppercase truncate italic", isActive ? "text-indigo-600" : "text-slate-900")}>
-                                                    {lesson.title}
-                                                </h4>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{lesson.duration || "15 min"} • {lesson.type || "Video"}</p>
-                                            </div>
-                                        </div>
-                                        {isActive && <ChevronRight className="w-4 h-4 text-indigo-400" />}
-                                    </div>
-                                )
-                            }) : (
-                                <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 opacity-40">
-                                    <MonitorPlay className="w-10 h-10 text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest">No Modules Uploaded</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                </div>
+    if (isLoading) return (
+        <div className="min-h-screen bg-slate-50 p-8 space-y-8 max-w-7xl mx-auto">
+            <Skeleton className="h-10 w-48 rounded-2xl" />
+            <Skeleton className="h-[400px] w-full rounded-[40px]" />
+            <div className="grid grid-cols-3 gap-8">
+                <Skeleton className="h-64 col-span-2 rounded-[32px]" />
+                <Skeleton className="h-64 rounded-[32px]" />
             </div>
         </div>
     )
-}
 
-function Badge({ children, className, variant = "default" }: { children: React.ReactNode, className?: string, variant?: "default" | "secondary" }) {
+    if (!course) return <div className="p-20 text-center font-black uppercase text-slate-400">Course Not Found</div>
+
+    const lectures = lessons.filter(l => l.type === 'video' || !l.type)
+    const materials = lessons.filter(l => l.type === 'ppt' || l.type === 'document')
+    const practice = [...lessons.filter(l => l.type === 'quiz' || l.type === 'exercise' || l.type === 'exam'), ...assignments]
+
     return (
-        <div className={cn("px-2 py-1 rounded-md text-xs font-bold", className)}>
-            {children}
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+            <div className="relative w-full h-[65vh] bg-white border-b border-slate-100 flex flex-col overflow-hidden">
+                {!course.enrolled ? (
+                    <div className="w-full h-full relative flex items-center justify-center text-center p-8">
+                        <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                            <Badge className="bg-sky-50 text-sky-600 border border-sky-100 px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase mb-10 shadow-sm">Grade {course.grade} • Academic Track</Badge>
+                            <h1 className="text-6xl lg:text-8xl font-black text-slate-900 italic uppercase tracking-tighter mb-10 leading-[0.9]">
+                                {course.name.split(' ').map((word: string, i: number) => (
+                                    <span key={i} className={i % 2 === 1 ? "text-sky-600" : ""}>{word} </span>
+                                ))}
+                            </h1>
+                            <Button 
+                                onClick={handleEnroll} 
+                                disabled={enrolling}
+                                className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4 mx-auto"
+                            >
+                                {enrolling ? "Synchronizing..." : `Initialize Learning for ${course.priceValue} ETB`}
+                                <ArrowRight className="w-6 h-6" />
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="w-full h-full bg-slate-950 flex flex-col relative">
+                        {activeLesson ? (
+                            <div className="flex-1 w-full relative">
+                                {activeLesson.type === "video" ? (
+                                    <div className="w-full h-full aspect-video bg-black">
+                                        {(activeLesson.videoUrl?.includes('youtube.com') || activeLesson.videoUrl?.includes('youtu.be')) ? (
+                                            <iframe 
+                                                src={getYouTubeEmbedUrl(activeLesson.videoUrl)}
+                                                className="w-full h-full border-none"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            ></iframe>
+                                        ) : activeLesson.videoUrl ? (
+                                            <video 
+                                                src={activeLesson.videoUrl} 
+                                                controls 
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
+                                                <Video className="w-16 h-16 opacity-20" />
+                                                <p className="font-bold text-sm uppercase tracking-widest">Video Stream Unavailable</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (activeLesson.type === "ppt" || activeLesson.type === "document") ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-900 text-center">
+                                        <div className="w-24 h-24 rounded-3xl bg-amber-500/10 flex items-center justify-center mb-8 border border-amber-500/20">
+                                            <FileText className="w-12 h-12 text-amber-500" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-white uppercase italic mb-4">{activeLesson.title}</h3>
+                                        <p className="text-slate-400 font-bold text-center max-w-md mb-8">This document is ready for review. Click below to open in a secure viewer or download for offline study.</p>
+                                        <div className="flex items-center gap-4">
+                                            <Button 
+                                                className="h-14 px-8 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic tracking-widest text-xs"
+                                                onClick={() => window.open(activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl, '_blank')}
+                                            >
+                                                <Eye className="w-4 h-4 mr-2" />
+                                                Open Document
+                                            </Button>
+                                            <Button 
+                                                variant="outline"
+                                                className="h-14 px-8 rounded-2xl border-white/10 text-white hover:bg-white/5 font-black uppercase italic tracking-widest text-xs"
+                                                onClick={() => {
+                                                    const link = document.createElement('a');
+                                                    link.href = activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl;
+                                                    link.download = `${activeLesson.title}.pdf`;
+                                                    link.click();
+                                                }}
+                                            >
+                                                <FileDown className="w-4 h-4 mr-2" />
+                                                Download PDF
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (activeLesson.type === "quiz" || activeLesson.type === "exercise" || activeLesson.type === "exam") ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-900 overflow-y-auto">
+                                        {!showQuiz ? (
+                                            <div className="text-center">
+                                                <div className="w-24 h-24 rounded-3xl bg-sky-500/10 flex items-center justify-center mb-8 border border-sky-500/20 mx-auto">
+                                                    <BrainCircuit className="w-12 h-12 text-sky-500" />
+                                                </div>
+                                                <h3 className="text-2xl font-black text-white uppercase italic mb-4">{activeLesson.title}</h3>
+                                                <p className="text-slate-400 font-bold text-center max-w-md mb-8">
+                                                    {activeLesson.type === "exam" ? "OFFICIAL EVALUATION MODE: Secure environment enabled." : "PRACTICE MODE: Interactive quiz system initialized."}
+                                                </p>
+                                                <Button 
+                                                    className="h-14 px-12 rounded-2xl bg-sky-500 hover:bg-sky-600 text-black font-black uppercase italic tracking-widest text-xs"
+                                                    onClick={() => setShowQuiz(true)}
+                                                >
+                                                    <Activity className="w-4 h-4 mr-2" />
+                                                    Start {activeLesson.type.toUpperCase()}
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full max-w-4xl h-full py-10">
+                                                <AIQuiz 
+                                                    lessonTitle={activeLesson.title}
+                                                    type={activeLesson.type as any}
+                                                    onComplete={(score) => {
+                                                        toast({ title: "Module Complete", description: `You achieved a score of ${score}%` })
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
+                                        <Sparkles className="w-16 h-16 opacity-20" />
+                                        <p className="font-bold text-sm uppercase tracking-widest">Interactive Component Ready</p>
+                                    </div>
+                                )}
+                                
+                                <Button 
+                                    onClick={() => setActiveLesson(null)}
+                                    className="absolute top-10 left-10 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-2xl font-black uppercase text-[10px] tracking-[0.2em] z-50 transition-all"
+                                >
+                                    <ArrowLeft className="w-4 h-4 mr-3" /> Minimize View
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-center p-20 bg-slate-950">
+                                <Sparkles className="w-20 h-20 mb-8 text-sky-400 opacity-20 animate-pulse" />
+                                <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-4">Module Player</h2>
+                                <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">Select a lesson from the curriculum below to begin</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ── Modern Content Architecture ── */}
+            <div className="flex-1 max-w-7xl mx-auto w-full px-8 py-20">
+                <Tabs defaultValue="lectures" className="w-full" onValueChange={setActiveTab}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
+                        <TabsList className="h-20 bg-white p-2 rounded-[32px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex items-stretch min-w-[600px]">
+                            <TabsTrigger value="lectures" className="flex-1 rounded-[24px] data-[state=active]:bg-[#0F172A] data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
+                                <Video className="w-4 h-4 mr-3" /> Lectures
+                                {lectures.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{lectures.length}</span>}
+                            </TabsTrigger>
+                            <TabsTrigger value="materials" className="flex-1 rounded-[24px] data-[state=active]:bg-amber-500 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
+                                <Book className="w-4 h-4 mr-3" /> Resources
+                                {materials.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{materials.length}</span>}
+                            </TabsTrigger>
+                            <TabsTrigger value="practice" className="flex-1 rounded-[24px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500 relative">
+                                <Zap className="w-4 h-4 mr-3" /> Practice
+                                {practice.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-600 text-white rounded-full text-[8px] flex items-center justify-center border-2 border-white">{practice.length}</span>}
+                            </TabsTrigger>
+                            <TabsTrigger value="ai" className="flex-1 rounded-[24px] data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-black uppercase text-[11px] tracking-widest transition-all duration-500">
+                                <BrainCircuit className="w-4 h-4 mr-3" /> Smart Tutor
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-[28px] border border-slate-100 shadow-sm">
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Your Progress</p>
+                                <p className="text-xl font-black text-slate-900 italic leading-none">{course.progress}%</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                                <CheckCircle className="w-6 h-6 text-indigo-600" />
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div className="mt-12">
+                        {/* ── Lectures Tab ── */}
+                        <TabsContent value="lectures" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {lectures.map((l, i) => (
+                                    <div key={i} onClick={() => setActiveLesson(l)} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-2xl transition-all cursor-pointer">
+                                        <div className="aspect-video rounded-2xl bg-slate-50 mb-6 overflow-hidden relative border border-slate-100">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors">
+                                                <PlayCircle className="w-10 h-10 text-indigo-600 opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all" />
+                                            </div>
+                                        </div>
+                                        <h4 className="font-black text-slate-900 uppercase italic text-sm mb-2 truncate">{l.title}</h4>
+                                        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> 15:00</span>
+                                            <span className="text-indigo-600">Video Lesson</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {lectures.length === 0 && <div className="col-span-full py-20 text-center font-black uppercase text-slate-400 italic">No video lectures uploaded yet.</div>}
+                            </div>
+                        </TabsContent>
+
+                        {/* ── Materials Tab ── */}
+                        <TabsContent value="materials" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {materials.map((l, i) => (
+                                    <div key={i} onClick={() => setActiveLesson(l)} className="group p-8 rounded-[40px] bg-white border border-slate-100 hover:border-amber-100 hover:shadow-2xl transition-all cursor-pointer flex items-center gap-8">
+                                        <div className="w-20 h-20 rounded-[32px] bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0 group-hover:scale-110 transition-transform">
+                                            <FileDown className="w-10 h-10 text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-slate-900 uppercase italic text-lg mb-2">{l.title}</h4>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{l.type?.toUpperCase() || "DOCUMENTATION"}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {materials.length === 0 && <div className="col-span-full py-20 text-center font-black uppercase text-slate-400 italic">No study materials found.</div>}
+                            </div>
+                        </TabsContent>
+
+                        {/* ── Practice Tab ── */}
+                        <TabsContent value="practice" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                            {practice.map((l, i) => (
+                                <div key={i} className={cn(
+                                    "group p-8 rounded-[48px] bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-8",
+                                    l.type === 'exam' ? "border-amber-100 hover:border-amber-300 hover:shadow-amber-500/10" : "border-slate-100 hover:border-emerald-100 hover:shadow-2xl"
+                                )}>
+                                    <div className="flex items-center gap-8">
+                                        <div className={cn(
+                                            "w-20 h-20 rounded-[32px] flex items-center justify-center border shrink-0 transition-all",
+                                            l.type === 'exam' ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"
+                                        )}>
+                                            {l.type === 'exam' ? (
+                                                <GraduationCap className="w-10 h-10 text-amber-600" />
+                                            ) : (
+                                                <Zap className="w-10 h-10 text-emerald-600" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h4 className="font-black text-slate-900 uppercase italic text-xl">{l.title}</h4>
+                                                {l.type === 'exam' && (
+                                                    <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-tighter">High Stakes</Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <Badge className={cn(
+                                                    "border-none font-black text-[9px] uppercase",
+                                                    l.type === 'exam' ? "bg-amber-50 text-amber-600" : "bg-emerald-100 text-emerald-700"
+                                                )}>
+                                                    {l.type === 'exam' ? "Final Evaluation" : "10 Questions"}
+                                                </Badge>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Required Activity</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => { setActiveLesson(l); setShowQuiz(true); }}
+                                        className={cn(
+                                            "h-16 px-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95",
+                                            l.type === 'exam' ? "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
+                                        )}
+                                    >
+                                        {l.type === 'exam' ? "Take Official Exam" : "Start Assessment"}
+                                    </Button>
+                                </div>
+                            ))}
+                            {practice.length === 0 && <div className="py-20 text-center font-black uppercase text-slate-400 italic">No practice modules or exams assigned.</div>}
+                        </TabsContent>
+
+                        {/* ── Smart Tutor Tab ── */}
+                        <TabsContent value="ai" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+                                <div className="w-full md:w-1/3 bg-slate-900 p-12 text-white flex flex-col justify-between">
+                                    <div className="space-y-6">
+                                        <div className="w-16 h-16 rounded-[28px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+                                            <BrainCircuit className="w-8 h-8 text-indigo-400" />
+                                        </div>
+                                        <h3 className="text-4xl font-black uppercase italic tracking-tighter">Academic <span className="text-indigo-400">Tutor</span></h3>
+                                        <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                                            Ask Gemini anything about your course. It's trained on your specific grade and curriculum.
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-2">Live Context</p>
+                                        <p className="text-xs font-bold">{activeLesson?.title || course.name}</p>
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex flex-col bg-slate-50 p-12">
+                                    <ScrollArea className="flex-1 pr-6">
+                                        <div className="space-y-8">
+                                            {aiMessages.length === 0 ? (
+                                                <div className="py-20 text-center space-y-6 opacity-30">
+                                                    <Sparkles className="w-16 h-16 mx-auto text-indigo-500" />
+                                                    <p className="font-black uppercase text-sm tracking-[0.3em]">How can I guide your learning?</p>
+                                                </div>
+                                            ) : aiMessages.map((msg, i) => (
+                                                <div key={i} className={cn("flex flex-col gap-3", msg.role === 'user' ? "items-end" : "items-start")}>
+                                                    <div className={cn("p-6 rounded-[32px] text-sm font-medium leading-relaxed max-w-[85%] shadow-xl", 
+                                                        msg.role === 'user' ? "bg-slate-900 text-white rounded-tr-none" : "bg-white text-slate-700 rounded-tl-none")}>
+                                                        {msg.content}
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase px-4">{msg.role === 'user' ? 'You' : 'Smart Tutor'}</span>
+                                                </div>
+                                            ))}
+                                            {isAiTyping && (
+                                                <div className="flex items-start gap-4 animate-pulse">
+                                                    <div className="bg-white p-6 rounded-[32px] rounded-tl-none shadow-sm">
+                                                        <div className="flex gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" />
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
+                                                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ScrollArea>
+                                    <div className="mt-10 relative group">
+                                        <Input 
+                                            value={aiInput}
+                                            onChange={e => setAiInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleAskAi()}
+                                            placeholder="Type your academic question here..."
+                                            className="h-16 pl-8 pr-20 rounded-3xl bg-white border-slate-200 font-bold text-sm shadow-xl focus:ring-4 focus:ring-indigo-100 transition-all"
+                                        />
+                                        <Button 
+                                            onClick={handleAskAi}
+                                            disabled={!aiInput.trim() || isAiTyping}
+                                            className="absolute right-3 top-3 h-10 w-10 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white shadow-xl transition-all active:scale-90"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </div>
+                </Tabs>
+            </div>
+
+            {/* Quiz Overlay */}
+            {showQuiz && activeLesson && (
+                <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-3xl z-[300] p-8 lg:p-20 overflow-y-auto">
+                    <div className="max-w-5xl mx-auto space-y-12">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Assessment <span className="text-emerald-400">Mode</span></h2>
+                            <Button variant="ghost" onClick={() => setShowQuiz(false)} className="rounded-2xl text-white hover:bg-white/10">
+                                <X className="w-8 h-8 mr-3" /> <span className="font-black uppercase text-xs">Exit</span>
+                            </Button>
+                        </div>
+                        <div className="bg-white rounded-[56px] p-2 shadow-2xl overflow-hidden">
+                            <AIQuiz 
+                                courseId={courseId} 
+                                lessonId={activeLesson._id || activeLesson.id} 
+                                onComplete={() => { setShowQuiz(false); toast({ title: "Lesson Completed!", className: "bg-emerald-500 text-white" }) }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Global AI Floating Toggle (For when not in AI tab) */}
+            {activeTab !== "ai" && (
+                <div className="fixed bottom-12 right-12 z-[200]">
+                    <Button 
+                        onClick={() => setActiveTab("ai")}
+                        className="w-20 h-20 rounded-[32px] bg-slate-900 hover:bg-indigo-600 text-white shadow-2xl transition-all duration-500 hover:scale-110 group relative"
+                    >
+                        <BrainCircuit className="w-10 h-10 group-hover:rotate-12 transition-transform" />
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-50 flex items-center justify-center animate-bounce">
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        </div>
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

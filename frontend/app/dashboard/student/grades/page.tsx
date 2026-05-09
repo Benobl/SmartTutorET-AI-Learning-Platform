@@ -21,19 +21,33 @@ export default function StudentGrades() {
     const [selectedSemester, setSelectedSemester] = useState<1 | 2>(1)
     const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
 
+    const [submissions, setSubmissions] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        loadSubmissions()
+    }, [])
+
+    const loadSubmissions = async () => {
+        try {
+            setLoading(true)
+            const res = await assessmentApi.getSubmissions()
+            setSubmissions(res.data || [])
+        } catch (error) {
+            console.error("Failed to load submissions:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     // Filter data based on selected tabs
     const filteredGrades = useMemo(() => {
-        return allGradesData.filter(g =>
-            g.gradeLevel === selectedGrade &&
-            g.semester === selectedSemester
-        )
-    }, [selectedGrade, selectedSemester])
-
-    const semester1Grades = useMemo(() => filteredGrades.filter(g => g.semester === 1), [filteredGrades])
-    const semester2Grades = useMemo(() => filteredGrades.filter(g => g.semester === 2), [filteredGrades])
-
-    // Specific semester view based on toggle
-    const activeGrades = selectedSemester === 1 ? semester1Grades : semester2Grades
+        return submissions.filter(s => {
+            const assessment = s.assessment || {}
+            return (assessment.grade || "12") === selectedGrade &&
+                   (assessment.semester || 1) === selectedSemester
+        })
+    }, [submissions, selectedGrade, selectedSemester])
 
     const averageGPA = useMemo(() => {
         if (filteredGrades.length === 0) return 0
@@ -63,10 +77,10 @@ export default function StudentGrades() {
                             <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest border border-indigo-100">Performance Analytics</span>
                             <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase">
-                            Academic <span className='text-indigo-500'>Records</span>
+                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase italic">
+                            Academic <span className='text-sky-600'>Records</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-md">
+                        <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest max-w-md opacity-70">
                             Comprehensive overview of your grades, credits, and historical performance trends.
                         </p>
                     </div>
@@ -207,29 +221,54 @@ export default function StudentGrades() {
 
             {/* Detailed Grade Tables */}
             <div className="space-y-12">
-                {activeGrades.length > 0 ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                {filteredGrades.length > 0 ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white p-10 rounded-[48px] border border-slate-100 shadow-xl">
                         <div className="flex items-center gap-4 mb-8">
-                            <div className="w-12 h-1 bg-indigo-500 rounded-full" />
-                            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
+                            <div className="w-12 h-1.5 bg-sky-500 rounded-full" />
+                            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">
                                 Semester {selectedSemester} <span className="text-slate-300 mx-2">/</span> Grade {selectedGrade}
                             </h2>
                         </div>
-                        <CollapsibleGradeTable
-                            title={`Semester ${selectedSemester} Results`}
-                            semester={selectedSemester}
-                            grades={activeGrades}
-                            onViewDetails={(course: any) => setSelectedCourseId(course.courseId)}
-                        />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredGrades.map((submission) => (
+                                <div key={submission._id} className="p-8 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:bg-white hover:border-sky-100 transition-all group">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-slate-50 group-hover:scale-110 transition-transform">
+                                            <Award className="w-6 h-6 text-sky-500" />
+                                        </div>
+                                        <Badge className={cn(
+                                            "font-black uppercase tracking-widest text-[8px] px-3 py-1 rounded-full",
+                                            submission.passed ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                        )}>
+                                            {submission.passed ? "Passed" : "Action Required"}
+                                        </Badge>
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 uppercase italic leading-tight mb-2">{submission.assessment?.title}</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">{submission.assessment?.type}</p>
+                                    
+                                    <div className="flex items-end justify-between">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Performance</p>
+                                            <p className="text-3xl font-black text-slate-900">{submission.percentage}%</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Score</p>
+                                            <p className="text-sm font-bold text-slate-600">{submission.score} / {submission.assessment?.totalMarks}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : (
-                    <div className="py-32 bg-white border border-dashed border-slate-200 rounded-[64px] shadow-sm text-center">
+                    <div className="py-32 bg-white border border-dashed border-slate-100 rounded-[64px] shadow-sm text-center">
                         <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
                             <FileText className="w-10 h-10 text-slate-200" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-[0.2em]">No Records Found</h3>
-                        <p className="text-slate-400 font-bold text-sm max-w-sm mx-auto mt-4 leading-relaxed">
-                            We couldn't find any grade data for the selected Grade {selectedGrade} and Semester {selectedSemester}.
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-[0.2em] italic">No Records Found</h3>
+                        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest max-w-sm mx-auto mt-4 leading-relaxed">
+                            We couldn't find any official academic records for the selected Grade {selectedGrade} and Semester {selectedSemester}.
                         </p>
                     </div>
                 )}

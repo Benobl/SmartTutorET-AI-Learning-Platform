@@ -161,17 +161,31 @@ export class SubjectController {
             const { title, duration } = req.body;
             if (!title) throw new ApiError(400, "Lesson title is required.");
 
-            const videoUrl = `/uploads/videos/${req.file.filename}`;
+            const fileUrl = `/uploads/videos/${req.file.filename}`;
+            const fileType = req.body.type || (req.file.mimetype.includes("video") ? "video" : "ppt");
+            
             const lessonData = {
                 title,
-                videoUrl,
-                duration: duration || "Unknown",
-                type: "video",
+                videoUrl: fileType === "video" ? fileUrl : undefined,
+                pptUrl: fileType === "ppt" ? fileUrl : undefined,
+                exerciseUrl: ["exercise", "quiz", "exam"].includes(fileType) ? fileUrl : undefined,
+                duration: duration || "15 min",
+                type: fileType,
                 isUploadedFile: true
             };
 
             const subject = await SubjectService.addLesson(req.params.subjectId, lessonData);
             res.json({ success: true, message: "Video lesson uploaded successfully", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getLessons(req, res, next) {
+        try {
+            const subject = await SubjectService.getSubjectDetails(req.params.subjectId);
+            if (!subject) throw new ApiError(404, "Subject not found");
+            res.json({ success: true, data: subject.lessons });
         } catch (error) {
             next(error);
         }

@@ -15,6 +15,7 @@ const getGenAI = () => {
 
 export class AIService {
     static async generateTutorResponse({ studentQuery, performanceData, conversationHistory }) {
+        const apiKey = (process.env.GEMINI_API_KEY || "").trim();
         const dataContext = performanceData
             ? `Student Performance Data: ${JSON.stringify(performanceData)}`
             : "Student Performance Data: No data available yet (New Student).";
@@ -48,13 +49,33 @@ Instructions:
 
 Format your response in a clear, structured way using markdown formatting when helpful.`;
 
-        const model = getGenAI().getGenerativeModel({
-            model: "gemini-1.5-flash",
-        });
+        // Robust retry logic for model availability
+        const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+        const versions = ["v1beta", "v1"];
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
+        for (const modelName of models) {
+            for (const apiVersion of versions) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`;
+                    const response = await axios.post(url, {
+                        contents: [{ parts: [{ text: prompt }] }]
+                    }, { timeout: 15000 });
+
+                    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        return response.data.candidates[0].content.parts[0].text;
+                    }
+                } catch (error) {
+                    const msg = error.response?.data?.error?.message || error.message;
+                    if (msg.includes("leaked")) {
+                        console.error("🚨 CRITICAL: Your GEMINI_API_KEY has been reported as leaked and is disabled.");
+                        throw new Error("Your AI API Key has been disabled (Reported as Leaked). Please update your .env with a fresh GEMINI_API_KEY.");
+                    }
+                    console.warn(`⚠️ AI Response failed for ${modelName} (${apiVersion}):`, msg);
+                }
+            }
+        }
+
+        throw new Error("AI Tutor is currently unavailable. Please try again in a moment.");
     }
 
     static async generateCourseOutline(subject, grade) {

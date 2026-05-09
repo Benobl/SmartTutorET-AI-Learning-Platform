@@ -108,7 +108,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
                 errorData = JSON.parse(text);
             } catch (e) {
                 const rawText = text || "No response body";
-                console.error(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
+                console.warn(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
                 errorData = { message: rawText || `Server error (${response.status})` };
             }
             throw new Error(errorData.message || "Something went wrong");
@@ -117,7 +117,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         const data = await response.json();
         return data;
     } catch (error: any) {
-        console.error(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
+        console.warn(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
         throw error;
     }
 }
@@ -255,6 +255,10 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify({ subject, grade, outline })
     }),
+    askTutor: (studentQuery: string, performanceData: any) => fetchWithAuth("/ai/tutor-response", {
+        method: "POST",
+        body: JSON.stringify({ studentQuery, performanceData })
+    }),
     generateGradeCurriculum: (grade: string, stream: string) => fetchWithAuth("/ai/generate-grade-curriculum", {
         method: "POST",
         body: JSON.stringify({ grade, stream })
@@ -267,6 +271,30 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify(data)
     })
+};
+
+export const assignmentApi = {
+    // Tutor
+    create: (data: any) => fetchWithAuth("/assignments", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getSubmissions: (assignmentId: string) => fetchWithAuth(`/assignments/${assignmentId}/submissions`),
+    evaluate: (submissionId: string, data: any) => fetchWithAuth(`/assignments/submission/${submissionId}/evaluate`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    
+    // Student
+    submit: (assignmentId: string, data: any) => fetchWithAuth(`/assignments/${assignmentId}/submit`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getMyMarks: () => fetchWithAuth("/assignments/my-marks"),
+    getMySubmissionsForCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}/my-submissions`),
+    
+    // Common
+    getByCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}`),
 };
 
 export const userApi = {
@@ -360,6 +388,12 @@ export const adminApi = {
     getAnalytics: (range?: string) => fetchWithAuth(`/admin/analytics${range ? `?range=${range}` : ""}`),
     getSettings: () => fetchWithAuth("/admin/settings"),
     updateSettings: (data: any) => fetchWithAuth("/admin/settings", { method: "PATCH", body: JSON.stringify(data) }),
+    getHealth: () => fetchWithAuth("/admin/health"),
+    getFlags: () => fetchWithAuth("/admin/flags"),
+    resolveFlag: (id: string, note?: string) => fetchWithAuth(`/admin/flags/${id}/resolve`, {
+        method: "PATCH",
+        body: JSON.stringify({ note })
+    }),
 };
 
 
@@ -417,6 +451,9 @@ export const assessmentApi = {
     submit: (id: string, data: any) => fetchWithAuth(`/assessments/${id}/submit`, {
         method: "POST",
         body: JSON.stringify(data)
+    }),
+    start: (id: string) => fetchWithAuth(`/assessments/${id}/start`, {
+        method: "POST"
     }),
     getSubmissions: (assessmentId?: string) => {
         const query = assessmentId ? `?assessmentId=${assessmentId}` : "";

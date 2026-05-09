@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { tutorActivity } from "@/lib/mock-data"
+import { tutorActivity, tutorCourses } from "@/lib/mock-data"
 import { userApi, courseApi } from "@/lib/api"
 
 export default function TeacherOverview() {

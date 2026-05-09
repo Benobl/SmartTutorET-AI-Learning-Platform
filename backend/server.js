@@ -1,6 +1,4 @@
 import "dotenv/config";
-import dns from "dns";
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
@@ -33,6 +31,7 @@ import inviteRoutes from "./src/modules/invites/invite.route.js";
 import chatRoutes from "./src/modules/chat/chat.route.js";
 import uploadRoutes from "./src/modules/upload/upload.route.js";
 import assessmentRoutes from "./src/modules/assessments/assessment.route.js";
+import assignmentRoutes from "./src/modules/assessments/assignment.route.js";
 import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route.js";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -132,6 +131,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/assessments", assessmentRoutes);
+app.use("/api/assignments", assignmentRoutes);
 app.use("/api/scheduling", masterScheduleRoutes);
 
 // Health Check

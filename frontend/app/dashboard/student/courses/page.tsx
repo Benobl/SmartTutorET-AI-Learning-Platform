@@ -7,7 +7,7 @@ import {
     LayoutGrid, List, Star, Users, CheckCircle,
     Sparkles, ChevronRight, GraduationCap, Video,
     MonitorPlay, Calendar, Zap, LayoutPanelLeft, Clock,
-    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp, FileDown, AlertCircle
+    SortAsc, SortDesc, ArrowUpDown, X, TrendingUp, FileDown, AlertCircle, ArrowRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -427,115 +427,8 @@ export default function StudentCourses() {
                     </div>
                 </div>
 
-                {/* ── Filters Row ── */}
-                <div className="space-y-4">
-                    {/* Grade Filter */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-28 shrink-0">By Grade:</span>
-                        <div className="flex flex-wrap gap-2">
-                            {GRADES.map(grade => (
-                                <button
-                                    key={grade}
-                                    onClick={() => setActiveGrade(grade)}
-                                    className={cn(
-                                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
-                                        activeGrade === grade
-                                            ? "bg-sky-500 text-white border-sky-600 shadow-lg shadow-sky-500/20"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
-                                    )}
-                                >
-                                    {grade}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Semester Filter */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-28 shrink-0">By Semester:</span>
-                        <div className="flex flex-wrap gap-2">
-                            {SEMESTERS.map(sem => (
-                                <button
-                                    key={sem}
-                                    onClick={() => setActiveSemester(sem)}
-                                    className={cn(
-                                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
-                                        activeSemester === sem
-                                            ? "bg-indigo-600 text-white border-indigo-700 shadow-lg shadow-indigo-500/20"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
-                                    )}
-                                >
-                                    {sem}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Category Filter */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-28 shrink-0">By Category:</span>
-                        <div className="flex gap-2 flex-wrap">
-                            {CATEGORIES.map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setActiveCategory(cat)}
-                                    className={cn(
-                                        "px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap",
-                                        activeCategory === cat
-                                            ? "bg-slate-900 text-white border-slate-900 shadow-lg"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
-                                    )}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Active Filters Summary */}
-                    {hasActiveFilters && (
-                        <div className="flex items-center gap-3 pt-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Filters:</span>
-                            {searchQuery && <FilterBadge label={`"${searchQuery}"`} onRemove={() => setSearchQuery("")} />}
-                            {activeGrade !== "All Grades" && <FilterBadge label={activeGrade} onRemove={() => setActiveGrade("All Grades")} />}
-                            {activeSemester !== "All Semesters" && <FilterBadge label={activeSemester} onRemove={() => setActiveSemester("All Semesters")} />}
-                            {activeCategory !== "All" && <FilterBadge label={activeCategory} onRemove={() => setActiveCategory("All")} />}
-                            <button onClick={resetFilters} className="text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-600 ml-2">
-                                Clear All
-                            </button>
-                        </div>
-                    )}
-                </div>
+                {/* Filters removed for a cleaner interface */}
             </div>
-
-            {/* ── Recommendations Section (Catalog Only) ── */}
-            {activeTab === "catalog" && recommendations.length > 0 && !hasActiveFilters && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-amber-50 border border-amber-100">
-                            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Personalized Tracks</h3>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI-curated based on your profile</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto pb-8 no-scrollbar -mx-2 px-2">
-                        {recommendations.map(course => (
-                            <div key={course.id} className="min-w-[340px] max-w-[340px] shrink-0">
-                                <CourseCard
-                                    course={course}
-                                    tab="catalog"
-                                    enrollingId={enrollingId}
-                                    onContinue={handleContinue}
-                                    onEnroll={handleEnroll}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <div className="h-px bg-slate-100 w-full" />
-                </div>
-            )}
 
             {/* ── Main Course Grid ── */}
             {isVerifying && (
@@ -573,16 +466,19 @@ export default function StudentCourses() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {filteredCourses.map(course => (
-                        <CourseCard
-                            key={course.id}
-                            course={course}
-                            tab={activeTab}
-                            enrollingId={enrollingId}
-                            onContinue={handleContinue}
-                            onEnroll={handleEnroll}
-                        />
-                    ))}
+                    {filteredCourses.map(course => {
+                        const isEnrolled = activeTab === "enrolled" || myCourses.some(c => c.id === course.id);
+                        return (
+                            <CourseCard
+                                key={course.id}
+                                course={{...course, isEnrolled}}
+                                tab={activeTab}
+                                enrollingId={enrollingId}
+                                onContinue={handleContinue}
+                                onEnroll={handleEnroll}
+                            />
+                        )
+                    })}
 
                     {/* Discover Card (in enrolled tab) */}
                     {activeTab === "enrolled" && (
@@ -628,50 +524,47 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
     onContinue: (id: string | number, name: string) => void
     onEnroll: (course: any) => void
 }) {
-    return (
-        <div className="group rounded-[40px] border border-slate-100 bg-white overflow-hidden hover:border-sky-200 transition-all duration-700 flex flex-col shadow-sm hover:shadow-2xl hover:-translate-y-1">
-            {/* Image */}
-            <div className="h-56 relative overflow-hidden">
-                <img src={course.image} alt={course.name} className="w-full h-full object-cover transition-transform duration-1000" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent" />
+    const isEnrolled = course.isEnrolled || false; // Backend can flag this
 
-                {/* Badges */}
-                <div className="absolute top-5 left-5 flex flex-col gap-2">
+    return (
+        <div className="group rounded-[40px] border border-slate-100 bg-white overflow-hidden hover:border-sky-200 transition-all duration-700 flex flex-col shadow-sm hover:shadow-2xl hover:-translate-y-1 p-8">
+            {/* Header Badges */}
+            <div className="flex justify-between items-start mb-6">
+                <div className="flex flex-col gap-2">
                     <span className={cn(
-                        "w-fit text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-xl flex items-center gap-1.5",
+                        "w-fit text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm",
                         course.delivery === "Live"
-                            ? "bg-rose-500/90 text-white border-rose-400"
-                            : "bg-sky-500/90 text-white border-sky-400"
+                            ? "bg-rose-50 text-rose-500 border-rose-100"
+                            : "bg-sky-50 text-sky-600 border-sky-100"
                     )}>
                         {course.delivery === "Live" ? <Video className="w-3 h-3" /> : <MonitorPlay className="w-3 h-3" />}
                         {course.delivery} Class
                     </span>
-                    <span className="w-fit text-[9px] font-black text-slate-800 uppercase tracking-widest bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl border border-white/40">
-                        {course.grade}
-                    </span>
+                    <div className="flex gap-2">
+                        <span className="w-fit text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                            {course.grade}
+                        </span>
+                        <span className="w-fit text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                            {course.semester}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1.5 rounded-xl border border-amber-100 shadow-sm">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span className="text-[10px] font-black text-amber-700">{course.rating?.toFixed(1) || "4.8"}</span>
+                    </div>
                     {tab === "catalog" && course.isPopular && (
-                        <span className="w-fit text-[9px] font-black text-amber-700 uppercase tracking-widest bg-amber-100/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl border border-amber-200 flex items-center gap-1">
+                        <span className="w-fit text-[9px] font-black text-amber-700 uppercase tracking-widest bg-amber-100 px-2.5 py-1 rounded-xl shadow-sm border border-amber-200 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" /> Popular
                         </span>
                     )}
                 </div>
-
-                {/* Semester badge bottom */}
-                <div className="absolute bottom-5 left-5">
-                    <span className="text-[9px] font-black text-white/80 uppercase tracking-widest bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-                        {course.semester}
-                    </span>
-                </div>
-
-                {/* Rating */}
-                <div className="absolute top-5 right-5 flex items-center gap-1 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-lg border border-white/30">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span className="text-[10px] font-black text-slate-700">{course.rating?.toFixed(1)}</span>
-                </div>
             </div>
 
             {/* Content */}
-            <div className="p-8 flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0">
                 <div className="mb-5 min-w-0">
                     <h4 className="text-xl font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug mb-1">{course.name}</h4>
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest truncate">{course.tutor}</p>
@@ -732,14 +625,20 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
                     )}
 
                     <Button
-                        onClick={() => tab === "enrolled" ? onContinue(course.id, course.name) : onEnroll(course)}
+                        onClick={() => {
+                            if (tab === "enrolled" || isEnrolled) {
+                                onContinue(course.id, course.name)
+                            } else {
+                                onEnroll(course)
+                            }
+                        }}
                         disabled={enrollingId === course.id || (tab === "enrolled" && !course.hasLessons)}
                         className={cn(
                             "w-full h-14 rounded-[22px] gap-3 font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1 active:scale-95",
-                            tab === "enrolled"
-                                ? course.hasLessons 
-                                    ? "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                            (tab === "enrolled" || isEnrolled)
+                                ? (course.hasLessons || tab === "catalog")
+                                    ? "bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-none"
+                                    : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                                 : course.price === "Free"
                                     ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
                                     : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
@@ -751,6 +650,8 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
                             course.hasLessons 
                                 ? <><PlayCircle className="w-5 h-5 fill-white/20" /> Continue Learning</>
                                 : <><Clock className="w-5 h-5" /> Waiting for Tutor</>
+                        ) : isEnrolled ? (
+                            <>Already Enrolled <ArrowRight className="w-4 h-4" /></>
                         ) : course.price === "Free" ? (
                             <><CheckCircle className="w-5 h-5" /> Enroll for Free</>
                         ) : (

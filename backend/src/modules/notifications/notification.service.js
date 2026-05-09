@@ -1,5 +1,5 @@
 import Notification from "./notification.model.js";
-import User from "../auth/user.model.js";
+import User from "../users/user.model.js";
 
 export class NotificationService {
     static async notifyEnrolledStudents(subject, message, type = "course_update") {

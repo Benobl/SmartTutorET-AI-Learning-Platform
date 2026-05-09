@@ -70,6 +70,10 @@ const assessmentSchema = new mongoose.Schema(
     documentUrl: {
       type: String,
     },
+    isOfficial: {
+      type: Boolean,
+      default: true, // Tutors' assessments are official by default
+    },
   },
   {
     timestamps: true,

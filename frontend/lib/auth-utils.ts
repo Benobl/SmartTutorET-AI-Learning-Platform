@@ -101,7 +101,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
         console.log("[AuthUtils] Login failed with response:", response);
         return { error: response.message || "Invalid email or password" };
     } catch (error: any) {
-        console.error("[AuthUtils] Login exception:", error);
+        console.warn("[AuthUtils] Login exception:", error);
         return { error: error.message || "An error occurred during login." };
     }
 };

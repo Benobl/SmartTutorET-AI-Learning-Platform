@@ -36,5 +36,8 @@ router.patch("/users/:userId", allowRoles("admin", "manager"), AdminController.u
 router.patch("/users/:userId/status", allowRoles("admin", "manager"), AdminController.updateUserStatus);
 router.get("/settings", allowRoles("admin"), AdminController.getSettings);
 router.patch("/settings", allowRoles("admin"), AdminController.updateSettings);
+router.get("/health", allowRoles("admin", "manager"), AdminController.getHealth);
+router.get("/flags", allowRoles("admin", "manager"), AdminController.getFlags);
+router.patch("/flags/:id/resolve", allowRoles("admin", "manager"), AdminController.resolveFlag);
 
 export default router;
