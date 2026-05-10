@@ -19,7 +19,7 @@ import { exportToPDF } from "@/lib/manager-utils"
 import { getCurrentUser } from "@/lib/auth-utils"
 
 // ── Static Constants ──────────────────────────────────────────
-const CATEGORIES = ["All", "Science", "Mathematics", "Humanities", "Language", "National Exam Prep"]
+const CATEGORIES = ["All", "Premium", "Science", "Mathematics", "Humanities", "Language", "National Exam Prep"]
 const GRADES = ["All Grades", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
 const SEMESTERS = ["All Semesters", "Semester 1", "Semester 2"]
 const SORT_OPTIONS = [
@@ -141,7 +141,7 @@ export default function StudentCourses() {
             if (all.status === "fulfilled" && all.value.success) {
                 setCatalogCourses(all.value.data.map((c: any) => ({
                     id: c._id || c.id, name: c.title, tutor: c.tutor?.name || "Expert Tutor",
-                    price: c.price === 0 ? "Free" : `${c.price} ETB`, rating: 4.8,
+                    price: c.price === 0 ? "Free" : `Premium (${c.price} ETB)`, rating: 4.8,
                     students: c.students?.length || 0,
                     image: c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
                     tags: [c.category || "General", `Grade ${c.grade || 12}`],
@@ -231,7 +231,10 @@ export default function StudentCourses() {
         let result = source.filter(course => {
             const q = searchQuery.toLowerCase()
             const matchesSearch = !q || course.name.toLowerCase().includes(q) || course.tutor.toLowerCase().includes(q)
-            const matchesCategory = activeCategory === "All" || course.category === activeCategory || course.tags.some((t: string) => t.includes(activeCategory))
+            const matchesCategory = activeCategory === "All" || 
+                                     (activeCategory === "Premium" && course.price !== "Free") ||
+                                     course.category === activeCategory || 
+                                     course.tags.some((t: string) => t.includes(activeCategory))
             const matchesGrade = activeGrade === "All Grades" || course.grade === activeGrade || course.tags.some((t: string) => t.includes(activeGrade.replace("Grade ", "")))
             const matchesSemester = activeSemester === "All Semesters" || course.semester === activeSemester
             return matchesSearch && matchesCategory && matchesGrade && matchesSemester
@@ -277,8 +280,8 @@ export default function StudentCourses() {
                     return;
                 }
 
-                const amountStr = course.price.replace(" ETB", "")
-                const amount = parseFloat(amountStr)
+                const amountMatch = course.price.match(/\d+/)
+                const amount = amountMatch ? parseFloat(amountMatch[0]) : 0
                 
                 const response = await paymentApi.initialize({
                     amount,
@@ -323,30 +326,30 @@ export default function StudentCourses() {
     const activeSortLabel = SORT_OPTIONS.find(s => s.value === sortBy)?.label ?? "Sort By"
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-20">
+        <div className="max-w-7xl mx-auto space-y-16 animate-in fade-in duration-700 pb-32 pt-4">
 
-            {/* ── Page Header ── */}
-            <div className="flex flex-col gap-6 pb-4 border-b border-slate-100">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col gap-12 px-2">
 
-                <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6">
-                    {/* Title */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Learning Center</span>
-                            <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        </div>
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-2">
-                            {activeTab === "enrolled"
-                                ? <><span className="text-sky-500">Enrolled</span> Courses</>
-                                : <>Browse <span className="text-indigo-500">Catalog</ span></>
-                            }
-                        </h1>
-                        <p className="text-slate-400 text-sm font-medium">
-                            {activeTab === "enrolled"
-                                ? `${filteredCourses.length} course${filteredCourses.length !== 1 ? "s" : ""} in your curriculum`
-                                : "Discover specialized courses from the best tutors in Ethiopia."}
-                        </p>
-                    </div>
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-12">
+          {/* Title */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-slate-900 shadow-[0_0_10px_rgba(0,0,0,0.1)]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Institutional Catalog</span>
+            </div>
+            <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+              {activeTab === "enrolled"
+                ? <>Enrolled <span className="font-semibold text-slate-900">Curriculum</span></>
+                : <>Academic <span className="font-semibold text-slate-900">Catalog</span></>
+              }
+            </h1>
+            <p className="text-slate-400 text-sm font-medium max-w-md leading-relaxed">
+              {activeTab === "enrolled"
+                ? `You are currently mastering ${filteredCourses.length} academic tracks.`
+                : "Explore verified courses standardized by the National Curriculum Board."}
+            </p>
+          </div>
 
                     {activeTab === "catalog" && (
                         <Button
@@ -359,27 +362,27 @@ export default function StudentCourses() {
                         </Button>
                     )}
 
-                    {/* Tab Switcher */}
-                    <div className="inline-flex p-1.5 bg-slate-100/80 backdrop-blur-md rounded-[28px] border border-slate-200/50 shadow-inner shrink-0">
-                        {[
-                            { id: "enrolled", label: "My Enrolled", icon: LayoutPanelLeft },
-                            { id: "catalog", label: "Browse Catalog", icon: LayoutGrid }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => { setActiveTab(tab.id as any); resetFilters() }}
-                                className={cn(
-                                    "flex items-center gap-2.5 px-8 py-3 rounded-[22px] text-xs font-black uppercase tracking-widest transition-all",
-                                    activeTab === tab.id
-                                        ? "bg-white text-sky-600 shadow-xl shadow-sky-500/10 border border-sky-100"
-                                        : "text-slate-500 hover:text-slate-700"
-                                )}
-                            >
-                                <tab.icon className="w-4 h-4" />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
+          {/* Tab Switcher */}
+          <div className="inline-flex p-1.5 bg-slate-50 rounded-[24px] border border-slate-100 shadow-sm shrink-0">
+            {[
+              { id: "enrolled", label: "My Tracks", icon: LayoutPanelLeft },
+              { id: "catalog", label: "Global Catalog", icon: LayoutGrid }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id as any); resetFilters() }}
+                className={cn(
+                  "flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeTab === tab.id
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-100"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-slate-900" : "text-slate-300")} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
                 </div>
 
                 {/* ── Search + Sort Row ── */}

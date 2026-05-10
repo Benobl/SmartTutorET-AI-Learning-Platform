@@ -85,4 +85,20 @@ export class ChatService {
             { new: true }
         );
     }
+
+    /**
+     * Get list of users the current user has chatted with
+     */
+    static async getConversations(userId) {
+        // Find all unique users this user has sent messages to or received from
+        const sentTo = await ChatMessage.distinct("receiverId", { senderId: userId });
+        const receivedFrom = await ChatMessage.distinct("senderId", { receiverId: userId });
+        
+        const contactIds = [...new Set([...sentTo, ...receivedFrom])].filter(id => id && id.toString() !== userId.toString());
+        
+        const User = (await import("../users/user.model.js")).default;
+        return await User.find({ _id: { $in: contactIds } })
+            .select("name email fullName profile.avatar role")
+            .lean();
+    }
 }

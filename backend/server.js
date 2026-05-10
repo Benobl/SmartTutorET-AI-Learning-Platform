@@ -34,6 +34,8 @@ import assessmentRoutes from "./src/modules/assessments/assessment.route.js";
 import assignmentRoutes from "./src/modules/assessments/assignment.route.js";
 import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route.js";
 import learningRoutes from "./src/modules/learning/learning.route.js";
+import attendanceRoutes from "./src/modules/attendance/attendance.route.js";
+import announcementRoutes from "./src/modules/announcements/announcement.route.js";
 import { fileURLToPath } from "url";
 import path from "path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,6 +136,8 @@ app.use("/api/assessments", assessmentRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/scheduling", masterScheduleRoutes);
 app.use("/api/v2/learning", learningRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {

@@ -16,5 +16,7 @@ router.post("/submission/:submissionId/evaluate", verifyToken, authorizeRoles("t
 router.post("/:assignmentId/submit", verifyToken, authorizeRoles("student"), AssignmentController.submitAssignment);
 router.get("/my-marks", verifyToken, authorizeRoles("student"), AssignmentController.getMyMarks);
 router.get("/course/:subjectId/my-submissions", verifyToken, authorizeRoles("student"), AssignmentController.getMySubmissionsForSubject);
+router.get("/leaderboard", verifyToken, AssignmentController.getLeaderboard);
+router.get("/my-grades", verifyToken, authorizeRoles("student"), AssignmentController.getStudentGrades);
 
 export default router;

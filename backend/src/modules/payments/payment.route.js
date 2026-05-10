@@ -10,5 +10,7 @@ router.post("/initialize", verifyToken, PaymentController.initialize);
 router.get("/verify/:tx_ref", PaymentController.verify);
 router.get("/subject/:subjectId", verifyToken, PaymentController.getPayments);
 router.get("/check-enrollment/:subjectId", verifyToken, PaymentController.checkEnrollment);
+router.get("/tutor/earnings", verifyToken, PaymentController.getTutorEarnings);
+router.get("/admin/earnings", verifyToken, PaymentController.getAdminEarnings);
 
 export default router;

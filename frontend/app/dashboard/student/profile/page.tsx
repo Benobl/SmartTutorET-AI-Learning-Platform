@@ -33,180 +33,158 @@ export default function StudentProfile() {
     const grade = user ? user.grade : "12"
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
-            {/* Header Area */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/50 p-6 rounded-[2.5rem] border border-white/5 backdrop-blur-xl">
-                <div className="flex items-center gap-5">
+        <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20 pt-8">
+            {/* Clean Header Area */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-4">
+                <div className="flex items-center gap-6">
                     <div className="relative group">
-                        <Avatar className="w-20 h-20 rounded-[2rem] border-2 border-sky-500/30 shadow-2xl shadow-sky-500/20 group-hover:scale-105 transition-all duration-500">
+                        <Avatar className="w-24 h-24 rounded-[32px] border border-slate-100 shadow-xl shadow-slate-100 group-hover:scale-105 transition-all duration-500">
                             <AvatarImage src={user?.profile?.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-sky-500 to-indigo-600 text-white text-2xl font-black">
+                            <AvatarFallback className="bg-slate-50 text-slate-400 text-2xl font-light">
                                 {initials}
                             </AvatarFallback>
                         </Avatar>
-                        <button className="absolute -bottom-1 -right-1 p-2 bg-slate-900 border border-white/10 text-white rounded-xl shadow-xl hover:bg-sky-500 transition-colors z-10">
-                            <Camera className="w-3.5 h-3.5" />
+                        <button className="absolute -bottom-2 -right-2 p-2.5 bg-white border border-slate-100 text-slate-400 rounded-2xl shadow-lg hover:text-slate-900 transition-colors z-10">
+                            <Camera className="w-4 h-4" />
                         </button>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                            {fullName}
-                            <span className="p-1 rounded-lg bg-sky-500/10 text-sky-400">
-                                <Sparkles className="w-4 h-4" />
-                            </span>
+                    <div className="space-y-2">
+                        <h1 className="text-4xl font-light text-slate-800 tracking-tight leading-none">
+                            {firstName} <span className="font-semibold text-slate-900">{lastName}</span>
                         </h1>
-                        <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                                Grade {grade} Student
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                Grade {grade} Scholar
                             </span>
-                            <span className="w-1 h-1 bg-white/10 rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400">Active Scholar</span>
+                            <div className="w-1 h-1 rounded-full bg-slate-200" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500">Active Status</span>
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-2xl h-12 px-6 font-bold text-xs uppercase tracking-widest transition-all">
-                        Discard
+                    <Button variant="outline" className="bg-white border-slate-100 text-slate-400 hover:text-slate-900 rounded-full h-12 px-6 font-bold text-[10px] uppercase tracking-widest transition-all">
+                        Discard Changes
                     </Button>
-                    <Button className="bg-sky-500 hover:bg-sky-400 text-white rounded-2xl h-12 px-8 font-black text-xs uppercase tracking-widest gap-2 shadow-xl shadow-sky-500/20 active:scale-95 transition-all">
+                    <Button className="bg-slate-900 hover:bg-sky-600 text-white rounded-full h-12 px-8 font-bold text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-slate-200 transition-all">
                         <Save className="w-4 h-4" />
-                        Sync Profile
+                        Update Profile
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left Sidebar: Navigation & Quick Stats */}
-                <div className="lg:col-span-4 space-y-6">
-                    <div className="p-2 rounded-[2.5rem] border border-white/10 bg-slate-900/40 backdrop-blur-md space-y-1">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 px-4">
+                {/* Left Sidebar: Navigation */}
+                <div className="lg:col-span-4 space-y-8">
+                    <div className="p-3 rounded-[40px] border border-slate-100 bg-white shadow-sm space-y-1">
                         {[
                             { label: "Identity & Bio", icon: User, active: true },
-                            { label: "Security Hub", icon: Shield },
-                            { label: "Transmission Prefs", icon: Bell },
-                            { label: "Academic Vault", icon: BookOpen },
+                            { label: "Security & Login", icon: Shield },
+                            { label: "Notifications", icon: Bell },
+                            { label: "Academic Records", icon: BookOpen },
                         ].map((item) => (
                             <button
                                 key={item.label}
                                 className={cn(
-                                    "w-full p-4 rounded-3xl flex items-center justify-between transition-all group",
-                                    item.active ? "bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-lg shadow-sky-500/5" : "text-white/40 hover:bg-white/5 border border-transparent"
+                                    "w-full p-5 rounded-[28px] flex items-center justify-between transition-all group",
+                                    item.active ? "bg-slate-50 text-slate-900 border border-slate-100 shadow-inner" : "text-slate-400 hover:bg-slate-50/50 hover:text-slate-600"
                                 )}
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className={cn("p-2 rounded-xl transition-colors", item.active ? "bg-sky-500/20" : "bg-white/5 group-hover:bg-white/10")}>
-                                        <item.icon className={cn("w-4 h-4", item.active ? "text-sky-400" : "text-white/30")} />
-                                    </div>
-                                    <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                                <div className="flex items-center gap-4">
+                                    <item.icon className={cn("w-4 h-4", item.active ? "text-slate-900" : "text-slate-300")} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
                                 </div>
-                                <ChevronRight className={cn("w-4 h-4 transition-transform group-hover:translate-x-1", item.active ? "text-sky-400" : "text-white/10")} />
+                                <ChevronRight className={cn("w-4 h-4 transition-transform group-hover:translate-x-1", item.active ? "text-slate-900" : "text-slate-100")} />
                             </button>
                         ))}
                     </div>
 
-                    <div className="p-6 rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-sky-500/10 to-indigo-600/10 backdrop-blur-md relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                            <Sparkles className="w-20 h-20 text-sky-400" />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-400">Scholar Progress</p>
-                                <span className="text-xl font-black text-white">85%</span>
+                    <div className="p-10 rounded-[40px] bg-slate-50 border border-slate-100 relative overflow-hidden group">
+                        <div className="relative z-10 space-y-6">
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Profile Maturity</p>
+                                <h4 className="text-3xl font-light text-slate-800">85<span className="text-sm font-medium text-slate-400">%</span></h4>
                             </div>
-                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                <div className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 w-[85%] rounded-full shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
+                            <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-slate-900 w-[85%] rounded-full transition-all duration-1000" />
                             </div>
-                            <p className="text-[10px] text-white/40 font-medium mt-4 leading-relaxed">
-                                Complete your <span className="text-white">academic history</span> to unlock personalized study recommendations.
+                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                                Complete your academic history to unlock <span className="text-slate-700">personalized insights</span>.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Area: Content Forms */}
-                <div className="lg:col-span-8 space-y-6">
-                    <div className="p-8 rounded-[2.5rem] border border-white/10 bg-slate-900/40 backdrop-blur-md relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 blur-[100px] rounded-full -mr-32 -mt-32" />
-                        
-                        <div className="relative z-10 space-y-8">
-                            <section>
-                                <h4 className="text-xs font-black text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-px bg-white/10" />
-                                    Personal Identity
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-2.5">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">First Name</Label>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-sky-500 transition-colors" />
-                                            <Input 
-                                                defaultValue={firstName} 
-                                                className="bg-white/5 border-white/10 text-white h-12 pl-12 rounded-2xl focus:ring-sky-500/20 focus:border-sky-500/30 transition-all font-medium text-sm" 
-                                            />
-                                        </div>
+                {/* Right Area: Forms */}
+                <div className="lg:col-span-8 space-y-8">
+                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-sm relative overflow-hidden">
+                        <div className="relative z-10 space-y-12">
+                            <section className="space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-1 h-6 bg-slate-900 rounded-full" />
+                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Personal Identity</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">First Name</Label>
+                                        <Input 
+                                            defaultValue={firstName} 
+                                            className="bg-slate-50 border-transparent text-slate-900 h-14 px-6 rounded-2xl focus:bg-white focus:border-slate-100 focus:ring-0 transition-all font-medium text-sm" 
+                                        />
                                     </div>
-                                    <div className="space-y-2.5">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">Last Name</Label>
-                                        <div className="relative group">
-                                            <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-sky-500 transition-colors" />
-                                            <Input 
-                                                defaultValue={lastName} 
-                                                className="bg-white/5 border-white/10 text-white h-12 pl-12 rounded-2xl focus:ring-sky-500/20 focus:border-sky-500/30 transition-all font-medium text-sm" 
-                                            />
-                                        </div>
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">Last Name</Label>
+                                        <Input 
+                                            defaultValue={lastName} 
+                                            className="bg-slate-50 border-transparent text-slate-900 h-14 px-6 rounded-2xl focus:bg-white focus:border-slate-100 focus:ring-0 transition-all font-medium text-sm" 
+                                        />
                                     </div>
-                                    <div className="space-y-2.5 md:col-span-2">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">Universal Contact (Email)</Label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-sky-500 transition-colors" />
-                                            <Input 
-                                                defaultValue={email} 
-                                                className="bg-white/5 border-white/10 text-white h-12 pl-12 rounded-2xl focus:ring-sky-500/20 focus:border-sky-500/30 transition-all font-medium text-sm" 
-                                            />
-                                        </div>
+                                    <div className="space-y-3 md:col-span-2">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">Email Address</Label>
+                                        <Input 
+                                            defaultValue={email} 
+                                            className="bg-slate-50 border-transparent text-slate-900 h-14 px-6 rounded-2xl focus:bg-white focus:border-slate-100 focus:ring-0 transition-all font-medium text-sm" 
+                                        />
                                     </div>
-                                    <div className="space-y-2.5 md:col-span-2">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">Scholar Mission (Bio)</Label>
+                                    <div className="space-y-3 md:col-span-2">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">Mission Statement (Bio)</Label>
                                         <Textarea
                                             defaultValue={`Grade ${grade} student passionate about learning and growth.`}
-                                            className="bg-white/5 border-white/10 text-white min-h-[100px] rounded-2xl focus:ring-sky-500/20 focus:border-sky-500/30 transition-all p-4 font-medium text-sm resize-none"
+                                            className="bg-slate-50 border-transparent text-slate-900 min-h-[120px] rounded-2xl focus:bg-white focus:border-slate-100 focus:ring-0 transition-all p-6 font-medium text-sm resize-none"
                                         />
                                     </div>
                                 </div>
                             </section>
 
-                            <section className="pt-8 border-t border-white/5">
-                                <h4 className="text-xs font-black text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-px bg-white/10" />
-                                    Academic Standing
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-2.5">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">Current Grade Level</Label>
+                            <section className="space-y-8 pt-8 border-t border-slate-50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-1 h-6 bg-slate-900 rounded-full" />
+                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Academic Standing</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">Grade Level</Label>
                                         <Select defaultValue={grade}>
-                                            <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-2xl focus:ring-sky-500/20 transition-all font-medium text-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <GraduationCap className="w-4 h-4 text-sky-400" />
-                                                    <SelectValue />
-                                                </div>
+                                            <SelectTrigger className="bg-slate-50 border-transparent text-slate-900 h-14 px-6 rounded-2xl focus:bg-white focus:border-slate-100 transition-all font-medium text-sm">
+                                                <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-slate-900 border-white/10 text-white rounded-2xl p-1">
+                                            <SelectContent className="bg-white border-slate-100 text-slate-900 rounded-2xl p-1 shadow-2xl">
                                                 {[9, 10, 11, 12].map(g => (
-                                                    <SelectItem key={g} value={g.toString()} className="rounded-xl focus:bg-sky-500/10 focus:text-sky-400">
-                                                        Grade {g} - High School
+                                                    <SelectItem key={g} value={g.toString()} className="rounded-xl focus:bg-slate-50">
+                                                        Grade {g}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="space-y-2.5">
-                                        <Label className="text-[10px] text-white/40 uppercase tracking-widest font-black ml-1">Academic Stream</Label>
-                                        <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5">
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-black ml-1">Academic Stream</Label>
+                                        <div className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-100">
                                             {["Natural", "Social", "Common"].map((s) => (
                                                 <button 
                                                     key={s}
                                                     className={cn(
-                                                        "flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                        s === "Natural" ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20" : "text-white/40 hover:bg-white/5"
+                                                        "flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                        s === "Natural" ? "bg-white text-slate-900 shadow-sm border border-slate-100" : "text-slate-400 hover:text-slate-600"
                                                     )}
                                                 >
                                                     {s}
@@ -217,22 +195,6 @@ export default function StudentProfile() {
                                 </div>
                             </section>
                         </div>
-                    </div>
-
-                    {/* Quick Action Footer Card */}
-                    <div className="p-6 rounded-[2.5rem] border border-white/10 bg-slate-900/40 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
-                                <AlertCircle className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-black text-white">Trust & Security</p>
-                                <p className="text-[10px] text-white/40 font-medium">Your data is encrypted using end-to-end industry standards.</p>
-                            </div>
-                        </div>
-                        <Button variant="ghost" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/5 rounded-xl h-10">
-                            Download Academic Data
-                        </Button>
                     </div>
                 </div>
             </div>

@@ -6,7 +6,7 @@ import {
     FileText, CheckCircle, Clock, AlertCircle, 
     ArrowUpRight, Download, Eye, Send, MoreVertical,
     FileUp, Sparkles, BookOpen, GraduationCap, Percent,
-    ChevronRight, X, Paperclip
+    ChevronRight, X, Paperclip, Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -56,9 +56,9 @@ export default function TutorAssignments() {
     const [newAssignment, setNewAssignment] = useState({
         title: "",
         description: "",
-        maxMarks: 100,
-        weight: 10,
-        priority: "medium",
+        type: "assignment",
+        maxMarks: 10,
+        grade: "",
         dueDate: "",
         subjectId: ""
     })
@@ -137,7 +137,7 @@ export default function TutorAssignments() {
                 setAssignments((prev) => [created.data, ...prev])
             }
             setIsCreateOpen(false)
-            setNewAssignment({ title: "", description: "", maxMarks: 100, weight: 10, priority: "medium", dueDate: "", subjectId: "" })
+            setNewAssignment({ title: "", description: "", type: "assignment", maxMarks: 10, grade: "", dueDate: "", subjectId: "" })
             setAssignmentFile(null)
             await loadAssignments(selectedCourseId)
         } catch (error: any) {
@@ -227,7 +227,7 @@ export default function TutorAssignments() {
                     <div className="flex items-center gap-4">
                         <Button
                             onClick={() => setIsCreateOpen(true)}
-                            className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-slate-200 hover:bg-slate-800 hover:scale-105 transition-all"
+                            className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-slate-200 hover:bg-sky-600 hover:scale-105 transition-all"
                         >
                             <Plus className="w-4 h-4" /> Create New Assignment
                         </Button>
@@ -291,15 +291,13 @@ export default function TutorAssignments() {
                                                 )}>
                                                     {!isClosed ? "ACTIVE" : "CLOSED"}
                                                 </span>
-                                                <span className={cn(
-                                                    "text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border",
-                                                    assignment.priority === "high"
-                                                        ? "bg-rose-50 text-rose-600 border-rose-100"
-                                                        : assignment.priority === "low"
-                                                            ? "bg-slate-100 text-slate-500 border-slate-200"
-                                                            : "bg-amber-50 text-amber-700 border-amber-100"
-                                                )}>
-                                                    {String(assignment.priority || "medium")}
+                                                {assignment.grade && (
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border bg-violet-50 text-violet-600 border-violet-100">
+                                                        Grade {assignment.grade}
+                                                    </span>
+                                                )}
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border bg-amber-50 text-amber-600 border-amber-100 italic">
+                                                    {assignment.type || "assignment"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -309,7 +307,7 @@ export default function TutorAssignments() {
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <GraduationCap className="w-4 h-4 text-indigo-400" />
-                                                    <span>Max: {assignment.maxMarks} Marks</span>
+                                                    <span>{assignment.maxMarks} / {assignment.maxMarks} Marks</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -326,8 +324,8 @@ export default function TutorAssignments() {
                                 </div>
 
                                 <div className="p-8 pt-0 flex items-center justify-between">
-                                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase italic">
-                                        Weight: {assignment.weight || 10}%
+                                    <Badge className="bg-slate-50 text-slate-600 border border-slate-100 text-[8px] font-black uppercase italic">
+                                        Score: {assignment.maxMarks} / {assignment.maxMarks}
                                     </Badge>
                                     <Button 
                                         onClick={() => handleViewSubmissions(assignment)}
@@ -344,7 +342,7 @@ export default function TutorAssignments() {
 
             {/* Create Assignment Modal */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-[600px] rounded-[48px] border-none p-10 shadow-2xl">
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-[48px] border-none p-10 shadow-2xl">
                     <DialogHeader>
                         <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
                             <Plus className="w-8 h-8" />
@@ -367,16 +365,42 @@ export default function TutorAssignments() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Grade</label>
                                 <select
-                                    value={newAssignment.priority}
-                                    onChange={e => setNewAssignment(p => ({ ...p, priority: e.target.value }))}
+                                    value={newAssignment.grade}
+                                    onChange={e => setNewAssignment(p => ({ ...p, grade: e.target.value }))}
                                     className="w-full rounded-2xl h-14 font-bold border border-slate-100 px-4 text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 >
-                                    <option value="high">High</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="low">Low</option>
+                                    <option value="">All Grades</option>
+                                    {[9, 10, 11, 12].map(g => (
+                                        <option key={g} value={String(g)}>Grade {g}</option>
+                                    ))}
                                 </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Assessment Type</label>
+                                <select
+                                    value={newAssignment.type}
+                                    onChange={e => setNewAssignment(p => ({ ...p, type: e.target.value }))}
+                                    className="w-full rounded-2xl h-14 font-bold border border-slate-100 px-4 text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                >
+                                    <option value="assignment">Assignment</option>
+                                    <option value="quiz">Quiz</option>
+                                    <option value="mid_exam">Mid Exam</option>
+                                    <option value="final_exam">Final Exam</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Deadline</label>
+                                <Input 
+                                    type="date"
+                                    className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
+                                    value={newAssignment.dueDate}
+                                    onChange={(e) => setNewAssignment({...newAssignment, dueDate: e.target.value})}
+                                />
                             </div>
                         </div>
 
@@ -390,36 +414,22 @@ export default function TutorAssignments() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Max Marks</label>
-                                <Input 
-                                    type="number"
-                                    className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm text-center"
-                                    value={newAssignment.maxMarks}
-                                    onChange={(e) => setNewAssignment({...newAssignment, maxMarks: parseInt(e.target.value)})}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Weight (%)</label>
-                                <div className="relative">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Total Marks</label>
+                                <div className="h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3 px-4">
                                     <Input 
                                         type="number"
-                                        className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm text-center pr-10"
-                                        value={newAssignment.weight}
-                                        onChange={(e) => setNewAssignment({...newAssignment, weight: parseInt(e.target.value)})}
+                                        className="flex-1 h-10 border-none bg-transparent font-black text-xl text-center p-0 focus-visible:ring-0 shadow-none"
+                                        placeholder="10"
+                                        value={Number.isNaN(newAssignment.maxMarks) ? "" : newAssignment.maxMarks}
+                                        onChange={(e) => setNewAssignment({...newAssignment, maxMarks: e.target.value === "" ? "" as any : parseInt(e.target.value)})}
                                     />
-                                    <Percent className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap shrink-0">
+                                        / {Number.isNaN(newAssignment.maxMarks) || !newAssignment.maxMarks ? "?" : newAssignment.maxMarks}
+                                    </span>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Deadline</label>
-                                <Input 
-                                    type="date"
-                                    className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
-                                    value={newAssignment.dueDate}
-                                    onChange={(e) => setNewAssignment({...newAssignment, dueDate: e.target.value})}
-                                />
+                                <p className="text-[9px] text-slate-400 ml-1 italic">e.g. 10 → students scored out of 10</p>
                             </div>
                         </div>
 
@@ -460,7 +470,8 @@ export default function TutorAssignments() {
 
             {/* View Submissions Sheet */}
             <Dialog open={isViewSubmissionsOpen} onOpenChange={setIsViewSubmissionsOpen}>
-                <DialogContent className="sm:max-w-[1000px] rounded-[48px] border-none p-0 overflow-hidden shadow-2xl">
+                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto rounded-[48px] border-none p-0 shadow-2xl">
+                    <DialogTitle className="sr-only">Submissions for {selectedAssignment?.title}</DialogTitle>
                     <div className="bg-indigo-600 p-10 text-white relative overflow-hidden">
                         <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
                         <div className="relative z-10">
@@ -516,7 +527,7 @@ export default function TutorAssignments() {
                                                             setSelectedSubmission(sub)
                                                             setIsGradeOpen(true)
                                                         }}
-                                                        className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                                                        className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-600 transition-all shadow-xl shadow-slate-200"
                                                     >
                                                         Evaluate Work
                                                     </Button>
@@ -544,7 +555,7 @@ export default function TutorAssignments() {
 
             {/* Grading Modal */}
             <Dialog open={isGradeOpen} onOpenChange={setIsGradeOpen}>
-                <DialogContent className="sm:max-w-[500px] rounded-[40px] border-none p-10 shadow-2xl">
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[40px] border-none p-10 shadow-2xl">
                     <DialogHeader>
                         <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
                             <CheckCircle className="w-8 h-8" />
@@ -564,9 +575,9 @@ export default function TutorAssignments() {
                             <Input 
                                 type="number"
                                 className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-black text-2xl text-center text-slate-900 focus:bg-white transition-all"
-                                value={grading.marksObtained}
+                                value={Number.isNaN(grading.marksObtained) ? "" : grading.marksObtained}
                                 max={selectedAssignment?.maxMarks}
-                                onChange={(e) => setGrading({...grading, marksObtained: parseInt(e.target.value)})}
+                                onChange={(e) => setGrading({...grading, marksObtained: e.target.value === "" ? "" as any : parseInt(e.target.value)})}
                             />
                         </div>
 

@@ -8,8 +8,7 @@ import {
   Zap, MessageSquare, Lightbulb, TrendingUp, Target, Users
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { announcements, upcomingDeadlines, recentActivity } from "@/lib/mock-data"
-import { userApi, courseApi, assignmentApi, assessmentApi } from "@/lib/api"
+import { userApi, courseApi, assignmentApi, assessmentApi, announcementApi } from "@/lib/api"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -18,6 +17,7 @@ import { AITutorModal } from "@/components/dashboards/student/ai-tutor-modal"
 import { CollaborationModals } from "@/components/dashboards/student/collaboration-modals"
 import { ActivityHistoryModal } from "@/components/dashboards/student/activity-history-modal"
 import { AssessmentList } from "@/components/dashboards/student/assessment-list"
+import { Leaderboard } from "@/components/dashboards/student/leaderboard"
 
 import { getCurrentUser } from "@/lib/auth-utils"
 
@@ -34,7 +34,10 @@ export default function StudentOverview() {
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([])
   const [assignmentResults, setAssignmentResults] = useState<any[]>([])
   const [quizResults, setQuizResults] = useState<any[]>([])
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [upcomingAssessments, setUpcomingAssessments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [readState, setReadState] = useState<Record<string, boolean>>({})
 
   const user = getCurrentUser()
   const studentName = user?.name?.split(" ")[0] || "Student"
@@ -42,29 +45,36 @@ export default function StudentOverview() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [statsRes, coursesRes, marksRes, quizRes] = await Promise.allSettled([
+      const saved = localStorage.getItem("read_announcements")
+      if (saved) setReadState(JSON.parse(saved))
+
+      const [statsRes, coursesRes, marksRes, quizRes, annRes, assessRes] = await Promise.allSettled([
         userApi.getStats(),
         courseApi.getMyCourses(),
         assignmentApi.getMyMarks(),
         assessmentApi.getSubmissions(),
+        announcementApi.getAll(user?.grade),
+        assessmentApi.getAll({ grade: user?.grade, status: "published" })
       ])
       if (statsRes.status === "fulfilled") setStats(statsRes.value?.data || null)
       if (coursesRes.status === "fulfilled") setEnrolledCourses(coursesRes.value?.data || [])
       if (marksRes.status === "fulfilled") setAssignmentResults(marksRes.value?.data || [])
       if (quizRes.status === "fulfilled") setQuizResults((quizRes.value?.data || []).filter((row: any) => row?.gradedAt))
+      if (annRes.status === "fulfilled") setAnnouncements(annRes.value?.data || [])
+      if (assessRes.status === "fulfilled") setUpcomingAssessments((assessRes.value?.data || []).slice(0, 4))
     } catch (error) {
       console.error("Failed to fetch student data", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user?.grade])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
   const topCourses = enrolledCourses.slice(0, 6)
-  const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
+  const topAnnouncements = announcements.filter((a) => !readState[a._id]).slice(0, 2)
   const latestResults = [
     ...(assignmentResults || []).map((result: any) => ({
       id: `as-${result._id}`,
@@ -93,111 +103,55 @@ export default function StudentOverview() {
     .slice(0, 3)
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20 pt-4">
 
       {/* Dynamic Greeting & Quick Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100/50">Student Portal</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Updates</span>
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-slate-900 shadow-[0_0_10px_rgba(0,0,0,0.1)]" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Academic Dashboard</span>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600">{studentName}!</span> 👋
+          <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+            Welcome, <span className="font-semibold text-slate-900">{studentName}</span>
           </h1>
-          <p className="text-slate-500 font-medium flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
-            You're on a <span className="text-slate-900 font-bold">12-day learning streak</span>. Ready for Calculus today?
+          <p className="text-slate-400 text-sm font-medium flex items-center gap-2">
+            You have a <span className="text-slate-900 font-bold">12-day streak</span>. Ready to master new concepts?
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
           <Button
             onClick={() => setIsAITutorOpen(true)}
             variant="outline"
-            className="h-12 px-5 rounded-2xl border-slate-200 bg-white/50 backdrop-blur-sm font-bold text-xs uppercase tracking-widest hover:bg-sky-50 hover:text-sky-600 transition-all shadow-sm group"
+            className="h-12 px-6 rounded-full border-slate-100 bg-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
           >
-            <MessageSquare className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
             Ask AI Tutor
           </Button>
           <Button
             onClick={() => { setCollabType("create"); setIsStudyHubOpen(true); }}
-            className="h-12 px-6 rounded-2xl bg-sky-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-sky-700 transition-all shadow-xl shadow-sky-500/20 group"
+            className="h-12 px-8 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-sky-600 transition-all shadow-xl shadow-slate-200"
           >
-            <Zap className="w-4 h-4 mr-2 text-amber-300 fill-amber-300 group-hover:scale-110 transition-transform" />
-            Initialize Study Hub
+            Study Hub
           </Button>
         </div>
       </div>
 
       {/* Advanced Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 px-4">
         {[
-          {
-            label: "Assessment Score",
-            value: stats ? `${stats.gpa * 20}%` : "...", // Mocking conversion
-            icon: Target,
-            color: "sky",
-            sub: stats ? `Overall Rank: ${stats.rank}` : "Loading...",
-            trend: "+2% Today",
-            bg: "from-sky-50 to-white"
-          },
-          {
-            label: "Quizzes Taken",
-            value: stats ? String(stats.quizzesTaken) : "...",
-            icon: GraduationCap,
-            color: "indigo",
-            sub: "Last: Photosynthesis",
-            trend: "Active Student",
-            bg: "from-indigo-50 to-white"
-          },
-          {
-            label: "Learning Streak",
-            value: stats ? String(stats.streak) : "...",
-            icon: Zap,
-            color: "amber",
-            sub: "Days active",
-            trend: "Master Level",
-            bg: "from-amber-50 to-white"
-          },
-          {
-            label: "Current GPA",
-            value: stats ? String(stats.gpa) : "...",
-            icon: TrendingUp,
-            color: "purple",
-            sub: "Dean's List",
-            trend: "Honors Track",
-            bg: "from-purple-50 to-white"
-          },
+          { label: "Assessment Score", value: stats ? `${stats.gpa * 20}%` : "...", sub: "Overall Proficiency" },
+          { label: "Quizzes Taken", value: stats ? String(stats.quizzesTaken) : "...", sub: "Cumulative Activity" },
+          { label: "Learning Streak", value: stats ? String(stats.streak) : "...", sub: "Consecutive Days" },
+          { label: "Current GPA", value: stats ? String(stats.gpa) : "...", sub: "Academic Standing" },
         ].map((stat, i) => (
           <div
-            key={stat.label}
-            className={cn(
-              "group relative p-6 rounded-[32px] bg-gradient-to-br border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:border-sky-200 transition-all duration-500 overflow-hidden",
-              stat.bg
-            )}
+            key={i}
+            className="p-10 rounded-[32px] bg-slate-50/50 border border-transparent hover:bg-white hover:border-slate-100 hover:shadow-xl transition-all duration-500 group"
           >
-            <div className="relative z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div className={cn(
-                  "p-3 rounded-2xl border bg-white shadow-sm",
-                  `text-${stat.color}-500 border-${stat.color}-100`
-                )}>
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div className={cn("px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest", `text-${stat.color}-600 border-${stat.color}-100`)}>
-                  {stat.trend}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-                </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</p>
-              </div>
-            </div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
+            <h3 className="text-3xl font-semibold text-slate-900 tracking-tight">{stat.value}</h3>
+            <p className="text-[10px] font-medium text-slate-400 mt-1">{stat.sub}</p>
           </div>
         ))}
       </div>
@@ -340,39 +294,47 @@ export default function StudentOverview() {
             <AssessmentList />
 
             <div className="grid grid-cols-1 gap-4">
-              {upcomingDeadlines.map((d, i) => (
+              {upcomingAssessments.map((d, i) => (
                 <div key={i} className="flex items-center gap-5 p-5 rounded-[28px] bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
                   <div className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-500 group-hover:scale-110",
-                    d.color === "red" ? "bg-red-50 text-red-500 border-red-100" :
-                      d.color === "amber" ? "bg-amber-50 text-amber-500 border-amber-100" :
-                        d.color === "sky" ? "bg-sky-50 text-sky-500 border-sky-100" :
+                    d.type === "final" ? "bg-red-50 text-red-500 border-red-100" :
+                      d.type === "mid" ? "bg-amber-50 text-amber-500 border-amber-100" :
+                        d.type === "quiz" ? "bg-sky-50 text-sky-500 border-sky-100" :
                           "bg-emerald-50 text-emerald-500 border-emerald-100"
                   )}>
                     <FileText className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-base font-black text-slate-900 truncate uppercase tracking-tight">{d.title}</h4>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{d.course}</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{d.subject?.title || "Course"}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <span className={cn(
                       "text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest border shadow-sm",
-                      d.color === "red" ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
-                        d.color === "amber" ? "bg-amber-50 text-amber-600 border-amber-200" :
+                      d.type === "final" ? "bg-red-50 text-red-600 border-red-200 animate-pulse" :
+                        d.type === "mid" ? "bg-amber-50 text-amber-600 border-amber-200" :
                           "bg-slate-50 text-slate-500 border-slate-200"
                     )}>
-                      {d.dueLabel}
+                      Due {new Date(d.dueDate).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
               ))}
+              {upcomingAssessments.length === 0 && !loading && (
+                <div className="p-8 text-center bg-slate-50 rounded-[28px] border border-dashed border-slate-200">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No upcoming deadlines</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Improved Sidebar */}
         <div className="space-y-10">
+
+          {/* Global Leaderboard */}
+          <Leaderboard grade={user?.grade || "9"} />
 
           {/* Latest Results */}
           <div className="space-y-4">
@@ -415,11 +377,11 @@ export default function StudentOverview() {
             </div>
             <div className="space-y-4">
               {topAnnouncements.map((ann) => (
-                <div key={ann.id} className="group relative p-8 rounded-[40px] border border-indigo-100 bg-indigo-50/30 hover:bg-white hover:shadow-2xl hover:border-sky-200 transition-all duration-500 overflow-hidden">
+                <div key={ann._id} className="group relative p-8 rounded-[40px] border border-indigo-100 bg-indigo-50/30 hover:bg-white hover:shadow-2xl hover:border-sky-200 transition-all duration-500 overflow-hidden">
                   <div className="absolute -right-8 -top-8 w-24 h-24 bg-sky-400/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{ann.author}</span>
+                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
                   </div>
                   <h4 className="font-black text-slate-900 mb-2 leading-tight group-hover:text-sky-600 transition-colors uppercase tracking-tight">
                     {ann.title}
@@ -439,26 +401,9 @@ export default function StudentOverview() {
           <div className="space-y-6">
             <h2 className="text-xl font-black text-slate-900 tracking-tight px-2 uppercase">Pulse Feed</h2>
             <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-              {recentActivity.slice(0, 4).map((act, i) => (
-                <div key={i} className="relative group">
-                  <div className={cn(
-                    "absolute -left-[31px] top-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center transition-all group-hover:scale-125 shadow-sm group-hover:shadow-lg z-10",
-                    act.color === "emerald" ? "bg-emerald-500" :
-                      act.color === "sky" ? "bg-sky-500" :
-                        act.color === "amber" ? "bg-amber-500" :
-                          "bg-indigo-500"
-                  )}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-white opacity-50" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-black text-slate-800 group-hover:text-sky-600 transition-colors leading-none tracking-tight">{act.title}</p>
-                    <p className="text-xs font-bold text-slate-400 italic">{act.sub}</p>
-                    <span className="inline-block text-[9px] text-slate-400 font-black uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 mt-1">
-                      {act.time}
-                    </span>
-                  </div>
-                </div>
-              ))}
+               <div className="p-10 text-center rounded-[32px] border border-dashed border-slate-100 bg-slate-50/50">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">Activity history will appear as you interact with the platform</p>
+               </div>
             </div>
             <Button
               onClick={() => setIsActivityHistoryOpen(true)}

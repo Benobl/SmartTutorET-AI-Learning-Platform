@@ -1,227 +1,330 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { 
+    Shield, Search, RefreshCw, UserPlus, Trash2, Eye, X,
+    CheckCircle2, Users, Crown, Mail, Calendar
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UserCog, ShieldCheck, Mail, Eye, Trash2, Plus, UserPlus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { 
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle 
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
-function ManagersContent() {
-    const searchParams = useSearchParams();
-    const query = searchParams.get("q") || "";
-    
+export default function AdminManagersPage() {
     const [managers, setManagers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
     const [isAppointing, setIsAppointing] = useState(false);
-    const [managerToDelete, setManagerToDelete] = useState<any>(null);
-    const [viewingManager, setViewingManager] = useState<any>(null);
     const [managerEmail, setManagerEmail] = useState("");
+    const [appointing, setAppointing] = useState(false);
+    const [managerToDelete, setManagerToDelete] = useState<any>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [viewingManager, setViewingManager] = useState<any>(null);
 
-    const fetchData = async () => {
+    const fetchManagers = async () => {
         try {
             setLoading(true);
             const res = await adminApi.getUsers();
-            // Filter only admins and managers
-            const adminList = res.data.filter((u: any) => u.role === "admin" || u.role === "manager");
-            setManagers(adminList);
+            const allUsers = res?.data || [];
+            setManagers(allUsers.filter((u: any) => u.role === "manager" || u.role === "admin"));
         } catch (error) {
-            console.error("Failed to fetch managers", error);
+            toast({ title: "Fetch Error", description: "Could not load managers.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchManagers(); }, []);
 
-    const handleViewProfile = (manager: any) => {
-        setViewingManager(manager);
-    };
-
-    const handleDeleteManager = (manager: any) => {
-        setManagerToDelete(manager);
+    const handleAppointManager = async () => {
+        if (!managerEmail.trim()) return;
+        setAppointing(true);
+        try {
+            await adminApi.appointManager(managerEmail.trim());
+            toast({ title: "Manager Appointed ✓", description: `${managerEmail} is now a Manager.`, className: "bg-emerald-500 text-white" });
+            setIsAppointing(false);
+            setManagerEmail("");
+            fetchManagers();
+        } catch (error: any) {
+            toast({ title: "Appointment Failed", description: error.message, variant: "destructive" });
+        } finally {
+            setAppointing(false);
+        }
     };
 
     const confirmDelete = async () => {
-        if (managerToDelete) {
-            try {
-                await adminApi.deleteUser(managerToDelete._id);
-                toast({ title: "Access Revoked", description: `${managerToDelete.name} has been removed.` });
-                setManagerToDelete(null);
-                fetchData();
-            } catch (error: any) {
-                toast({ title: "Error", description: error.message, variant: "destructive" });
-            }
-        }
-    };
-
-    const handleAppointManager = async () => {
-        if (!managerEmail) return;
+        if (!managerToDelete) return;
+        setDeleting(true);
         try {
-            await adminApi.appointManager(managerEmail);
-            toast({ title: "Success", description: "User promoted to Manager." });
-            setIsAppointing(false);
-            setManagerEmail("");
-            fetchData();
+            await adminApi.deleteUser(managerToDelete._id);
+            toast({ title: "Access Revoked", description: `${managerToDelete.name} has been removed.` });
+            setManagerToDelete(null);
+            fetchManagers();
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setDeleting(false);
         }
     };
 
-    // Filter by search query
-    const filteredManagers = managers.filter(m => 
-        m.name?.toLowerCase().includes(query.toLowerCase()) ||
-        m.email?.toLowerCase().includes(query.toLowerCase())
+    const filteredManagers = managers.filter(m =>
+        m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const adminCount = managers.filter(m => m.role === "admin").length;
+    const managerCount = managers.filter(m => m.role === "manager").length;
+
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center px-2">
-                <div>
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Institutional <span className="text-blue-500">Managers</span></h2>
-                    <p className="text-slate-400 font-medium">Oversee personnel responsible for registry and operations.</p>
+        <div className="max-w-7xl mx-auto space-y-10 py-4 animate-in fade-in duration-700">
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-slate-900" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Administrative Team</span>
+                    </div>
+                    <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+                        Managers &amp; <span className="font-semibold text-slate-900">Admins</span>
+                    </h1>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                        Manage platform administrators and operations managers.
+                    </p>
                 </div>
-                <Button
-                    onClick={() => setIsAppointing(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 group transition-all active:scale-95"
-                >
-                    <UserPlus className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform" />
-                    Appoint Manager
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        onClick={fetchManagers}
+                        variant="outline"
+                        className="rounded-2xl h-12 px-5 border-slate-100 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 transition-all text-slate-500"
+                    >
+                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                    </Button>
+                    <Button
+                        onClick={() => setIsAppointing(true)}
+                        className="rounded-2xl h-12 px-7 bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-200 transition-all"
+                    >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Appoint Manager
+                    </Button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredManagers.map((manager) => (
-                    <Card key={manager._id} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-[32px] overflow-hidden bg-white group border border-slate-100 hover:-translate-y-1">
-                        <CardHeader className="p-8 pb-4 relative">
-                            <div className="absolute top-8 right-8">
-                                <Badge className={`text-[9px] font-black rounded-lg px-2.5 py-1 uppercase tracking-widest shadow-sm ${manager.isVerified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                                    {manager.isVerified ? 'Active' : 'Pending'}
-                                </Badge>
-                            </div>
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center text-2xl font-black text-blue-600 shadow-inner group-hover:scale-110 transition-transform duration-500 mb-6">
-                                {manager.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                            </div>
-                            <CardTitle className="text-xl font-black text-slate-800 mb-1">{manager.name}</CardTitle>
-                            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider">
-                                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                                {manager.role === 'admin' ? 'Strategic Admin' : 'Registry Ops'}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-8 pt-4 space-y-6">
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between text-xs font-bold px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                    <span className="text-slate-400 uppercase tracking-widest">Email Access</span>
-                                    <span className="text-blue-600 font-black truncate max-w-[150px]">{manager.email}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5 px-1 py-1">
-                                    {['registry', 'monitoring', 'users'].map((perm, idx) => (
-                                        <Badge key={idx} variant="secondary" className="bg-indigo-50/50 text-indigo-500 border-indigo-100 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                            {perm}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleViewProfile(manager)}
-                                    className="flex-1 rounded-xl h-11 border-slate-100 text-slate-400 hover:text-blue-500 hover:bg-blue-50 font-black text-[10px] uppercase tracking-widest transition-all"
-                                >
-                                    <Eye className="w-3.5 h-3.5 mr-2" />
-                                    Profile
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleDeleteManager(manager)}
-                                    className="w-11 h-11 p-0 rounded-xl border-slate-100 text-slate-300 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 px-4">
+                {[
+                    { label: "Total Personnel", value: managers.length, icon: Users, color: "sky" },
+                    { label: "Administrators", value: adminCount, icon: Crown, color: "indigo" },
+                    { label: "Managers", value: managerCount, icon: Shield, color: "emerald" },
+                ].map((stat, i) => (
+                    <div key={i} className="p-7 rounded-[24px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-md transition-all duration-200 flex items-center gap-5">
+                        <div className={cn(
+                            "w-11 h-11 rounded-xl flex items-center justify-center",
+                            stat.color === "sky" ? "bg-sky-50 text-sky-500" :
+                            stat.color === "indigo" ? "bg-indigo-50 text-indigo-500" : "bg-emerald-50 text-emerald-500"
+                        )}>
+                            <stat.icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold text-slate-900">{loading ? "—" : stat.value}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                        </div>
+                    </div>
                 ))}
-
-                {/* Add Professional Card Placeholder */}
-                <button
-                    onClick={() => setIsAppointing(true)}
-                    className="border-4 border-dashed border-slate-100 rounded-[32px] p-8 flex flex-col items-center justify-center gap-4 hover:border-blue-100 hover:bg-blue-50/20 transition-all duration-500 group min-h-[350px]"
-                >
-                    <div className="w-20 h-20 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 group-hover:scale-110 group-hover:bg-white group-hover:text-blue-500 transition-all shadow-sm">
-                        <Plus className="w-8 h-8" />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-black text-slate-800 text-lg">Appoint Associate</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Expansion Slot Available</p>
-                    </div>
-                </button>
             </div>
 
-            {/* Appointment Modal */}
+            {/* Search */}
+            <div className="px-4">
+                <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-100 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all placeholder:text-slate-300 shadow-sm"
+                    />
+                </div>
+            </div>
+
+            {/* Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 px-4 pb-24">
+                {loading ? (
+                    Array(3).fill(0).map((_, i) => (
+                        <Skeleton key={i} className="h-64 rounded-[28px]" />
+                    ))
+                ) : filteredManagers.length === 0 ? (
+                    <div className="col-span-3 py-20 text-center">
+                        <Shield className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No managers found</p>
+                    </div>
+                ) : (
+                    <>
+                        {filteredManagers.map((manager) => (
+                            <div
+                                key={manager._id}
+                                className="p-7 rounded-[28px] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-lg transition-all duration-200 group space-y-5"
+                            >
+                                {/* Avatar + role */}
+                                <div className="flex items-start justify-between">
+                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 flex items-center justify-center text-xl font-black text-sky-600 group-hover:scale-105 transition-transform">
+                                        {manager.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                    </div>
+                                    <span className={cn(
+                                        "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border",
+                                        manager.role === "admin"
+                                            ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                            : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                    )}>
+                                        {manager.role}
+                                    </span>
+                                </div>
+
+                                {/* Name */}
+                                <div>
+                                    <p className="text-base font-bold text-slate-900">{manager.name}</p>
+                                    <div className="flex items-center gap-1.5 mt-1 text-slate-400">
+                                        <Mail className="w-3 h-3" />
+                                        <span className="text-xs truncate">{manager.email}</span>
+                                    </div>
+                                </div>
+
+                                {/* Joined */}
+                                <div className="flex items-center gap-1.5 text-slate-400">
+                                    <Calendar className="w-3 h-3" />
+                                    <span className="text-[10px]">
+                                        Joined {manager.createdAt ? new Date(manager.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                                    </span>
+                                </div>
+
+                                {/* Status */}
+                                <div className="flex items-center gap-2">
+                                    <div className={cn("w-2 h-2 rounded-full", manager.accountStatus === "active" || !manager.accountStatus ? "bg-emerald-400" : "bg-slate-300")} />
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                        {manager.accountStatus || "active"}
+                                    </span>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setViewingManager(manager)}
+                                        className="flex-1 rounded-xl h-9 border-slate-100 text-slate-400 hover:text-sky-600 hover:bg-sky-50 hover:border-sky-100 font-black text-[9px] uppercase tracking-widest transition-all"
+                                    >
+                                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                        View
+                                    </Button>
+                                    {manager.role !== "admin" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setManagerToDelete(manager)}
+                                            className="w-9 h-9 p-0 rounded-xl border-slate-100 text-slate-300 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Add Slot */}
+                        <button
+                            onClick={() => setIsAppointing(true)}
+                            className="min-h-[260px] rounded-[28px] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-4 hover:border-sky-200 hover:bg-sky-50/30 transition-all duration-300 group"
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 group-hover:bg-white group-hover:text-sky-500 text-slate-300 flex items-center justify-center transition-all border border-slate-100 group-hover:border-sky-200 group-hover:shadow-sm">
+                                <UserPlus className="w-5 h-5" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-slate-500 group-hover:text-slate-700">Appoint Manager</p>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Add new personnel</p>
+                            </div>
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {/* Appoint Manager Dialog */}
             <Dialog open={isAppointing} onOpenChange={setIsAppointing}>
-                <DialogContent className="sm:max-w-[425px] border-0 shadow-2xl rounded-[40px] overflow-hidden bg-white">
-                    <DialogHeader className="p-4">
-                        <DialogTitle className="text-3xl font-black text-slate-900">Appoint <span className="text-blue-600">Manager</span></DialogTitle>
-                        <DialogDescription className="text-slate-500 font-bold mt-2">Grant administrative override permissions to a new lead.</DialogDescription>
+                <DialogContent className="sm:max-w-md border-0 shadow-2xl rounded-[32px] bg-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold text-slate-900">
+                            Appoint <span className="text-sky-500">Manager</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 text-sm">
+                            Enter the email of an existing user to promote them to Manager, or create a new manager account.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-6 p-4 pt-0">
+                    <div className="space-y-4 pt-2">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Candidate Email Address</label>
-                            <Input 
-                                type="email" 
-                                placeholder="email@example.com" 
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
+                            <Input
+                                type="email"
+                                placeholder="manager@example.com"
                                 value={managerEmail}
-                                onChange={(e) => setManagerEmail(e.target.value)}
-                                className="w-full h-14 rounded-2xl bg-slate-50 border-slate-100 px-6 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all border" 
+                                onChange={e => setManagerEmail(e.target.value)}
+                                onKeyDown={e => e.key === "Enter" && handleAppointManager()}
+                                className="h-12 rounded-xl bg-slate-50 border-slate-100 font-medium focus:ring-sky-500/20"
                             />
                         </div>
-                        <div className="flex gap-4 pt-2">
-                            <Button 
-                                className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20" 
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                className="flex-1 h-12 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-200"
                                 onClick={handleAppointManager}
+                                disabled={appointing || !managerEmail.trim()}
                             >
-                                Confirm Appointment
+                                {appointing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                                {appointing ? "Appointing..." : "Confirm"}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-12 rounded-xl border-slate-100 text-slate-400 font-black text-xs uppercase tracking-widest"
+                                onClick={() => { setIsAppointing(false); setManagerEmail(""); }}
+                            >
+                                Cancel
                             </Button>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Deletion Confirmation */}
+            {/* Delete Confirmation Dialog */}
             <Dialog open={!!managerToDelete} onOpenChange={() => setManagerToDelete(null)}>
-                <DialogContent className="sm:max-w-md border-0 shadow-2xl rounded-[40px] overflow-hidden bg-white p-0">
+                <DialogContent className="sm:max-w-sm border-0 shadow-2xl rounded-[32px] bg-white">
                     <DialogHeader className="sr-only">
-                        <DialogTitle>Confirm Revocation</DialogTitle>
+                        <DialogTitle>Confirm Removal</DialogTitle>
                     </DialogHeader>
-                    <div className="p-10 text-center space-y-8">
-                        <div className="w-20 h-20 rounded-3xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto shadow-inner">
-                            <Trash2 className="w-10 h-10" />
+                    <div className="py-4 text-center space-y-6">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+                            <Trash2 className="w-8 h-8" />
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-black text-slate-900 leading-tight">Revoke Access?</h3>
-                            <p className="text-slate-500 font-medium">You are about to remove <span className="text-slate-900 font-black">{managerToDelete?.name}</span>. This action cannot be undone.</p>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-900">Remove Manager?</h3>
+                            <p className="text-slate-400 text-sm mt-2">
+                                You are about to remove <strong className="text-slate-700">{managerToDelete?.name}</strong> from administrative access. This cannot be undone.
+                            </p>
                         </div>
-                        <div className="flex gap-4">
-                            <Button className="flex-1 h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-rose-900/20" onClick={confirmDelete}>
-                                Revoke Access
+                        <div className="flex gap-3">
+                            <Button
+                                className="flex-1 h-12 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xs uppercase tracking-widest"
+                                onClick={confirmDelete}
+                                disabled={deleting}
+                            >
+                                {deleting ? "Removing..." : "Remove"}
                             </Button>
-                            <Button variant="outline" className="flex-1 h-14 rounded-2xl border-slate-100 text-slate-400 font-black text-xs uppercase tracking-widest" onClick={() => setManagerToDelete(null)}>
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-12 rounded-xl border-slate-100 text-slate-400 font-black text-xs uppercase tracking-widest"
+                                onClick={() => setManagerToDelete(null)}
+                            >
                                 Keep
                             </Button>
                         </div>
@@ -229,46 +332,51 @@ function ManagersContent() {
                 </DialogContent>
             </Dialog>
 
-            {/* Profile Drawer-ish */}
+            {/* Profile Side Panel */}
             {viewingManager && (
-                <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[100] border-l border-slate-100 p-10 animate-in slide-in-from-right duration-500 flex flex-col">
-                    <div className="flex justify-between items-center mb-10">
-                        <Badge className="bg-blue-50 text-blue-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Manager Dossier</Badge>
-                        <Button variant="ghost" size="icon" onClick={() => setViewingManager(null)} className="rounded-full hover:bg-slate-100">
-                            <X className="w-6 h-6 text-slate-400" />
+                <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl z-[100] border-l border-slate-100 p-8 animate-in slide-in-from-right duration-300 flex flex-col">
+                    <div className="flex justify-between items-center mb-8">
+                        <span className={cn(
+                            "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border",
+                            viewingManager.role === "admin"
+                                ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        )}>
+                            {viewingManager.role}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setViewingManager(null)}
+                            className="rounded-xl hover:bg-slate-100 text-slate-400"
+                        >
+                            <X className="w-5 h-5" />
                         </Button>
                     </div>
-                    <div className="space-y-12 flex-1">
-                        <div className="space-y-6">
-                            <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl font-black text-white shadow-xl">
-                                {viewingManager.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                    <div className="space-y-8 flex-1">
+                        <div>
+                            <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-2xl font-black text-white shadow-xl mb-5">
+                                {viewingManager.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                             </div>
-                            <div>
-                                <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{viewingManager.name}</h3>
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">{viewingManager.role}</p>
-                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900">{viewingManager.name}</h3>
+                            <p className="text-slate-400 text-sm mt-1">{viewingManager.email}</p>
                         </div>
-                        <div className="grid gap-4">
-                            <div className="p-6 rounded-3xl bg-slate-50 space-y-1 border border-slate-100/50">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Contact</p>
-                                <p className="text-slate-900 font-black">{viewingManager.email}</p>
-                            </div>
-                            <div className="p-6 rounded-3xl bg-slate-50 space-y-1 border border-slate-100/50">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined Date</p>
-                                <p className="text-slate-900 font-black">{new Date(viewingManager.createdAt).toLocaleDateString()}</p>
-                            </div>
+                        <div className="space-y-3">
+                            {[
+                                { label: "Role", value: viewingManager.role },
+                                { label: "Status", value: viewingManager.accountStatus || "active" },
+                                { label: "Joined", value: viewingManager.createdAt ? new Date(viewingManager.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "—" },
+                                { label: "Verified", value: viewingManager.isVerified ? "Yes" : "No" },
+                            ].map(row => (
+                                <div key={row.label} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{row.label}</span>
+                                    <span className="text-sm font-bold text-slate-700 capitalize">{row.value}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             )}
         </div>
-    );
-}
-
-export default function AdminManagersPage() {
-    return (
-        <Suspense fallback={<div>Loading Managers...</div>}>
-            <ManagersContent />
-        </Suspense>
     );
 }

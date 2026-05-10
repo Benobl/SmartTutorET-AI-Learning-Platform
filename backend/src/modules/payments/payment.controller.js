@@ -42,4 +42,22 @@ export class PaymentController {
             next(error);
         }
     }
+
+    static async getTutorEarnings(req, res, next) {
+        try {
+            const earnings = await PaymentService.getTutorEarnings(req.user._id);
+            res.json({ success: true, data: earnings });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getAdminEarnings(req, res, next) {
+        try {
+            const earnings = await PaymentService.getAdminEarnings();
+            res.json({ success: true, data: earnings });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

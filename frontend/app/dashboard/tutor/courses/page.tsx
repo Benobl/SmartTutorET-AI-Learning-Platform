@@ -320,50 +320,49 @@ export default function TeacherCourses() {
     })
 
     return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000 bg-white min-h-screen p-8">
+        <div className="max-w-7xl mx-auto space-y-16 animate-in fade-in duration-700 bg-white min-h-screen p-8 pb-32 pt-4">
 
             {/* Status Warning for Pending Tutors */}
             {!isApproved && (
-                <div className="bg-amber-50 border border-amber-100 rounded-[32px] p-8 flex items-start gap-6 animate-in slide-in-from-top-4 duration-700">
-                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-amber-500 shadow-sm shrink-0">
-                        <AlertCircle className="w-7 h-7" />
+                <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-10 flex items-start gap-8 shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-slate-400 border border-slate-100 shrink-0">
+                        <AlertCircle className="w-6 h-6" />
                     </div>
-                    <div className="space-y-2">
-                        <h4 className="text-lg font-black text-amber-900 uppercase tracking-tight">Institutional Review in Progress</h4>
-                        <p className="text-sm text-amber-700 font-medium leading-relaxed">
-                            Welcome, <span className="font-black underline">{currentUser?.name}</span>! Your tutor application is currently being reviewed by our academic board. 
-                            While in pending status, you can explore the platform but <span className="font-black italic">course creation and live sessions</span> are temporarily disabled.
+                    <div className="space-y-4">
+                        <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Institutional Review</h4>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-2xl">
+                            Welcome, <span className="text-slate-900 font-bold">{currentUser?.name}</span>. Your tutor application is currently being verified. 
+                            Course creation and live sessions will be enabled once your credentials are confirmed.
                         </p>
-                        <div className="pt-2 flex items-center gap-4">
-                            <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-[8px] font-black uppercase tracking-tighter">Status: Pending Verification</span>
-                            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest italic underline decoration-2 underline-offset-4">Learn about our approval process →</span>
+                        <div className="flex items-center gap-4 pt-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Current Status: Pending Approval</span>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Header Section */}
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-12 px-2">
                 <div className="space-y-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">Curriculum Manager</span>
-                            <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-slate-900 shadow-[0_0_10px_rgba(0,0,0,0.1)]" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Curriculum Management</span>
                         </div>
-                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-3 uppercase italic">
-                            Academic <span className='text-sky-600'>Curriculum</span>
+                        <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+                            Academic <span className="font-semibold text-slate-900">Curriculum</span>
                         </h1>
-                        <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest max-w-md opacity-70">
-                            Orchestrate your Grade 9-12 courses, manage pedagogical modules, and audit student performance.
+                        <p className="text-slate-400 text-sm font-medium max-w-md leading-relaxed">
+                            Orchestrate your pedagogical modules and audit student performance across Grade 9-12 tracks.
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                             <Input 
                                 placeholder="Search courses..." 
-                                className="h-14 pl-12 pr-6 w-[300px] rounded-2xl bg-white border-slate-100 font-bold text-sm shadow-sm focus:border-sky-300 transition-all"
+                                className="h-14 pl-12 pr-6 w-[320px] rounded-2xl bg-slate-50 border-transparent font-medium text-sm focus:bg-white focus:border-slate-100 transition-all shadow-sm"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -372,35 +371,35 @@ export default function TeacherCourses() {
                         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                             <DialogTrigger asChild>
                                 <Button 
-                                    className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:scale-105 transition-all"
+                                    className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-slate-200 hover:bg-sky-600 transition-all"
                                 >
-                                    <Plus className="w-4 h-4" /> Create New Course
+                                    <Plus className="w-4 h-4" /> Create Framework
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[480px] rounded-[28px] border-slate-100 bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
-                                <div className="px-8 pt-8 pb-4 border-b border-slate-50 flex-shrink-0">
+                            <DialogContent className="sm:max-w-[480px] rounded-[40px] border-slate-100 bg-white p-0 overflow-hidden flex flex-col shadow-2xl">
+                                <div className="p-10 border-b border-slate-50 flex-shrink-0">
                                     <DialogHeader>
-                                        <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
-                                            {editingCourseId ? "Modify Framework" : "New Academic Course"}
+                                        <DialogTitle className="text-xl font-semibold tracking-tight text-slate-900">
+                                            {editingCourseId ? "Modify Framework" : "New Course Framework"}
                                         </DialogTitle>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ethiopian Curriculum Standards</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">National Standards V2.0</p>
                                     </DialogHeader>
                                 </div>
-                                <div className="overflow-y-auto flex-1 px-8 py-6">
-                                    <div className="space-y-3">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course Title</Label>
+                                <div className="p-10 pt-6 space-y-10 flex-1 overflow-y-auto">
+                                    <div className="space-y-4">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Course Nomenclature</Label>
                                         <Input
-                                            placeholder="e.g. Modern Physics: Derivations"
-                                            className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
+                                            placeholder="e.g. Advanced Calculus & Limits"
+                                            className="h-14 rounded-2xl bg-slate-50 border-transparent font-medium text-sm px-6"
                                             value={newCourse.name}
                                             onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
                                             <select 
-                                                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-100 font-black text-[10px] uppercase tracking-widest px-3"
+                                                className="w-full h-12 rounded-2xl bg-slate-50 border-transparent font-black text-[10px] uppercase px-4 outline-none transition-all"
                                                 value={newCourse.grade}
                                                 onChange={(e) => setNewCourse({ ...newCourse, grade: e.target.value })}
                                             >
@@ -410,10 +409,10 @@ export default function TeacherCourses() {
                                                 <option value="12">Grade 12</option>
                                             </select>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Term</Label>
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Term</Label>
                                             <select 
-                                                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-100 font-black text-[10px] uppercase tracking-widest px-3"
+                                                className="w-full h-12 rounded-2xl bg-slate-50 border-transparent font-black text-[10px] uppercase px-4 outline-none transition-all"
                                                 value={newCourse.semester}
                                                 onChange={(e) => setNewCourse({ ...newCourse, semester: e.target.value })}
                                             >
@@ -423,67 +422,39 @@ export default function TeacherCourses() {
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between p-4 rounded-xl bg-sky-50/50 border border-sky-100">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-sky-600">Premium Mode</Label>
-                                            <p className="text-[8px] text-slate-400 font-bold uppercase">Require Chapa Payment</p>
+                                    <div className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 border border-slate-100">
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-900">Premium Tier</Label>
+                                            <p className="text-[9px] text-slate-400 font-medium uppercase">Enable payment verification</p>
                                         </div>
                                         <input 
                                             type="checkbox"
-                                            className="w-4 h-4 rounded border-slate-200 text-sky-600"
+                                            className="w-5 h-5 rounded-lg border-slate-200 text-slate-900 focus:ring-0"
                                             checked={newCourse.isPremium}
                                             onChange={(e) => setNewCourse({ ...newCourse, isPremium: e.target.checked })}
                                         />
                                     </div>
 
                                     {newCourse.isPremium && (
-                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Price (ETB)</Label>
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Course Price (ETB)</Label>
                                             <Input
                                                 type="number"
                                                 placeholder="500"
-                                                className="h-11 rounded-xl bg-slate-50 border-slate-100 font-bold text-xs"
+                                                className="h-14 rounded-2xl bg-slate-50 border-transparent font-medium text-sm px-6"
                                                 value={newCourse.price}
                                                 onChange={(e) => setNewCourse({ ...newCourse, price: parseInt(e.target.value) || 0 })}
                                             />
                                         </div>
                                     )}
-
-                                    <div 
-                                        onClick={() => document.getElementById('syllabus-upload')?.click()}
-                                        className={cn(
-                                            "p-4 rounded-xl border border-dashed text-center space-y-1 group cursor-pointer transition-all",
-                                            syllabusFile ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200 hover:bg-sky-50 hover:border-sky-200"
-                                        )}
-                                    >
-                                        <input 
-                                            id="syllabus-upload"
-                                            type="file" 
-                                            className="hidden" 
-                                            accept=".pdf"
-                                            onChange={(e) => setSyllabusFile(e.target.files?.[0] || null)}
-                                        />
-                                        {syllabusFile ? (
-                                            <>
-                                                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 line-clamp-1">{syllabusFile.name}</p>
-                                                <p className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Click to change file</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Download className="w-6 h-6 text-slate-300 mx-auto group-hover:scale-110 transition-transform group-hover:text-sky-500" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">Upload Syllabus/Outline (PDF)</p>
-                                            </>
-                                        )}
                                 </div>
-                                </div>
-                                <div className="px-8 pb-8 pt-4 border-t border-slate-50 flex-shrink-0">
+                                <div className="p-10 pt-4 flex-shrink-0">
                                     <Button 
                                         disabled={isSubmitting}
                                         onClick={handleCreateCourse} 
-                                        className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-sky-500/10 disabled:opacity-50"
+                                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-sky-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-slate-200 disabled:opacity-50 transition-all"
                                     >
-                                        {isSubmitting ? "Processing..." : editingCourseId ? "Update Framework" : "Submit for Manager Approval"}
+                                        {isSubmitting ? "Finalizing Framework..." : editingCourseId ? "Update Framework" : "Initialize Course"}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -491,40 +462,20 @@ export default function TeacherCourses() {
                     </div>
                 </div>
 
-                <div className="flex flex-row items-center gap-4">
-                    <div className="bg-white px-3 py-2 rounded-[28px] border border-slate-200 shadow-sm flex items-center gap-1 flex-nowrap">
+                <div className="flex items-center gap-6">
+                    <div className="bg-slate-50 p-1.5 rounded-[22px] border border-slate-100 shadow-sm flex items-center">
                         {["All Courses", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map(grade => (
                             <button
                                 key={grade}
                                 onClick={() => setSelectedGrade(grade)}
                                 className={cn(
-                                    "px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                                    selectedGrade === grade ? "bg-sky-50 text-sky-600" : "text-slate-400 hover:text-sky-600"
+                                    "px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                    selectedGrade === grade ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
                                 )}
                             >
                                 {grade}
                             </button>
                         ))}
-                    </div>
-                    <div className="bg-white p-1.5 rounded-[22px] border border-slate-100 shadow-sm flex gap-1">
-                        <button
-                            onClick={() => setViewMode("grid")}
-                            className={cn(
-                                "w-11 h-11 rounded-xl flex items-center justify-center transition-all",
-                                viewMode === "grid" ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20" : "text-slate-300 hover:text-slate-600"
-                            )}
-                        >
-                            <LayoutGrid className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => setViewMode("list")}
-                            className={cn(
-                                "w-11 h-11 rounded-xl flex items-center justify-center transition-all",
-                                viewMode === "list" ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20" : "text-slate-300 hover:text-slate-600"
-                            )}
-                        >
-                            <List className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -785,7 +736,7 @@ export default function TeacherCourses() {
                                         disabled={isUploadingVideo}
                                         className={cn(
                                             "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 mt-4",
-                                            isEditingLesson ? "bg-sky-600 hover:bg-sky-700 shadow-sky-500/20" : "bg-slate-900 hover:bg-slate-800 shadow-slate-200"
+                                            isEditingLesson ? "bg-sky-600 hover:bg-sky-700 shadow-sky-500/20" : "bg-slate-900 hover:bg-sky-600 shadow-slate-200"
                                         )}
                                     >
                                         {isUploadingVideo ? (
@@ -951,7 +902,7 @@ export default function TeacherCourses() {
                         </Button>
                         <Button
                             onClick={() => setIsModuleManagerOpen(false)}
-                            className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
+                            className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-sky-600 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
                         >
                             Save Changes
                         </Button>
@@ -1027,7 +978,7 @@ export default function TeacherCourses() {
                     <div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-end">
                         <Button
                             onClick={() => setIsAuditOpen(false)}
-                            className="h-12 px-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
+                            className="h-12 px-10 rounded-xl bg-slate-900 hover:bg-sky-600 text-white font-black uppercase tracking-widest text-[9px] shadow-xl"
                         >
                             Close Audit
                         </Button>

@@ -204,7 +204,7 @@ const addResultMetaToSubmission = (submission, rankBySubmissionId, totalsByAssig
 export class AssignmentController {
     static async createAssignment(req, res, next) {
         try {
-            const { subjectId, title, description, maxMarks, dueDate, attachments } = req.body;
+            const { subjectId, title, description, maxMarks, dueDate, attachments, weight, priority, grade, type } = req.body;
             
             // Verify tutor owns the subject
             const subject = await Subject.findOne({ _id: subjectId, tutor: req.user._id });
@@ -223,10 +223,14 @@ export class AssignmentController {
                 subject: subjectId,
                 tutor: req.user._id,
                 title,
+                type: type || "assignment",
                 description,
                 maxMarks,
-                dueDate,
-                attachments: attachments || []
+                weight: weight ?? null,
+                priority: priority ?? null,
+                grade: grade || "",
+                dueDate: parsedDueDate,
+                attachments: normalizeAttachments(attachments)
             });
 
             res.status(201).json({ success: true, data: assignment });
@@ -431,6 +435,73 @@ export class AssignmentController {
             );
 
             res.json({ success: true, data: withResults });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getLeaderboard(req, res, next) {
+        try {
+            const { grade } = req.query;
+            if (!grade) throw new ApiError(400, "Grade is required for leaderboard");
+
+            const leaderboard = await AssignmentSubmission.aggregate([
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "student",
+                        foreignField: "_id",
+                        as: "studentInfo"
+                    }
+                },
+                { $unwind: "$studentInfo" },
+                { $match: { "studentInfo.grade": grade, marksObtained: { $ne: null } } },
+                {
+                    $group: {
+                        _id: "$student",
+                        totalMarks: { $sum: "$marksObtained" },
+                        studentName: { $first: "$studentInfo.name" },
+                        avatar: { $first: "$studentInfo.profile.avatar" }
+                    }
+                },
+                { $sort: { totalMarks: -1 } },
+                { $limit: 10 }
+            ]);
+
+            res.json({ success: true, data: leaderboard });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getStudentGrades(req, res, next) {
+        try {
+            const submissions = await AssignmentSubmission.find({ 
+                student: req.user._id, 
+                marksObtained: { $ne: null } 
+            }).populate({
+                path: "assignment",
+                populate: { path: "subject", select: "title" }
+            });
+
+            const report = {};
+            submissions.forEach(sub => {
+                if (!sub.assignment || !sub.assignment.subject) return;
+                const subjectTitle = sub.assignment.subject.title;
+                const type = sub.assignment.type || "assignment";
+
+                if (!report[subjectTitle]) {
+                    report[subjectTitle] = {
+                        total: 0,
+                        breakdown: { assignment: 0, quiz: 0, mid_exam: 0, final_exam: 0 }
+                    };
+                }
+
+                report[subjectTitle].breakdown[type] = (report[subjectTitle].breakdown[type] || 0) + sub.marksObtained;
+                report[subjectTitle].total += sub.marksObtained;
+            });
+
+            res.json({ success: true, data: report });
         } catch (error) {
             next(error);
         }

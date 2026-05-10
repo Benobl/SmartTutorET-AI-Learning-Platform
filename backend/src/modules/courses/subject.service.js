@@ -146,13 +146,15 @@ export class SubjectService {
             .select("_id title grade students isPremium status")
             .populate("students", "name email profile.avatar grade")
             .lean();
+        
+        console.log(`[getTutorStudents] Found ${subjects.length} subjects for tutor ${tutorId}`);
 
         // All grades where this tutor teaches at least one approved free/common subject.
         // Any student registered in that grade should appear in the tutor roster
         // (premium subjects still require explicit enrollment/payment).
         const freeTeachingGrades = new Set(
             subjects
-                .filter((s) => s && !s.isPremium && s.status === "approved" && s.grade != null)
+                .filter((s) => s && s.grade != null && !s.isPremium && s.status === "approved")
                 .map((s) => String(s.grade))
         );
 
@@ -166,6 +168,8 @@ export class SubjectService {
                   .select("_id name email profile.avatar grade")
                   .lean()
             : [];
+        
+        console.log(`[getTutorStudents] Found ${gradeRosterStudents.length} grade-based students for grades: ${Array.from(freeTeachingGrades)}`);
 
         const tutorStudents = [];
         const seenCombinations = new Set();
@@ -204,8 +208,7 @@ export class SubjectService {
         // (Premium is excluded here.)
         const freeApprovedByGrade = new Map(); // gradeStr -> [{subjectId,title,grade,isPremium,status}]
         for (const s of subjects) {
-            if (!s || s.isPremium) continue;
-            if (s.status !== "approved") continue;
+            if (!s || s.isPremium || s.status !== "approved") continue;
             const g = String(s.grade ?? "");
             if (!g) continue;
             const list = freeApprovedByGrade.get(g) || [];
@@ -214,7 +217,7 @@ export class SubjectService {
                 title: s.title,
                 grade: s.grade,
                 average: null,
-                enrollmentType: "free_common",
+                enrollmentType: "grade_based",
             });
             freeApprovedByGrade.set(g, list);
         }
@@ -354,9 +357,9 @@ export class SubjectService {
         }
 
         // Deduplicate: one row per student, with a courses[] list
-        const byStudent = new Map(); // studentId -> aggregated row
+        const byStudent = new Map(); // studentId (string) -> aggregated row
         for (const row of tutorStudents) {
-            const studentId = row._id;
+            const studentId = row._id ? row._id.toString() : null;
             if (!studentId) continue;
 
             const existing = byStudent.get(studentId);

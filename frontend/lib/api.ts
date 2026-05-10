@@ -128,8 +128,8 @@ export const courseApi = {
         return fetchWithAuth("/courses" + query);
     },
     getRecommendations: () => fetchWithAuth("/courses/recommendations"),
-    getMyCourses: () => fetchWithAuth("/courses/my-courses"),
-    getMyStudents: () => fetchWithAuth("/courses/my-students"),
+    getMyCourses: () => fetchWithAuth(`/courses/my-courses?t=${new Date().getTime()}`),
+    getMyStudents: () => fetchWithAuth(`/courses/my-students?t=${new Date().getTime()}`),
     manualEnroll: (data: { subjectId: string; email: string }) => fetchWithAuth("/courses/manual-enroll", {
         method: "POST",
         body: JSON.stringify(data)
@@ -196,6 +196,8 @@ export const paymentApi = {
     verify: (tx_ref: string) => fetchWithAuth(`/payments/verify/${tx_ref}`),
     getAudit: (subjectId: string) => fetchWithAuth(`/payments/subject/${subjectId}`),
     checkEnrollment: (subjectId: string) => fetchWithAuth(`/payments/check-enrollment/${subjectId}`),
+    getTutorEarnings: () => fetchWithAuth("/payments/tutor/earnings"),
+    getAdminEarnings: () => fetchWithAuth("/payments/admin/earnings"),
 };
 
 export const groupApi = {
@@ -305,10 +307,14 @@ export const assignmentApi = {
     }),
     getMyMarks: () => fetchWithAuth("/assignments/my-marks"),
     getMySubmissionsForCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}/my-submissions`),
+    getLeaderboard: (grade: string) => fetchWithAuth(`/assignments/leaderboard?grade=${grade}`),
+    getMyGrades: () => fetchWithAuth("/assignments/my-grades"),
     
     // Common
     getByCourse: (subjectId: string) => fetchWithAuth(`/assignments/course/${subjectId}`),
 };
+
+
 
 export const userApi = {
     getAllStudents: () => fetchWithAuth("/users/students"),
@@ -316,6 +322,7 @@ export const userApi = {
     searchByEmail: (email: string) => fetchWithAuth(`/users/search?email=${email}`),
     getStats: () => fetchWithAuth("/users/stats"),
     getTutorStats: () => fetchWithAuth("/users/tutor-stats"),
+    getLeaderboard: (grade?: string) => fetchWithAuth(`/users/leaderboard${grade ? `?grade=${grade}` : ""}`),
 };
 
 export const authApi = {
@@ -347,6 +354,7 @@ export const authApi = {
 export const chatApi = {
     getSquadHistory: (squadId: string) => fetchWithAuth(`/chat/squad/${squadId}`),
     getDirectHistory: (otherUserId: string) => fetchWithAuth(`/chat/direct/${otherUserId}`),
+    getConversations: () => fetchWithAuth("/chat/conversations"),
     markSeen: (messageIds: string[]) => fetchWithAuth("/chat/mark-seen", {
         method: "POST",
         body: JSON.stringify({ messageIds })
@@ -511,6 +519,25 @@ export const liveApi = {
             body: formData,
         });
         if (!response.ok) throw new Error("Recording upload failed");
-        return response.json();
     }
+};
+
+export const announcementApi = {
+    getAll: (grade?: string) => fetchWithAuth(`/announcements${grade ? `?grade=${grade}` : ""}`),
+    create: (data: any) => fetchWithAuth("/announcements", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    delete: (id: string) => fetchWithAuth(`/announcements/${id}`, {
+        method: "DELETE"
+    }),
+};
+
+export const attendanceApi = {
+    log: (data: { subjectId: string; sessionId?: string; status?: string }) => fetchWithAuth("/attendance/log", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getMyAttendance: () => fetchWithAuth("/attendance/my"),
+    getBySubject: (subjectId: string) => fetchWithAuth(`/attendance/subject/${subjectId}`),
 };

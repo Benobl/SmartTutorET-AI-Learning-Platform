@@ -294,7 +294,7 @@ export default function Monitoring() {
                                 </div>
 
                                 <div className="mt-8 pt-6 border-t border-slate-50">
-                                    <Button className="w-full rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] h-12 border-0 shadow-lg shadow-slate-900/20">
+                                    <Button className="w-full rounded-2xl bg-slate-900 hover:bg-sky-600 text-white font-black uppercase tracking-widest text-[10px] h-12 border-0 shadow-lg shadow-slate-900/20">
                                         Generate Full Report
                                     </Button>
                                 </div>

@@ -120,14 +120,17 @@ export class UserService {
         const tid = mongoose.Types.ObjectId.isValid(tutorId) ? new mongoose.Types.ObjectId(tutorId) : tutorId;
         const courses = await Subject.find({ tutor: tid });
         
-        // Count students explicitly enrolled + students in the tutor's grade who get free common subjects
-        const tutorsGrades = Array.from(new Set(courses.flatMap(c => [c.grade, String(c.grade)])));
+        const tutorsGrades = Array.from(new Set(courses.filter(c => c.grade).map(c => Number(c.grade))));
+        console.log(`[getTutorStats] Tutor teaches grades: ${tutorsGrades}`);
+        
         const studentsInGrades = await User.find({ 
             role: "student", 
-            grade: { $in: tutorsGrades } 
+            grade: { $in: tutorsGrades },
+            accountStatus: { $ne: "deactivated" }
         });
         
         const studentCount = studentsInGrades.length;
+        console.log(`[getTutorStats] Found ${studentCount} students in those grades`);
         
         // Calculate pending submissions
         const Assignment = (await import("../assessments/assignment.model.js")).default;
@@ -166,5 +169,41 @@ export class UserService {
             pendingHomework,
             firstName: tutor.name.split(" ")[0]
         };
+    }
+
+    static async getLeaderboard(grade) {
+        const AssignmentSubmission = (await import("../assessments/assignmentSubmission.model.js")).default;
+        const Attempt = (await import("../assessments/attempt.model.js")).default;
+
+        // Find all students in this grade
+        const students = await User.find({ role: "student", grade }).select("name profile.avatar");
+        const studentIds = students.map(s => s._id);
+
+        // Aggregate assignment scores
+        const assignmentScores = await AssignmentSubmission.aggregate([
+            { $match: { student: { $in: studentIds }, status: "evaluated" } },
+            { $group: { _id: "$student", total: { $sum: "$marksObtained" } } }
+        ]);
+
+        // Aggregate quiz scores
+        const quizScores = await Attempt.aggregate([
+            { $match: { user: { $in: studentIds } } },
+            { $group: { _id: "$user", total: { $sum: "$score" } } }
+        ]);
+
+        // Combine scores
+        const leaderboard = students.map(student => {
+            const ascore = assignmentScores.find(s => s._id.toString() === student._id.toString())?.total || 0;
+            const qscore = quizScores.find(s => s._id.toString() === student._id.toString())?.total || 0;
+            return {
+                _id: student._id,
+                name: student.name,
+                avatar: student.profile.avatar,
+                totalPoints: ascore + qscore
+            };
+        });
+
+        // Sort and return top 10
+        return leaderboard.sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
     }
 }

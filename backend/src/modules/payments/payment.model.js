@@ -28,7 +28,18 @@ const paymentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
+    tutor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
+    tutorAmount: {
+        type: Number,
+        default: 0
+    },
+    adminAmount: {
+        type: Number,
+        default: 0
+    }
 }, { timestamps: true });
 
 const Payment = mongoose.model("Payment", paymentSchema);

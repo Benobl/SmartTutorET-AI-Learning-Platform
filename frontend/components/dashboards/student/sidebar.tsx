@@ -3,16 +3,19 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SmartTutorBrand } from "@/components/brand-logo"
-import { BookOpen, BarChart3, Users, Zap, Award, Settings, LogOut, Menu, X } from "lucide-react"
+import { BookOpen, BarChart3, Users, Zap, Award, Settings, LogOut, Menu, X, Bell, FileText, Calendar, LayoutDashboard, CalendarCheck } from "lucide-react"
 import { useState } from "react"
 
 const sidebarItems = [
-  { icon: BookOpen, label: "Dashboard", href: "/dashboard/student" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/student" },
+  { icon: FileText, label: "My Grades", href: "/dashboard/student/grades" },
+  { icon: CalendarCheck, label: "Attendance", href: "/dashboard/student/attendance" },
+  { icon: Award, label: "Leaderboard", href: "/dashboard/student/leaderboard" },
+  { icon: Bell, label: "Announcements", href: "/dashboard/student/announcements" },
+  { icon: Calendar, label: "Timetable", href: "/dashboard/student/timetable" },
   { icon: BarChart3, label: "My Progress", href: "/dashboard/student/progress" },
   { icon: BookOpen, label: "Learning Hub", href: "/dashboard/student/resources" },
-  { icon: Zap, label: "AI Tutor", href: "/dashboard/student/ai-tutor" },
   { icon: Users, label: "Study Groups", href: "/dashboard/student/groups" },
-  { icon: Award, label: "Achievements", href: "/dashboard/student/achievements" },
 ]
 
 export function StudentSidebar() {

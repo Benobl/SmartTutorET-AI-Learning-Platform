@@ -81,4 +81,14 @@ export class UserController {
             next(error);
         }
     }
+
+    static async getLeaderboard(req, res, next) {
+        try {
+            const { grade } = req.query;
+            const leaderboard = await UserService.getLeaderboard(grade || req.user.grade);
+            res.json({ success: true, data: leaderboard });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

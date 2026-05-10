@@ -332,6 +332,7 @@ export const attendanceSummary = {
 // ─── Weekly Timetable ───────────────────────────────────────────────
 export interface TimetableSlot {
     id: string
+    subjectId?: string
     day: string
     startTime: string
     endTime: string

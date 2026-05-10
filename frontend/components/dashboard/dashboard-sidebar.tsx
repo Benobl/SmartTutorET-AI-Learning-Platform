@@ -150,12 +150,6 @@ const teacherNavItems: NavItem[] = [
         badge: 2,
     },
     {
-        title: "Live Classes",
-        url: "/dashboard/tutor/live",
-        icon: CalendarCheck,
-        activeColor: "sky",
-    },
-    {
         title: "Academic Timetable",
         url: "/dashboard/tutor/timetable",
         icon: CalendarDays,
@@ -177,12 +171,6 @@ const teacherNavItems: NavItem[] = [
         title: "Quizzes",
         url: "/dashboard/tutor/quizzes",
         icon: GraduationCap,
-        activeColor: "sky",
-    },
-    {
-        title: "Analytics",
-        url: "/dashboard/tutor/analytics",
-        icon: BarChart3,
         activeColor: "sky",
     },
 ]
@@ -227,12 +215,6 @@ const managerNavItems: NavItem[] = [
         icon: Activity,
         activeColor: "sky",
     },
-    {
-        title: "Performance",
-        url: "/dashboard/manager/analytics",
-        icon: BarChart3,
-        activeColor: "sky",
-    },
 ]
 
 /**
@@ -275,18 +257,6 @@ const adminNavItems: NavItem[] = [
         url: "/dashboard/admin/revenue",
         icon: DollarSign,
         activeColor: "amber",
-    },
-    {
-        title: "Moderation",
-        url: "/dashboard/admin/moderation",
-        icon: AlertCircle,
-        activeColor: "rose",
-    },
-    {
-        title: "System Health",
-        url: "/dashboard/admin/system",
-        icon: Activity,
-        activeColor: "sky",
     },
     {
         title: "Settings",

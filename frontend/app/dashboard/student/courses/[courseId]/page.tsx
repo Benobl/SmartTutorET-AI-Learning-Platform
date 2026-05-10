@@ -240,7 +240,7 @@ export default function CourseDetailPage() {
                             <Button 
                                 onClick={handleEnroll} 
                                 disabled={enrolling}
-                                className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4 mx-auto"
+                                className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-sky-600 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4 mx-auto"
                             >
                                 {enrolling ? "Synchronizing..." : `Initialize Learning for ${course.priceValue} ETB`}
                                 <ArrowRight className="w-6 h-6" />
@@ -467,7 +467,7 @@ export default function CourseDetailPage() {
                                             <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
                                         )}
                                         <div className="aspect-video rounded-2xl bg-slate-50 mb-6 overflow-hidden relative border border-slate-100">
-                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-sky-700/10 transition-colors">
                                                 <PlayCircle className="w-10 h-10 text-indigo-600 opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all" />
                                             </div>
                                         </div>
@@ -565,7 +565,7 @@ export default function CourseDetailPage() {
                                                                     setSelectedAssignment(assignment);
                                                                     setIsSubmitModalOpen(true);
                                                                 }}
-                                                                className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-[9px] tracking-widest shadow-xl shadow-slate-200"
+                                                                className="w-full h-12 rounded-xl bg-slate-900 hover:bg-sky-600 text-white font-black uppercase text-[9px] tracking-widest shadow-xl shadow-slate-200"
                                                             >
                                                                 {submission ? "Update Submission" : "Submit Work"}
                                                             </Button>
@@ -623,7 +623,7 @@ export default function CourseDetailPage() {
                                         onClick={() => { setActiveLesson(l); setShowQuiz(true); }}
                                         className={cn(
                                             "h-16 px-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95",
-                                            l.type === 'exam' ? "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
+                                            l.type === 'exam' ? "bg-slate-900 hover:bg-sky-600 text-white shadow-slate-200" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
                                         )}
                                     >
                                         {l.type === 'exam' ? "Take Official Exam" : "Start Assessment"}
@@ -694,7 +694,7 @@ export default function CourseDetailPage() {
                                         <Button 
                                             onClick={handleAskAi}
                                             disabled={!aiInput.trim() || isAiTyping}
-                                            className="absolute right-3 top-3 h-10 w-10 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white shadow-xl transition-all active:scale-90"
+                                            className="absolute right-3 top-3 h-10 w-10 rounded-2xl bg-indigo-600 hover:bg-sky-700 text-white shadow-xl transition-all active:scale-90"
                                         >
                                             <Send className="w-4 h-4" />
                                         </Button>

@@ -284,9 +284,12 @@ export default function StudentAssignments() {
                             key={assignment._id}
                             className="group p-10 rounded-[48px] bg-white border border-slate-100 shadow-xl shadow-slate-200/10 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-700 relative overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 p-8">
-                                <Badge className="bg-indigo-50 text-indigo-600 border-none text-[9px] font-black uppercase italic px-4 py-2 rounded-xl">
-                                    Weight: {assignment.weight}%
+                            <div className="absolute top-0 right-0 p-8 flex gap-2">
+                                <Badge className="bg-slate-50 text-slate-600 border border-slate-100 text-[9px] font-black uppercase italic px-4 py-2 rounded-xl">
+                                    {assignment.grade ? `Grade ${assignment.grade}` : "All Grades"}
+                                </Badge>
+                                <Badge className="bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black uppercase italic px-4 py-2 rounded-xl">
+                                    {assignment.type || "assignment"}
                                 </Badge>
                             </div>
 
@@ -300,7 +303,7 @@ export default function StudentAssignments() {
                                         <div className="flex items-center gap-2">
                                             <BookOpen className="w-3.5 h-3.5 text-sky-400" />
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                {courses.find(c => c._id === selectedCourseId || c.id === selectedCourseId)?.title || "Course"} • Max {assignment.maxMarks} Marks
+                                                {courses.find(c => c._id === selectedCourseId || c.id === selectedCourseId)?.title || "Course"} • {assignment.maxMarks} / {assignment.maxMarks} pts
                                             </span>
                                         </div>
                                     </div>
@@ -332,7 +335,7 @@ export default function StudentAssignments() {
                                             <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Max Score</span>
                                         </div>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">{assignment.maxMarks} Points</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">{assignment.maxMarks} / {assignment.maxMarks} pts</p>
                                     </div>
                                 </div>
 
@@ -470,7 +473,7 @@ export default function StudentAssignments() {
                         <Button 
                             disabled={isSubmitting}
                             onClick={handleSubmitWork}
-                            className="w-full h-16 rounded-[24px] bg-slate-900 text-white hover:bg-slate-800 font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-200 flex items-center gap-3 active:scale-95 transition-all"
+                            className="w-full h-16 rounded-[24px] bg-slate-900 text-white hover:bg-sky-600 font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-200 flex items-center gap-3 active:scale-95 transition-all"
                         >
                             {isSubmitting ? "Transmitting..." : <>Deploy Submission <Send className="w-4 h-4" /></>}
                         </Button>

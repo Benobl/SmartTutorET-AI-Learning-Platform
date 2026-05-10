@@ -1,19 +1,14 @@
 "use client"
 
-import { announcements, type AnnouncementCategory } from "@/lib/mock-data"
+import { announcementApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { Bell, Search, Pin, Check, Eye, AlertTriangle, BookOpen, Building2, Globe, LayoutGrid, List } from "lucide-react"
+import { Bell, Search, Pin, Check, Eye, AlertTriangle, BookOpen, Building2, Globe, LayoutGrid, List, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ModernDataTable } from "@/components/dashboards/student/modern-data-table"
 import { Button } from "@/components/ui/button"
 
-/**
- * Announcements & Notifications hub — filterable tabs, read/unread status,
- * priority badges, and search functionality.
- */
-
-const categoryConfig: Record<AnnouncementCategory | "all", { label: string; icon: React.ElementType; color: string }> = {
+const categoryConfig: any = {
     all: { label: "All", icon: Globe, color: "sky" },
     academic: { label: "Academic", icon: BookOpen, color: "indigo" },
     administrative: { label: "Administrative", icon: Building2, color: "emerald" },
@@ -22,24 +17,46 @@ const categoryConfig: Record<AnnouncementCategory | "all", { label: string; icon
 }
 
 export default function StudentAnnouncements() {
+    const [realAnnouncements, setRealAnnouncements] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<AnnouncementCategory | "all">("all")
     const [viewMode, setViewMode] = useState<"card" | "table">("card")
     const [searchQuery, setSearchQuery] = useState("")
-    const [readState, setReadState] = useState<Record<number, boolean>>(
-        Object.fromEntries(announcements.map((a) => [a.id, a.read]))
-    )
+    const [readState, setReadState] = useState<Record<string, boolean>>({})
 
-    const toggleRead = (id: number) => {
-        setReadState((prev) => ({ ...prev, [id]: !prev[id] }))
+    useEffect(() => {
+        loadAnnouncements()
+    }, [])
+
+    const loadAnnouncements = async () => {
+        try {
+            setLoading(true)
+            const res = await announcementApi.getAll()
+            setRealAnnouncements(res.data || [])
+            
+            // Initialize read state from localStorage or default
+            const saved = localStorage.getItem("read_announcements")
+            if (saved) setReadState(JSON.parse(saved))
+        } catch (error) {
+            console.error("Failed to load announcements", error)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const filtered = announcements.filter((a) => {
+    const toggleRead = (id: string) => {
+        const newState = { ...readState, [id]: !readState[id] }
+        setReadState(newState)
+        localStorage.setItem("read_announcements", JSON.stringify(newState))
+    }
+
+    const filtered = realAnnouncements.filter((a) => {
         if (activeTab !== "all" && a.category !== activeTab) return false
         if (searchQuery && !a.title.toLowerCase().includes(searchQuery.toLowerCase()) && !a.body.toLowerCase().includes(searchQuery.toLowerCase())) return false
         return true
     })
 
-    const unreadCount = announcements.filter((a) => !readState[a.id]).length
+    const unreadCount = realAnnouncements.filter((a) => !readState[a._id]).length
 
     const columns = [
         {
@@ -47,11 +64,11 @@ export default function StudentAnnouncements() {
             accessorKey: "title",
             cell: (ann: any) => (
                 <div className="flex items-center gap-4 py-1">
-                    {!readState[ann.id] && (
+                    {!readState[ann._id] && (
                         <div className="w-2 h-2 rounded-full bg-sky-500 shadow-lg shadow-sky-500/20 shrink-0" />
                     )}
                     <div className="min-w-0">
-                        <p className={cn("font-black text-slate-900 truncate uppercase tracking-tight", readState[ann.id] && "text-slate-400 opacity-60")}>{ann.title}</p>
+                        <p className={cn("font-black text-slate-900 truncate uppercase tracking-tight", readState[ann._id] && "text-slate-400 opacity-60")}>{ann.title}</p>
                         <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">{ann.body}</p>
                     </div>
                 </div>
@@ -75,14 +92,14 @@ export default function StudentAnnouncements() {
         },
         {
             header: "Author",
-            accessorKey: "author",
-            cell: (ann: any) => <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ann.author}</span>
+            accessorKey: "createdBy",
+            cell: (ann: any) => <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
         },
         {
             header: "Date",
-            accessorKey: "date",
+            accessorKey: "createdAt",
             className: "text-right",
-            cell: (ann: any) => <span className="text-[10px] font-black text-slate-400">{ann.date}</span>
+            cell: (ann: any) => <span className="text-[10px] font-black text-slate-400">{new Date(ann.createdAt).toLocaleDateString()}</span>
         }
     ]
 
@@ -183,11 +200,11 @@ export default function StudentAnnouncements() {
                         </div>
                     ) : (
                         filtered.map((ann) => {
-                            const isRead = readState[ann.id]
+                            const isRead = readState[ann._id]
                             return (
                                 <div
-                                    key={ann.id}
-                                    onClick={() => toggleRead(ann.id)}
+                                    key={ann._id}
+                                    onClick={() => toggleRead(ann._id)}
                                     className={cn(
                                         "group p-8 rounded-[48px] border transition-all duration-500 cursor-pointer shadow-sm relative overflow-hidden",
                                         isRead
@@ -214,7 +231,7 @@ export default function StudentAnnouncements() {
                                                         {ann.title}
                                                     </h4>
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-400 shrink-0 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner">{ann.date}</span>
+                                                <span className="text-[10px] font-black text-slate-400 shrink-0 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner">{new Date(ann.createdAt).toLocaleDateString()}</span>
                                             </div>
 
                                             <span className={cn(
@@ -245,7 +262,7 @@ export default function StudentAnnouncements() {
                                                     <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
                                                         <Building2 className="w-4 h-4 text-slate-400" />
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ann.author}</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
                                                 </div>
 
                                                 <button className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl bg-slate-50 text-slate-400 hover:bg-sky-500 hover:text-white transition-all shadow-sm">
@@ -263,9 +280,9 @@ export default function StudentAnnouncements() {
             ) : (
                 <div className="animate-in fade-in zoom-in-95 duration-500 pb-20">
                     <ModernDataTable
-                        data={filtered}
+                        data={filtered.map(a => ({ ...a, id: a._id }))}
                         columns={columns}
-                        onRowClick={(ann: any) => toggleRead(ann.id)}
+                        onRowClick={(ann: any) => toggleRead(ann._id)}
                         searchPlaceholder="Filter news feed..."
                     />
                 </div>

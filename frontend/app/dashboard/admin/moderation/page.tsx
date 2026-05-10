@@ -66,7 +66,7 @@ export default function AdminModerationPage() {
                         <Button
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 group transition-all active:scale-95 disabled:opacity-70"
+                            className="bg-slate-900 hover:bg-sky-600 text-white rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 group transition-all active:scale-95 disabled:opacity-70"
                         >
                             <RefreshCw className={cn("w-4 h-4 mr-3 group-hover:scale-110 transition-transform", isRefreshing && "animate-spin")} />
                             {isRefreshing ? "Refreshing..." : "Refresh Queue"}

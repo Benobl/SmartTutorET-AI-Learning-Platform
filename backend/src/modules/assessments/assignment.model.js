@@ -17,6 +17,11 @@ const assignmentSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+        type: {
+            type: String,
+            enum: ["assignment", "quiz", "mid_exam", "final_exam"],
+            default: "assignment",
+        },
         description: {
             type: String,
             default: "",
@@ -25,24 +30,27 @@ const assignmentSchema = new mongoose.Schema(
         maxMarks: {
             type: Number,
             required: true,
-            default: 100,
+            default: 10,
         },
         weight: {
             type: Number,
-            required: true,
-            default: 10, // Percentage of final grade
+            default: null, // Optional, legacy field
         },
         priority: {
             type: String,
-            enum: ["high", "medium", "low"],
-            default: "medium",
+            enum: ["high", "medium", "low", null],
+            default: null, // Optional, legacy field
+        },
+        grade: {
+            type: String,
+            default: "", // e.g. "9", "10", "11", "12" or "" for all grades
         },
         dueDate: {
             type: Date,
             required: true,
         },
         attachments: [{
-            type: String, // URLs to files
+            type: String,
         }]
     },
     { timestamps: true }

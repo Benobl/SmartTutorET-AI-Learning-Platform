@@ -157,41 +157,6 @@ export default function TeacherOverview() {
                         </div>
                     </div>
 
-                    {/* Analytics Preview Card */}
-                    <div className="p-10 rounded-[48px] bg-white text-slate-900 border border-slate-100 shadow-xl shadow-slate-200/20 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-sky-50 blur-3xl rounded-full -mr-64 -mt-64 opacity-50" />
-                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                            <div className="space-y-6">
-                                <div>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-sky-100">AI Insight Engine</div>
-                                    <h3 className="text-3xl font-black uppercase italic leading-none tracking-tighter">Student Readiness <span className="text-sky-600 block mt-2">Analysis</span></h3>
-                                </div>
-                                <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                                    Our AI has analyzed the last Physics midterm scores. 12% of your Grade 12 students are struggling with derivation logic.
-                                </p>
-                                <Button className="h-12 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20 group">
-                                    Generate Intervention Plan <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                </Button>
-                            </div>
-                            <div className="flex justify-center lg:justify-end">
-                                <div className="w-64 h-64 rounded-[40px] bg-slate-50 border border-slate-100 p-8 flex flex-col justify-between shadow-inner">
-                                    <div className="flex items-center justify-between">
-                                        <BarChart3 className="w-8 h-8 text-sky-500" />
-                                        <Activity className="w-5 h-5 text-sky-400" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="h-2 w-full bg-white rounded-full overflow-hidden border border-slate-200">
-                                            <div className="h-full bg-sky-500 w-[78%]" />
-                                        </div>
-                                        <div className="h-2 w-full bg-white rounded-full overflow-hidden border border-slate-200">
-                                            <div className="h-full bg-sky-400 w-[45%]" />
-                                        </div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Readiness: 72%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Right Column: Schedule & Tasks */}
@@ -240,12 +205,8 @@ export default function TeacherOverview() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <Link href="/dashboard/tutor/timetable">
-                                                        <Button size="sm" className="h-8 px-4 rounded-xl bg-slate-900 text-white font-black text-[8px] uppercase tracking-widest hover:bg-sky-600 transition-all opacity-0 group-hover/row:opacity-100">
-                                                            Go Live
-                                                        </Button>
-                                                    </Link>
+                                                <td className="px-6 py-4 text-right italic text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                                    Assigned
                                                 </td>
                                             </tr>
                                         )) : (

@@ -14,6 +14,7 @@ export class SubjectController {
 
             const subjectData = {
                 ...req.body,
+                status: req.user.tutorStatus === "approved" ? "approved" : "pending",
                 syllabusUrl: req.file ? `/uploads/syllabus/${req.file.filename}` : undefined
             };
 
@@ -116,7 +117,9 @@ export class SubjectController {
 
     static async getMyStudents(req, res, next) {
         try {
+            console.log(`🔥 [DEBUG] getMyStudents called by User ID: ${req.user._id}, Role: ${req.user.role}, Email: ${req.user.email}`);
             const students = await SubjectService.getTutorStudents(req.user._id);
+            console.log(`🔥 [DEBUG] SubjectService.getTutorStudents returned:`, JSON.stringify(students, null, 2));
             res.json({ success: true, data: students });
         } catch (error) {
             next(error);

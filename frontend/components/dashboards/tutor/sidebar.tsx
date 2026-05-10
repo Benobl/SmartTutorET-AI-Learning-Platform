@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SmartTutorBrand } from "@/components/brand-logo"
-import { Users, FileText, Clock, DollarSign, BarChart3, Settings, LogOut, Menu, X } from "lucide-react"
+import { Users, FileText, Clock, DollarSign, BarChart3, Settings, LogOut, Menu, X, BookOpen, Bell, ListChecks } from "lucide-react"
 import { useState } from "react"
 
 const sidebarItems = [
@@ -11,6 +11,8 @@ const sidebarItems = [
   { icon: BookOpen, label: "Course Manager", href: "/dashboard/tutor/courses" },
   { icon: FileText, label: "Assignments", href: "/dashboard/tutor/assignments" },
   { icon: Users, label: "My Students", href: "/dashboard/tutor/students" },
+  { icon: ListChecks, label: "Attendance", href: "/dashboard/tutor/attendance" },
+  { icon: Bell, label: "Announcements", href: "/dashboard/tutor/announcements" },
   { icon: Clock, label: "Schedule", href: "/dashboard/tutor/schedule" },
   { icon: DollarSign, label: "Earnings", href: "/dashboard/tutor/earnings" },
   { icon: BarChart3, label: "Analytics", href: "/dashboard/tutor/analytics" },

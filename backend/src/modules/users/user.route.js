@@ -13,5 +13,6 @@ router.get("/tutors", verifyToken, UserController.getTutors);
 router.get("/search", verifyToken, UserController.searchByEmail);
 router.get("/stats", verifyToken, UserController.getStudentStats);
 router.get("/tutor-stats", verifyToken, UserController.getTutorStats);
+router.get("/leaderboard", verifyToken, UserController.getLeaderboard);
 
 export default router;

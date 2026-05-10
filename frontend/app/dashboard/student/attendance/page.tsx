@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { attendanceSummary, attendanceRecords } from "@/lib/mock-data"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
+import { attendanceApi } from "@/lib/api"
+import { getCurrentUser } from "@/lib/auth-utils"
 import {
     CalendarCheck,
     CheckCircle2,
@@ -19,27 +20,68 @@ import {
     ArrowUpRight,
     Sparkles,
     TrendingUp,
-    Award
+    Award,
+    Loader2
 } from "lucide-react"
 
 import { ModernDataTable } from "@/components/dashboards/student/modern-data-table"
 import { Button } from "@/components/ui/button"
 
 export default function StudentAttendance() {
-    const [selectedGrade, setSelectedGrade] = useState("12")
+    const user = getCurrentUser()
+    const [selectedGrade, setSelectedGrade] = useState(user?.grade || "12")
     const [selectedSemester, setSelectedSemester] = useState("1")
     const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
+    const [loading, setLoading] = useState(true)
+    const [attendanceData, setAttendanceData] = useState<any>(null)
+    const [records, setRecords] = useState<any[]>([])
 
     const semester1Months = ["Meskerem", "Tikimt", "Hidar", "Tahsas", "Tir"]
     const semester2Months = ["Yekatit", "Megabit", "Miazia", "Ginbot", "Sene"]
     const activeMonths = selectedSemester === "1" ? semester1Months : semester2Months
     const currentMonth = activeMonths[currentMonthIndex]
 
+    const fetchAttendance = useCallback(async () => {
+        try {
+            setLoading(true)
+            const [summaryRes, recordsRes] = await Promise.allSettled([
+                // We don't have a summary endpoint yet, so we'll use placeholder for summary
+                Promise.resolve({ data: {
+                    totalClasses: 48,
+                    present: 42,
+                    absent: 2,
+                    late: 3,
+                    excused: 1,
+                    streak: 12,
+                    perCourse: [
+                        { course: "Physics", rate: 95 },
+                        { course: "Mathematics", rate: 92 },
+                        { course: "Biology", rate: 88 },
+                        { course: "Chemistry", rate: 90 }
+                    ]
+                }}),
+                attendanceApi.getMyAttendance()
+            ])
+            
+            if (summaryRes.status === "fulfilled") setAttendanceData(summaryRes.value.data)
+            if (recordsRes.status === "fulfilled") setRecords(recordsRes.value?.data || [])
+        } catch (error) {
+            console.error("Failed to fetch attendance", error)
+        } finally {
+            setLoading(false)
+        }
+    }, [])
 
-    const { totalClasses, present, absent, late, excused, streak, perCourse } = attendanceSummary
-    const overallRate = Math.round((present / totalClasses) * 100)
+    useEffect(() => {
+        fetchAttendance()
+    }, [fetchAttendance])
 
-    // Generate month-specific mock data
+    const { totalClasses, present, absent, late, excused, streak, perCourse } = attendanceData || {
+        totalClasses: 0, present: 0, absent: 0, late: 0, excused: 0, streak: 0, perCourse: []
+    }
+    const overallRate = totalClasses > 0 ? Math.round((present / totalClasses) * 100) : 0
+
+    // Generate month-specific mock data for the heatmap (since we don't have a full monthly view yet)
     const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT"]
     const weeks = useMemo(() => [
         { label: "WEEK 01", data: ["present", "present", "present", "late", "present", "present"] },
@@ -74,6 +116,15 @@ export default function StudentAttendance() {
 
     const prevMonth = () => {
         setCurrentMonthIndex((prev) => (prev - 1 + activeMonths.length) % activeMonths.length)
+    }
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Syncing Attendance Records...</p>
+            </div>
+        )
     }
 
     return (
@@ -303,7 +354,7 @@ export default function StudentAttendance() {
                     <div className="p-8 rounded-[48px] bg-white border border-slate-100 shadow-xl">
                         <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Course Attendance</h4>
                         <div className="space-y-6">
-                            {perCourse.slice(0, 4).map((course, idx) => (
+                            {perCourse.slice(0, 4).map((course: any, idx: number) => (
                                 <div key={idx} className="space-y-2.5">
                                     <div className="flex justify-between items-end">
                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{course.course}</span>
@@ -330,30 +381,24 @@ export default function StudentAttendance() {
                 </div>
 
                 <ModernDataTable
-                    data={attendanceRecords.map((r, i) => ({ ...r, id: i }))}
+                    data={records.map((r, i) => ({ ...r, id: i }))}
                     columns={[
                         {
                             header: "Date",
-                            accessorKey: "date",
+                            accessorKey: "createdAt",
                             cell: (row) => (
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 text-slate-400">
                                         <CalendarCheck className="w-5 h-5" />
                                     </div>
-                                    <span className="font-black text-slate-900 uppercase tracking-tight text-sm">{row.date}</span>
+                                    <span className="font-black text-slate-900 uppercase tracking-tight text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>
                                 </div>
                             )
                         },
                         {
                             header: "Course",
-                            accessorKey: "course",
-                            cell: (row) => <span className="font-black text-slate-700 uppercase tracking-tight text-xs">{row.course}</span>
-                        },
-                        {
-                            header: "Period",
-                            accessorKey: "period",
-                            className: "text-center",
-                            cell: (row) => <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">{row.period}</span>
+                            accessorKey: "subject",
+                            cell: (row) => <span className="font-black text-slate-700 uppercase tracking-tight text-xs">{row.subject?.title || "Live Class"}</span>
                         },
                         {
                             header: "Status",

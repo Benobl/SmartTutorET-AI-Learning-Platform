@@ -486,7 +486,7 @@ export default function CourseManagement() {
                                      {activeView === "pending" ? (
                                          <Button
                                              onClick={() => openReview(course)}
-                                             className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/10"
+                                             className="w-full bg-slate-900 hover:bg-sky-600 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/10"
                                          >
                                              <Eye className="w-4 h-4" /> Review Framework
                                          </Button>
@@ -503,7 +503,7 @@ export default function CourseManagement() {
                                                        })
                                                        setIsModuleManagerOpen(true)
                                                    }}
-                                                   className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest transition-all"
+                                                   className="flex-1 bg-slate-900 hover:bg-sky-600 text-white rounded-2xl font-black h-12 text-[10px] uppercase tracking-widest transition-all"
                                                >
                                                    Registry Settings
                                                </Button>

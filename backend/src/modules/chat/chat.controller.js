@@ -38,4 +38,16 @@ export class ChatController {
             next(error);
         }
     }
+
+    /**
+     * Get list of conversations for the current user
+     */
+    static async getConversations(req, res, next) {
+        try {
+            const conversations = await ChatService.getConversations(req.user._id);
+            res.json({ success: true, data: conversations });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

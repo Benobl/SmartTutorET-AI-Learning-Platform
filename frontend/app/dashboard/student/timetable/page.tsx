@@ -6,7 +6,7 @@ import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, List
 import { useState, useMemo, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { schedulingApi, aiApi } from "@/lib/api"
+import { schedulingApi, aiApi, attendanceApi } from "@/lib/api"
 
 /**
  * Weekly Timetable page — now featuring a "Personal Study Scheduler"
@@ -143,7 +143,7 @@ function SlotCard({ slot, isStudy = false, onJoin, onDelete }: {
                     <Button
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onJoin?.() }}
-                        className="h-9 px-5 rounded-xl bg-white text-slate-900 border border-slate-100 hover:bg-slate-900 hover:text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-sm transition-all"
+                        className="h-9 px-5 rounded-xl bg-white text-slate-900 border border-slate-100 hover:bg-sky-700 hover:text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-sm transition-all"
                     >
                         <Video className="w-4 h-4" /> Join Live
                     </Button>
@@ -189,6 +189,7 @@ export default function StudentTimetable() {
 
                 const mapped: TimetableSlot[] = filtered.map((item: any) => ({
                     id: item._id || item.id,
+                    subjectId: item.subject?._id || item.subject?.id,
                     course: item.subject?.title || item.subject?.name || "Academic Class",
                     code: item.subject?.code || "REG-101",
                     startTime: item.startTime,
@@ -351,6 +352,13 @@ export default function StudentTimetable() {
 
             setActiveCall(call)
             setActiveSlot(slot)
+            
+            // Log attendance in the background
+            if (slot.subjectId) {
+                attendanceApi.log({ subjectId: slot.subjectId, sessionId: callId })
+                    .catch(err => console.warn("Attendance log failed:", err))
+            }
+
             toast({ title: "Connected to Class", description: `Joined ${slot.course}` })
         } catch (e: any) {
             console.error("Failed to join class:", e)
