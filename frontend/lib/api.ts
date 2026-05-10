@@ -423,7 +423,7 @@ export const notificationApi = {
 };
 
 export const uploadApi = {
-    uploadDocument: async (file: File, type: "degree" | "cv"): Promise<{ url: string; filename: string }> => {
+    uploadDocument: async (file: File, type: "degree" | "cv" | "assignment"): Promise<{ url: string; filename: string }> => {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const formData = new FormData();
         formData.append("file", file);
@@ -474,7 +474,7 @@ export const assessmentApi = {
         method: "POST"
     }),
     getSubmissions: (assessmentId?: string) => {
-        const query = assessmentId ? `?assessmentId=${assessmentId}` : "";
+        const query = assessmentId ? `?assessment=${assessmentId}` : "";
         return fetchWithAuth(`/assessments/submissions${query}`);
     },
     delete: (id: string) => fetchWithAuth(`/assessments/${id}`, {

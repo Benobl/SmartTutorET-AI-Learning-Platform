@@ -8,9 +8,9 @@ const router = express.Router();
 router.get("/course/:subjectId", verifyToken, AssignmentController.getAssignmentsBySubject);
 
 // Tutor Routes
-router.post("/", verifyToken, authorizeRoles("tutor", "admin"), AssignmentController.createAssignment);
-router.get("/:assignmentId/submissions", verifyToken, authorizeRoles("tutor", "admin"), AssignmentController.getAssignmentSubmissions);
-router.post("/submission/:submissionId/evaluate", verifyToken, authorizeRoles("tutor", "admin"), AssignmentController.evaluateSubmission);
+router.post("/", verifyToken, authorizeRoles("tutor", "admin", "manager"), AssignmentController.createAssignment);
+router.get("/:assignmentId/submissions", verifyToken, authorizeRoles("tutor", "admin", "manager"), AssignmentController.getAssignmentSubmissions);
+router.post("/submission/:submissionId/evaluate", verifyToken, authorizeRoles("tutor", "admin", "manager"), AssignmentController.evaluateSubmission);
 
 // Student Routes
 router.post("/:assignmentId/submit", verifyToken, authorizeRoles("student"), AssignmentController.submitAssignment);

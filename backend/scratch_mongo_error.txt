@@ -1,0 +1,6 @@
+ValidationError: method: Path `method` is required.
+ValidationError: Payment validation failed: method: Path `method` is required.
+    at Document.invalidate (C:\Users\ekru6\OneDrive\Desktop\folders\SmartTutor\SmartTutorET-AI-Learning-Platform\backend\node_modules\mongoose\lib\document.js:3381:32)
+    at C:\Users\ekru6\OneDrive\Desktop\folders\SmartTutor\SmartTutorET-AI-Learning-Platform\backend\node_modules\mongoose\lib\document.js:3142:17
+    at C:\Users\ekru6\OneDrive\Desktop\folders\SmartTutor\SmartTutorET-AI-Learning-Platform\backend\node_modules\mongoose\lib\schemaType.js:1446:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)

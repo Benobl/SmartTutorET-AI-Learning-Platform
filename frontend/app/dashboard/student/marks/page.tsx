@@ -37,6 +37,17 @@ export default function StudentMarksPage() {
     const totalPossible = marks.reduce((acc, m) => acc + (m.assignment.maxMarks || 100), 0)
     const totalObtained = marks.reduce((acc, m) => acc + (m.marksObtained || 0), 0)
     const averagePercent = totalPossible > 0 ? Math.round((totalObtained / totalPossible) * 100) : 0
+    const bestRank = marks.reduce((best, mark) => {
+        const rank = mark?.result?.rank
+        if (!rank) return best
+        if (best === null) return rank
+        return rank < best ? rank : best
+    }, null as number | null)
+    const averagePercentile = marks.length > 0
+        ? Math.round(
+            marks.reduce((acc, mark) => acc + Number(mark?.result?.percentile || 0), 0) / marks.length
+        )
+        : 0
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -75,8 +86,12 @@ export default function StudentMarksPage() {
                         <Award className="w-8 h-8 text-amber-500" />
                     </div>
                     <div>
-                        <p className="text-2xl font-black text-slate-900">Rank: Rising Star</p>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Keep it up! 5 more marks for "Elite"</p>
+                        <p className="text-2xl font-black text-slate-900">
+                            {bestRank ? `Best Rank: #${bestRank}` : "Rank: Pending"}
+                        </p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                            {bestRank ? `Average Percentile: ${averagePercentile}%` : "Ranking appears after tutor grading."}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -113,10 +128,28 @@ export default function StudentMarksPage() {
                                 <div className="flex items-center gap-8">
                                     <div className="text-right">
                                         <p className="text-xl font-black text-slate-900">{mark.marksObtained}/{mark.assignment.maxMarks}</p>
-                                        <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Graded</p>
+                                        <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                                            {mark?.result?.rank && mark?.result?.totalEvaluated
+                                                ? `Rank #${mark.result.rank}/${mark.result.totalEvaluated}`
+                                                : "Graded"}
+                                        </p>
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-indigo-400 transition-all group-hover:translate-x-1" />
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {marks.some((mark) => mark?.feedback) && (
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Tutor Feedback</h4>
+                        {marks.filter((mark) => mark?.feedback).slice(0, 5).map((mark) => (
+                            <div key={`${mark._id}-feedback`} className="p-4 rounded-2xl bg-indigo-50/40 border border-indigo-100">
+                                <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">
+                                    {mark.assignment?.title}
+                                </p>
+                                <p className="text-sm text-indigo-900 font-medium whitespace-pre-wrap">{mark.feedback}</p>
                             </div>
                         ))}
                     </div>

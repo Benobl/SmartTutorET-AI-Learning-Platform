@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
     CheckCircle2, Clock, FileText, AlertCircle,
     ChevronRight, Upload, Download, Paperclip, X,
     Calendar, Inbox, Search, Sparkles,
     ArrowUpRight, Award, Star, Loader2, Send,
-    Percent, GraduationCap, BookOpen
+    Percent, GraduationCap, BookOpen, Check
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { assignmentApi, courseApi } from "@/lib/api"
+import { assignmentApi, courseApi, uploadApi } from "@/lib/api"
 import { format } from "date-fns"
 import {
     Dialog,
@@ -29,8 +29,10 @@ export default function StudentAssignments() {
     const [activeTab, setActiveTab] = useState<"pending" | "submitted" | "graded">("pending")
     const [searchQuery, setSearchQuery] = useState("")
     const [isLoading, setIsLoading] = useState(true)
+    const [courses, setCourses] = useState<any[]>([])
+    const [selectedCourseId, setSelectedCourseId] = useState<string>("")
     const [assignments, setAssignments] = useState<any[]>([])
-    const [submissions, setSubmissions] = useState<any[]>([])
+    const [mySubmissions, setMySubmissions] = useState<any[]>([])
     
     // Submission state
     const [isSubmitOpen, setIsSubmitOpen] = useState(false)
@@ -44,68 +46,115 @@ export default function StudentAssignments() {
     
     const { toast } = useToast()
 
-    useEffect(() => {
-        loadData()
-    }, [])
+    const fetchAssignments = async (courseId: string) => {
+        const [assignmentsResult, submissionsResult] = await Promise.allSettled([
+            assignmentApi.getByCourse(courseId),
+            assignmentApi.getMySubmissionsForCourse(courseId),
+        ])
 
-    const loadData = async () => {
-        try {
-            setIsLoading(true)
-            // 1. Get student courses
-            const courseRes = await courseApi.getMyCourses()
-            const courses = courseRes.data || []
-            
-            // 2. Get assignments for each course
-            const assignmentPromises = courses.map((c: any) => assignmentApi.getByCourse(c._id))
-            const assignmentResults = await Promise.all(assignmentPromises)
-            
-            let allAssignments: any[] = []
-            assignmentResults.forEach((res, index) => {
-                const courseAsgns = res.data || []
-                // Enrich with course info
-                const enriched = courseAsgns.map((a: any) => ({
-                    ...a,
-                    courseTitle: courses[index].title,
-                    courseId: courses[index]._id
-                }))
-                allAssignments = [...allAssignments, ...enriched]
+        if (assignmentsResult.status === "fulfilled") {
+            setAssignments(assignmentsResult.value?.data || [])
+        } else {
+            setAssignments([])
+            toast({
+                title: "Assignments unavailable",
+                description: assignmentsResult.reason?.message || "Could not load assignments for this course.",
+                variant: "destructive",
             })
+        }
 
-            // 3. Get student marks/submissions to determine status
-            const marksRes = await assignmentApi.getMyMarks()
-            const studentMarks = marksRes.data || []
-            
-            // Map status
-            const processedAssignments = allAssignments.map(asgn => {
-                const submission = studentMarks.find((m: any) => m.assignment === asgn._id || m.assignment?._id === asgn._id)
-                let status: "pending" | "submitted" | "graded" = "pending"
-                
-                if (submission) {
-                    status = submission.status === "evaluated" ? "graded" : "submitted"
-                }
-                
-                return {
-                    ...asgn,
-                    status,
-                    submissionData: submission
-                }
+        if (submissionsResult.status === "fulfilled") {
+            setMySubmissions(submissionsResult.value?.data || [])
+        } else {
+            setMySubmissions([])
+            toast({
+                title: "Submissions unavailable",
+                description: submissionsResult.reason?.message || "Could not load your submissions right now.",
+                variant: "destructive",
             })
+        }
 
-            setAssignments(processedAssignments)
-        } catch (error: any) {
-            toast({ title: "Error", description: "Failed to load assignments.", variant: "destructive" })
-        } finally {
-            setIsLoading(false)
+        return {
+            assignments:
+                assignmentsResult.status === "fulfilled"
+                    ? (assignmentsResult.value?.data || [])
+                    : [],
+            submissions:
+                submissionsResult.status === "fulfilled"
+                    ? (submissionsResult.value?.data || [])
+                    : [],
         }
     }
 
+    useEffect(() => {
+        (async () => {
+            setIsLoading(true)
+            try {
+                const courseRes = await courseApi.getMyCourses()
+                const list = courseRes?.data || []
+                setCourses(list)
+                if (list.length > 0) {
+                    let chosenCourseId = list[0]?._id || list[0]?.id || ""
+                    for (const course of list) {
+                        const courseId = course?._id || course?.id
+                        if (!courseId) continue
+                        const data = await fetchAssignments(courseId)
+                        if ((data.assignments || []).length > 0) {
+                            chosenCourseId = courseId
+                            break
+                        }
+                    }
+                    setSelectedCourseId(chosenCourseId)
+                    await fetchAssignments(chosenCourseId)
+                } else {
+                    setSelectedCourseId("")
+                    setAssignments([])
+                    setMySubmissions([])
+                }
+            } catch (e: any) {
+                toast({ title: "Error", description: e?.message || "Failed to load courses", variant: "destructive" })
+            } finally {
+                setIsLoading(false)
+            }
+        })()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const submissionByAssignmentId = useMemo(() => {
+        const map = new Map<string, any>()
+        ;(mySubmissions || []).forEach((s: any) => {
+            const assignmentId =
+                typeof s.assignment === "object"
+                    ? (s.assignment?._id || s.assignment?.id)
+                    : s.assignment
+            if (assignmentId) {
+                map.set(String(assignmentId), s)
+            }
+        })
+        return map
+    }, [mySubmissions])
+
     const filteredAssignments = useMemo(() => {
-        return assignments.filter(asgn =>
-            asgn.status === activeTab &&
-            (asgn.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             asgn.courseTitle.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-    }, [assignments, activeTab, searchQuery])
+        const now = new Date()
+        return (assignments || []).filter((asgn: any) => {
+            const sub = submissionByAssignmentId.get(String(asgn._id))
+            const due = asgn.dueDate ? new Date(asgn.dueDate) : null
+            const isClosed = due ? due < now : false
+
+            const status =
+                sub?.status === "evaluated" ? "graded" :
+                sub ? "submitted" :
+                "pending"
+
+            if (activeTab === "pending" && status !== "pending") return false
+            if (activeTab === "submitted" && status !== "submitted") return false
+            if (activeTab === "graded" && status !== "graded") return false
+
+            const q = searchQuery.toLowerCase()
+            const title = String(asgn.title || "").toLowerCase()
+            return !q || title.includes(q)
+        })
+    }, [activeTab, searchQuery, assignments, submissionByAssignmentId])
 
     const handleSubmitWork = async () => {
         if (!submitForm.content && !uploadingFile) {
@@ -118,9 +167,8 @@ export default function StudentAssignments() {
             let fileUrls: string[] = []
             
             if (uploadingFile) {
-                const { uploadToSupabase } = await import("@/lib/supabase")
-                const url = await uploadToSupabase(uploadingFile, 'submissions')
-                fileUrls = [url]
+                const up = await uploadApi.uploadDocument(uploadingFile, "assignment")
+                fileUrls = [up.url]
             }
 
             await assignmentApi.submit(selectedAssignment._id, {
@@ -132,7 +180,7 @@ export default function StudentAssignments() {
             setIsSubmitOpen(false)
             setSubmitForm({ content: "", attachments: [] })
             setUploadingFile(null)
-            loadData() // Refresh list
+            if (selectedCourseId) await fetchAssignments(selectedCourseId)
         } catch (error: any) {
             toast({ title: "Submission failed", description: error.message, variant: "destructive" })
         } finally {
@@ -191,6 +239,26 @@ export default function StudentAssignments() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <select
+                        value={selectedCourseId}
+                        onChange={async (e) => {
+                            const id = e.target.value
+                            setSelectedCourseId(id)
+                            setIsLoading(true)
+                            try {
+                                await fetchAssignments(id)
+                            } finally {
+                                setIsLoading(false)
+                            }
+                        }}
+                        className="h-16 px-5 rounded-[28px] bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all shadow-sm"
+                    >
+                        {courses.map((c: any) => (
+                            <option key={c._id || c.id} value={c._id || c.id}>
+                                {c.title || c.name}
+                            </option>
+                        ))}
+                    </select>
                     <div className="relative group min-w-[300px]">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                         <input
@@ -206,7 +274,11 @@ export default function StudentAssignments() {
 
             {/* Assignments Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {filteredAssignments.length > 0 ? (
+                {isLoading ? (
+                    <div className="col-span-1 xl:col-span-2 py-24 bg-white border border-slate-100 rounded-[64px] shadow-sm text-center">
+                        <p className="text-slate-400 font-bold text-sm">Loading assignments...</p>
+                    </div>
+                ) : filteredAssignments.length > 0 ? (
                     filteredAssignments.map((assignment) => (
                         <div
                             key={assignment._id}
@@ -227,7 +299,9 @@ export default function StudentAssignments() {
                                         <h3 className="text-xl font-black text-slate-900 leading-tight mb-1 group-hover:text-sky-600 transition-colors uppercase italic">{assignment.title}</h3>
                                         <div className="flex items-center gap-2">
                                             <BookOpen className="w-3.5 h-3.5 text-sky-400" />
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{assignment.courseTitle}</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                {courses.find(c => c._id === selectedCourseId || c.id === selectedCourseId)?.title || "Course"} • Max {assignment.maxMarks} Marks
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -242,7 +316,16 @@ export default function StudentAssignments() {
                                             <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Due Date</span>
                                         </div>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">{format(new Date(assignment.dueDate), "MMM dd, yyyy")}</p>
+                                        <p className={cn(
+                                            "text-xs font-black tracking-tight",
+                                            assignment.dueDate && new Date(assignment.dueDate) < new Date()
+                                                ? "text-rose-600"
+                                                : "text-slate-900"
+                                        )}>
+                                            {assignment.dueDate
+                                                ? `${format(new Date(assignment.dueDate), "MMM dd, yyyy")} ${new Date(assignment.dueDate) < new Date() ? "(Overdue)" : ""}`
+                                                : "TBD"}
+                                        </p>
                                     </div>
                                     <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100">
                                         <div className="flex items-center gap-2 mb-1.5">
@@ -266,31 +349,56 @@ export default function StudentAssignments() {
                                         ))}
                                     </div>
 
-                                    {assignment.status === 'pending' ? (
-                                        <button
-                                            onClick={() => { setSelectedAssignment(assignment); setIsSubmitOpen(true); }}
-                                            className="h-14 px-8 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:bg-sky-700 hover:scale-105 transition-all active:scale-95"
-                                        >
-                                            Begin Submission
-                                            <ArrowUpRight className="w-4 h-4 text-white" />
-                                        </button>
-                                    ) : assignment.status === 'graded' ? (
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Scored</p>
-                                                <p className="text-xl font-black text-emerald-600">{assignment.submissionData?.marksObtained} / {assignment.maxMarks}</p>
+                                    {(() => {
+                                        const sub = submissionByAssignmentId.get(String(assignment._id))
+                                        if (!sub) {
+                                            return (
+                                                <button
+                                                    onClick={() => { setSelectedAssignment(assignment); setIsSubmitOpen(true); }}
+                                                    className="h-14 px-8 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:bg-sky-700 hover:scale-105 transition-all active:scale-95"
+                                                >
+                                                    Begin Submission
+                                                    <ArrowUpRight className="w-4 h-4 text-white" />
+                                                </button>
+                                            )
+                                        }
+                                        if (sub.status === "evaluated") {
+                                            return (
+                                                <div className="flex items-center gap-4 max-w-[60%]">
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Final Mark</p>
+                                                        <p className="text-xl font-black text-sky-600">{sub.marksObtained}/{assignment.maxMarks}</p>
+                                                        {sub?.result?.rank && sub?.result?.totalEvaluated ? (
+                                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-0.5">
+                                                                Rank #{sub.result.rank}/{sub.result.totalEvaluated}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+                                                        <Award className="w-6 h-6" />
+                                                    </div>
+                                                </div>
+                                            )
+                                        }
+                                        return (
+                                            <div className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-2xl bg-emerald-50 border border-emerald-100">
+                                                <Check className="w-4 h-4" />
+                                                Submitted
                                             </div>
-                                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                                                <Award className="w-6 h-6" />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-sky-600 font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-2xl bg-sky-50 border border-sky-100">
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Awaiting Grade
-                                        </div>
-                                    )}
+                                        )
+                                    })()}
                                 </div>
+
+                                {(() => {
+                                    const sub = submissionByAssignmentId.get(String(assignment._id))
+                                    if (!sub || sub.status !== "evaluated" || !sub.feedback) return null
+                                    return (
+                                        <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 mt-4">
+                                            <p className="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-1">Tutor Feedback</p>
+                                            <p className="text-sm text-indigo-900 font-medium whitespace-pre-wrap">{sub.feedback}</p>
+                                        </div>
+                                    )
+                                })()}
                             </div>
                         </div>
                     ))
@@ -299,9 +407,13 @@ export default function StudentAssignments() {
                         <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
                             <Inbox className="w-10 h-10 text-slate-200" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-[0.2em]">Zero Inbound Tasks</h3>
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-[0.2em]">
+                            {courses.length === 0 ? "No Course Access Yet" : "Zero Inbound Tasks"}
+                        </h3>
                         <p className="text-slate-400 font-bold text-sm max-w-sm mx-auto mt-4 leading-relaxed">
-                            Your academic queue is currently synchronized. All curriculum evaluations for {activeTab} status are accounted for.
+                            {courses.length === 0
+                                ? "This student account has no assigned or enrolled courses yet. Join or enroll in a course to receive assignments."
+                                : `Your academic queue is currently synchronized. All curriculum evaluations for ${activeTab} status are accounted for.`}
                         </p>
                     </div>
                 )}

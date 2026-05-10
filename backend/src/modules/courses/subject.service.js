@@ -115,16 +115,22 @@ export class SubjectService {
 
             // Get free common subjects for this grade
             let freeCommonSubjects = [];
+            const freeCommonFilter = {
+                isPremium: false,
+                status: { $in: ["approved", "pending"] },
+                students: { $ne: userId }, // Don't duplicate if already enrolled
+            };
             if (studentGrade) {
-                freeCommonSubjects = await Subject.find({ 
-                    isPremium: false, 
-                    grade: parseInt(studentGrade), 
-                    status: "approved",
-                    students: { $ne: userId } // Don't duplicate if already enrolled
-                }).populate("tutor", "name profile.avatar");
+                freeCommonFilter.grade = parseInt(studentGrade);
             }
+            freeCommonSubjects = await Subject.find(freeCommonFilter).populate("tutor", "name profile.avatar");
 
-            return [...enrolledSubjects, ...freeCommonSubjects];
+            // De-duplicate by subject id
+            const subjectMap = new Map();
+            [...enrolledSubjects, ...freeCommonSubjects].forEach((subject) => {
+                subjectMap.set(String(subject._id), subject);
+            });
+            return Array.from(subjectMap.values());
         } else if (role === "tutor" || role === "manager" || role === "admin") {
             const query = role === "tutor" ? { tutor: userId } : {};
             return await Subject.find(query).populate("tutor", "name profile.avatar").populate("students", "name profile.avatar");

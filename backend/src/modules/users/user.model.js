@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: function () { return !this.googleId; }, // Not required for Google OAuth users
       minlength: 6,
+      select: false,
     },
     googleId: {
       type: String,
