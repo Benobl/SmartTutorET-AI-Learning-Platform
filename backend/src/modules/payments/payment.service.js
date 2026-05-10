@@ -125,12 +125,16 @@ export class PaymentService {
     }
 
     static async checkEnrollment(studentId, subjectId) {
+        const student = await User.findById(studentId);
         const subject = await Subject.findById(subjectId);
         if (!subject) throw new ApiError(404, "Subject not found");
 
         const alreadyEnrolled = subject.students.some(
             (s) => s.toString() === studentId.toString()
         );
+
+        const isGradeMatch = student && String(student.grade) === String(subject.grade);
+        const isFreeEnrolled = subject.isFree && isGradeMatch;
 
         const completedPayment = await Payment.findOne({
             student: studentId,
@@ -139,8 +143,8 @@ export class PaymentService {
         });
 
         return {
-            alreadyPaid: !!completedPayment || alreadyEnrolled,
-            enrolled: alreadyEnrolled
+            alreadyPaid: !!completedPayment || alreadyEnrolled || isFreeEnrolled,
+            enrolled: alreadyEnrolled || isFreeEnrolled
         };
     }
 }

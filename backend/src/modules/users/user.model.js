@@ -48,8 +48,8 @@ const userSchema = new mongoose.Schema(
     },
     // Student-specific fields
     grade: {
-      type: String,
-      enum: ["9", "10", "11", "12"],
+      type: Number,
+      enum: [9, 10, 11, 12],
     },
     stream: {
       type: String,

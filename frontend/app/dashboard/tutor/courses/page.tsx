@@ -44,6 +44,8 @@ export default function TeacherCourses() {
     })
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+    const [isEditingLesson, setIsEditingLesson] = useState(false)
+    const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
 
     useEffect(() => {
         if (selectedCourseForModules && isModuleManagerOpen) {
@@ -54,10 +56,32 @@ export default function TeacherCourses() {
     const loadCourseLessons = async () => {
         try {
             setIsLessonsLoading(true)
-            const res = await courseApi.getById(selectedCourseForModules._id)
-            // Fix: the response structure for getById might be { data: { ... } } or just the object
-            const data = res.data || res
-            setLessons(data.lessons || [])
+            const [courseRes, contentRes] = await Promise.all([
+                courseApi.getById(selectedCourseForModules._id),
+                courseApi.getContent(selectedCourseForModules._id)
+            ])
+            
+            const courseData = courseRes.data || courseRes
+            const legacyLessons = courseData.lessons || []
+            const unifiedContent = contentRes.data || []
+            
+            // Merge legacy lessons with new unified content
+            // Using a Map to avoid duplicates by title
+            const lessonsMap = new Map()
+            legacyLessons.forEach((l: any) => lessonsMap.set(l.title, { ...l, source: 'legacy' }))
+            unifiedContent.forEach((c: any) => {
+                lessonsMap.set(c.title, {
+                    ...c,
+                    _id: c._id,
+                    type: c.category.toLowerCase(),
+                    videoUrl: c.contentId?.url || c.contentId?.videoId,
+                    pptUrl: c.contentId?.url,
+                    exerciseUrl: c.contentId?.url,
+                    source: 'unified'
+                })
+            })
+            
+            setLessons(Array.from(lessonsMap.values()))
         } catch (error: any) {
             toast({ title: "Failed to load lessons", description: error.message, variant: "destructive" })
         } finally {
@@ -79,67 +103,95 @@ export default function TeacherCourses() {
         if (!lessonForm.title) return
         try {
             setIsUploadingVideo(true)
-            const { uploadToSupabase, supabase } = await import("@/lib/supabase")
-            let contentUrl = ""
+            const { uploadToSupabase } = await import("@/lib/supabase")
+            let contentUrl = lessonForm.url
+            let additionalData: any = {}
 
             if (lessonForm.type !== "youtube" && videoFile) {
-                if (videoFile.size > 50 * 1024 * 1024) {
-                    toast({ title: "File Too Large", description: "Please keep files under 50MB.", variant: "destructive" })
+                // Validation for new uploads only
+                const maxSize = lessonForm.type === "video" ? 500 * 1024 * 1024 : 50 * 1024 * 1024
+                if (videoFile.size > maxSize) {
+                    toast({ 
+                        title: "File Too Large", 
+                        description: `Please keep ${lessonForm.type} files under ${maxSize / (1024 * 1024)}MB.`, 
+                        variant: "destructive" 
+                    })
                     setIsUploadingVideo(false)
                     return
                 }
 
                 try {
                     contentUrl = await uploadToSupabase(videoFile, 'course-contents')
-                    toast({ title: "File Uploaded", description: "Securing resource in cloud storage..." })
+                    toast({ title: "File Uploaded", description: "Metadata being synchronized with database..." })
                 } catch (error: any) {
                     toast({ title: "Upload Failed", description: error.message, variant: "destructive" })
                     setIsUploadingVideo(false)
                     return
                 }
             } else if (lessonForm.type === "youtube") {
-                contentUrl = getYoutubeEmbedUrl(lessonForm.url)
-                if (!contentUrl) {
-                    toast({ title: "URL Required", description: "Please enter a valid YouTube URL.", variant: "destructive" })
+                const videoIdMatch = lessonForm.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/)
+                if (!videoIdMatch) {
+                    toast({ title: "Invalid URL", description: "Please enter a valid YouTube URL.", variant: "destructive" })
+                    setIsUploadingVideo(false)
+                    return
+                }
+                contentUrl = lessonForm.url
+                additionalData.videoId = videoIdMatch[1]
+            }
+
+            // Map frontend types to backend categories
+            const categoryMap: any = {
+                "video": "Video",
+                "youtube": "YouTube",
+                "ppt": "PDF",
+                "pdf": "PDF",
+                "quiz": "Quiz",
+                "exercise": "Exercise",
+                "exam": "Quiz"
+            }
+
+            const payload: any = {
+                category: categoryMap[lessonForm.type] || "Video",
+                title: lessonForm.title,
+                description: lessonForm.content || "",
+                url: contentUrl,
+                ...additionalData
+            }
+
+            if (lessonForm.type === "quiz" || lessonForm.type === "exam") {
+                try {
+                    payload.questions = lessonForm.content ? JSON.parse(lessonForm.content) : []
+                    payload.timeLimit = parseInt(lessonForm.duration) || 15
+                } catch (e) {
+                    toast({ title: "Invalid Quiz Data", description: "Please ensure quiz content is valid JSON.", variant: "destructive" })
                     setIsUploadingVideo(false)
                     return
                 }
             }
 
-            // 1. Save to Supabase Table
-            if (supabase) {
-                const payload = {
-                    course_id: selectedCourseForModules._id || selectedCourseForModules.id,
-                    type: lessonForm.type === "youtube" ? "video" : lessonForm.type,
-                    title: lessonForm.title,
-                    content_url: contentUrl,
-                    quiz_data: lessonForm.content ? JSON.parse(lessonForm.content) : null,
-                    created_at: new Date().toISOString()
-                }
-                const { error: sbError } = await supabase.from('course_contents').insert([payload])
-                if (sbError) console.error("[SUPABASE DB ERROR]", sbError.message)
+            if (videoFile) {
+                payload.size = videoFile.size
+                payload.format = videoFile.name.split('.').pop()
             }
 
-            // Sync with MongoDB Backend
-            const mongoPayload: any = { 
-                title: lessonForm.title,
-                duration: lessonForm.duration,
-                type: lessonForm.type === "youtube" ? "video" : lessonForm.type,
-                content: lessonForm.content
+            if (isEditingLesson && editingLessonId) {
+                await courseApi.updateContent(editingLessonId, payload)
+                toast({ title: "Lesson Updated", description: "Changes saved successfully." })
+            } else {
+                await courseApi.addContent(selectedCourseForModules._id, payload)
+                toast({ title: "Curriculum Updated", description: `${payload.category} content is now live.` })
             }
-            if (lessonForm.type === "video" || lessonForm.type === "youtube") mongoPayload.videoUrl = contentUrl
-            else if (lessonForm.type === "ppt") mongoPayload.pptUrl = contentUrl
-            else mongoPayload.exerciseUrl = contentUrl
-
-            const res = await courseApi.addLesson(selectedCourseForModules._id, mongoPayload)
-            setLessons(res.data?.lessons || res.data || [])
             
-            toast({ title: "Curriculum Synchronized", description: "Content is now live for students." })
+            // Reset form
             setLessonForm({ title: "", duration: "15 min", type: "youtube", url: "", content: "" })
             setVideoFile(null)
+            setIsEditingLesson(false)
+            setEditingLessonId(null)
+            loadCourseLessons()
         } catch (error: any) {
-            toast({ title: "Failed to add lesson", description: error.message, variant: "destructive" })
+            toast({ title: "Operation Failed", description: error.message, variant: "destructive" })
         } finally {
+            setIsUploadingVideo(true) // Re-enable button after processing
             setIsUploadingVideo(false)
         }
     }
@@ -641,11 +693,11 @@ export default function TeacherCourses() {
                                             onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value as any })}
                                         >
                                             <option value="youtube">YouTube Link</option>
-                                            <option value="video">Lectures (Local Video)</option>
-                                            <option value="ppt">Resources (Slides & Docs)</option>
-                                            <option value="exercise">Practice (Interactive Exercise)</option>
-                                            <option value="quiz">Assessment (Timed Quiz)</option>
-                                            <option value="exam">Official Exam (Mid/Final)</option>
+                                            <option value="video">Lectures (Recorded MP4)</option>
+                                            <option value="ppt">Documents (PDF/PPT)</option>
+                                            <option value="pdf">Worksheets (PDF Only)</option>
+                                            <option value="exercise">Practice (Interactive)</option>
+                                            <option value="quiz">Assessment (Quiz JSON)</option>
                                         </select>
                                     </div>
 
@@ -731,7 +783,10 @@ export default function TeacherCourses() {
                                     <Button 
                                         onClick={handleAddLesson}
                                         disabled={isUploadingVideo}
-                                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 mt-4"
+                                        className={cn(
+                                            "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 mt-4",
+                                            isEditingLesson ? "bg-sky-600 hover:bg-sky-700 shadow-sky-500/20" : "bg-slate-900 hover:bg-slate-800 shadow-slate-200"
+                                        )}
                                     >
                                         {isUploadingVideo ? (
                                             <div className="flex items-center gap-3">
@@ -740,8 +795,8 @@ export default function TeacherCourses() {
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <Plus className="w-3.5 h-3.5" />
-                                                Append to Curriculum
+                                                {isEditingLesson ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                                                {isEditingLesson ? "Update Module" : "Append to Curriculum"}
                                             </div>
                                         )}
                                     </Button>
@@ -824,9 +879,61 @@ export default function TeacherCourses() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0 text-slate-300 hover:text-rose-500">
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
+                                            <div className="flex items-center gap-1">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 rounded-lg p-0 text-slate-300 hover:text-sky-500"
+                                                    onClick={() => {
+                                                        setIsEditingLesson(true);
+                                                        setEditingLessonId(lesson._id);
+                                                        setLessonForm({
+                                                            title: lesson.title,
+                                                            duration: lesson.duration || "15 min",
+                                                            type: lesson.type || (lesson.videoUrl?.includes('youtube') ? 'youtube' : 'video'),
+                                                            url: lesson.videoUrl || lesson.url || "",
+                                                            content: lesson.description || ""
+                                                        });
+                                                        // Scroll to form
+                                                        document.querySelector('.lesson-form-container')?.scrollIntoView({ behavior: 'smooth' });
+                                                    }}
+                                                >
+                                                    <PenTool className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 rounded-lg p-0 text-slate-300 hover:text-rose-500"
+                                                    onClick={async () => {
+                                                        if (!confirm("Are you sure you want to delete this content?")) return;
+                                                        try {
+                                                            if (lesson.source === 'unified') {
+                                                                await courseApi.deleteContent(lesson._id);
+                                                            } else {
+                                                                const updatedLegacyLessons = lessons
+                                                                    .filter(l => l.source === 'legacy' && l.title !== lesson.title)
+                                                                    .map(l => ({
+                                                                        title: l.title,
+                                                                        duration: l.duration,
+                                                                        type: l.type,
+                                                                        videoUrl: l.videoUrl,
+                                                                        pptUrl: l.pptUrl,
+                                                                        exerciseUrl: l.exerciseUrl,
+                                                                        content: l.content,
+                                                                        completed: l.completed
+                                                                    }));
+                                                                await courseApi.update(selectedCourseForModules._id, { lessons: updatedLegacyLessons });
+                                                            }
+                                                            toast({ title: "Deleted", description: "Content removed successfully." });
+                                                            loadCourseLessons();
+                                                        } catch (error: any) {
+                                                            toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 )}

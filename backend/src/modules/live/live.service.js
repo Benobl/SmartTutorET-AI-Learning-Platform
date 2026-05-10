@@ -24,22 +24,36 @@ export class LiveService {
     }
 
     static async endSession(sessionId, hostId, recordingUrl) {
-        const finalRecordingUrl = recordingUrl || `https://storage.smarttutoret.com/recordings/${sessionId}.mp4`;
-        
         const session = await LiveSession.findOneAndUpdate(
             { _id: sessionId, host: hostId },
             { 
                 isActive: false, 
                 endTime: new Date(),
-                recordingUrl: finalRecordingUrl
+                recordingUrl: recordingUrl || null
             },
             { new: true }
         );
         if (!session) throw new ApiError(404, "Active session not found or you are not the host");
+
+        // Session ended successfully
+
+
         return session;
     }
 
     static async getActiveSessions() {
-        return await LiveSession.find({ isActive: true }).populate("host", "name profile.avatar");
+        return await LiveSession.find({ isActive: true })
+            .populate("host", "name profile.avatar")
+            .populate("subject", "title");
+    }
+
+    static async getTutorRecordings(tutorId) {
+        return await LiveSession.find({ 
+            host: tutorId, 
+            isActive: false, 
+            recordingUrl: { $exists: true, $ne: null } 
+        })
+        .populate("subject", "title code")
+        .sort({ endTime: -1 });
     }
 }

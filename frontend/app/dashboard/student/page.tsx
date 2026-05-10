@@ -57,7 +57,7 @@ export default function StudentOverview() {
     fetchData()
   }, [fetchData])
 
-  const topCourses = enrolledCourses.slice(0, 2)
+  const topCourses = enrolledCourses.slice(0, 6)
   const topAnnouncements = announcements.filter((a) => !a.read).slice(0, 2)
 
   return (

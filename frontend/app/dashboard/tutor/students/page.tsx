@@ -5,7 +5,7 @@ import {
     Users, Search, Filter, Mail, MessageSquare,
     ChevronRight, ArrowUpRight, TrendingUp, TrendingDown,
     Activity, GraduationCap, Star, BookOpen, Clock,
-    LayoutGrid, List, MoreVertical, ShieldAlert, Sparkles
+    LayoutGrid, List, MoreVertical, ShieldAlert, Sparkles, Plus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -20,6 +20,13 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import {
     Sheet,
     SheetContent,
@@ -39,28 +46,48 @@ export default function TeacherStudents() {
     const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
     const [selectedStudent, setSelectedStudent] = useState<any>(null)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
-    const [isChatOpen, setIsChatOpen] = useState(false)
+    const [isEnrollOpen, setIsEnrollOpen] = useState(false)
+    const [enrollData, setEnrollData] = useState({ email: "", subjectId: "" })
+    const [courses, setCourses] = useState<any[]>([])
+    const [isEnrolling, setIsEnrolling] = useState(false)
     const [chatMessage, setChatMessage] = useState("")
-    const { toast } = useToast()
+    const [isChatOpen, setIsChatOpen] = useState(false)
+    const [user, setUser] = useState<any>(null)
 
     useEffect(() => {
-        loadStudents()
+        if (typeof window !== "undefined") {
+            const storedUser = localStorage.getItem("smarttutor_user")
+            if (storedUser) setUser(JSON.parse(storedUser))
+        }
     }, [])
+    const { toast } = useToast()
 
-    const loadStudents = async () => {
+    const loadData = async () => {
         try {
             setLoading(true)
-            const res = await courseApi.getMyStudents()
-            setStudents(res.data || [])
+            const [studentRes, courseRes] = await Promise.all([
+                courseApi.getMyStudents(),
+                courseApi.getMyCourses()
+            ])
+            setStudents(studentRes.data || [])
+            setCourses(courseRes.data || [])
+            if (courseRes.data?.length > 0) {
+                setEnrollData(prev => ({ ...prev, subjectId: courseRes.data[0]._id }))
+            }
         } catch (error: any) {
-            toast({ title: "Failed to load students", description: error.message, variant: "destructive" })
+            toast({ title: "Error", description: error.message, variant: "destructive" })
         } finally {
             setLoading(false)
         }
     }
 
+    useEffect(() => {
+        loadData()
+    }, [])
+
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (student.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (student.course || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
 
@@ -110,6 +137,13 @@ export default function TeacherStudents() {
                             className="h-14 px-8 rounded-2xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2.5 shadow-xl shadow-sky-500/20 hover:bg-sky-700 hover:scale-105 transition-all"
                         >
                             <Mail className="w-4 h-4" /> Message All Students
+                        </Button>
+                        <Button
+                            onClick={() => setIsEnrollOpen(true)}
+                            variant="outline"
+                            className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-sky-600 hover:bg-sky-50/50 transition-all"
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Enroll Student
                         </Button>
                         <Button
                             onClick={handleExportGradebook}
@@ -178,8 +212,8 @@ export default function TeacherStudents() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {filteredStudents.map((student) => (
-                                    <tr key={student._id} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                                {filteredStudents.map((student, index) => (
+                                    <tr key={student._id + '-' + (student.subjectId || index)} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
                                         <td className="px-10 py-8">
                                             <div className="flex items-center gap-5">
                                                 <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center font-black text-xs border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm overflow-hidden">
@@ -245,7 +279,7 @@ export default function TeacherStudents() {
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-black text-slate-900 uppercase">Broadcast Message</DialogTitle>
                             <DialogDescription className="text-slate-500 font-medium">
-                                Send an announcement to all 97 students enrolled in your courses.
+                                Send an announcement to all {students.length} students enrolled in your courses.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="py-6 space-y-4">
@@ -388,7 +422,9 @@ export default function TeacherStudents() {
                 </Dialog>
 
                 <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Showing 5 of 97 enrolled students</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
+                        Showing {filteredStudents.length} of {students.length} enrolled students
+                    </p>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl border-slate-100 text-[10px] font-black uppercase tracking-widest">Previous</Button>
                         <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl border-slate-100 text-[10px] font-black uppercase tracking-widest">Next</Button>
@@ -396,6 +432,73 @@ export default function TeacherStudents() {
                 </div>
             </div>
 
+            {/* Enrollment Modal */}
+            <Dialog open={isEnrollOpen} onOpenChange={setIsEnrollOpen}>
+                <DialogContent className="sm:max-w-[500px] rounded-[48px] border-none p-10 shadow-2xl">
+                    <DialogHeader>
+                        <div className="w-16 h-16 rounded-3xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
+                            <Plus className="w-8 h-8" />
+                        </div>
+                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Manual <span className="text-sky-600">Enrollment</span></DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            Enter the student's registered email to add them to your course roster.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-8 space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Student Email Address</label>
+                            <Input 
+                                type="email"
+                                placeholder="student@example.com"
+                                className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
+                                value={enrollData.email}
+                                onChange={(e) => setEnrollData({...enrollData, email: e.target.value})}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Target Course</label>
+                            <Select 
+                                value={enrollData.subjectId} 
+                                onValueChange={(val) => setEnrollData({...enrollData, subjectId: val})}
+                            >
+                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm">
+                                    <SelectValue placeholder="Select Course" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl">
+                                    {courses.map(c => (
+                                        <SelectItem key={c._id} value={c._id}>{c.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button 
+                            disabled={isEnrolling || !enrollData.email || !enrollData.subjectId}
+                            onClick={async () => {
+                                try {
+                                    setIsEnrolling(true)
+                                    await courseApi.manualEnroll(enrollData)
+                                    toast({ title: "Enrollment Success", description: "Student has been added to your roster." })
+                                    setIsEnrollOpen(false)
+                                    setEnrollData({ email: "", subjectId: enrollData.subjectId })
+                                    loadData()
+                                } catch (error: any) {
+                                    toast({ title: "Enrollment Failed", description: error.message, variant: "destructive" })
+                                } finally {
+                                    setIsEnrolling(false)
+                                }
+                            }}
+                            className="w-full h-16 rounded-[24px] bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-sky-500/30"
+                        >
+                            {isEnrolling ? "Processing..." : "Confirm Enrollment"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

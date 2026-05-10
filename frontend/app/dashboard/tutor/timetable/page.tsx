@@ -5,14 +5,15 @@ import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, List
 import { useState, useMemo, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { schedulingApi } from "@/lib/api"
+import { schedulingApi, liveApi } from "@/lib/api"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
 import { useStream } from "@/components/providers/StreamProvider"
 import { Call, CallingState } from "@stream-io/video-react-sdk"
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-const TIME_SLOTS = ["08:30", "10:00", "11:30", "14:00"]
+// We'll derive these dynamically from the schedule data
+const DEFAULT_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const DEFAULT_TIME_SLOTS = ["08:30", "10:00", "11:30", "14:00"]
 
 const colorMap: Record<string, { bg: string; border: string; text: string; dot: string; glow: string }> = {
     sky: { bg: "bg-sky-50", border: "border-sky-100", text: "text-sky-600", dot: "bg-sky-500", glow: "shadow-sky-500/20" },
@@ -28,6 +29,7 @@ export default function TutorTimetable() {
     const [loading, setLoading] = useState(true)
     const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [activeSlot, setActiveSlot] = useState<any | null>(null)
+    const [dbSessionId, setDbSessionId] = useState<string | null>(null)
     const { videoClient } = useStream()
     const currentUser = getCurrentUser()
 
@@ -51,33 +53,65 @@ export default function TutorTimetable() {
     const handleJoinClass = async (slot: any) => {
         if (!videoClient) return
         
-        const callId = `class-${slot._id || slot.id}`
-        const call = videoClient.call('default', callId)
-        
         try {
-            await call.join({ create: true })
-            await call.update({
-                custom: { 
-                    courseName: slot.subject?.title, 
-                    tutorName: currentUser?.name,
-                    type: 'academic-class'
+            // 1. Create LiveSession in MongoDB
+            const sessionRes = await liveApi.create({
+                title: `${slot.subject?.title} - Grade ${slot.grade}`,
+                subject: slot.subject?._id,
+                grade: slot.grade,
+                type: 'academic'
+            })
+            const dbSession = sessionRes.data
+            setDbSessionId(dbSession._id)
+
+            // 2. Prepare Stream Call
+            const callId = `class-${dbSession._id}`
+            const call = videoClient.call('default', callId)
+            
+            // Ensure the tutor is the host with full permissions
+            await call.getOrCreate({
+                data: {
+                    members: [{ user_id: currentUser?.id || currentUser?._id, role: 'host' }],
+                    custom: { 
+                        courseName: slot.subject?.title || slot.title || "Academic Session", 
+                        tutorName: currentUser?.name,
+                        type: 'academic-class',
+                        dbSessionId: dbSession._id
+                    }
                 }
             })
+            
             setActiveCall(call)
             setActiveSlot(slot)
         } catch (e: any) {
+            console.error("Join Class Error:", e)
             toast({ title: "Connection Failed", description: e.message, variant: "destructive" })
         }
     }
 
-    const byDayAndSlot = useMemo(() => {
-        const map: Record<string, any> = {}
+    const { days, timeSlots, byDayAndSlot } = useMemo(() => {
+        const dayMap = new Set(DEFAULT_DAYS)
+        const slotMap = new Set(DEFAULT_TIME_SLOTS)
+        const grid: Record<string, any> = {}
+
         schedule.forEach(s => {
             const day = s.dayOfWeek || s.day
-            const key = `${day}-${s.startTime}`
-            map[key] = s
+            const time = s.startTime
+            if (day) dayMap.add(day)
+            if (time) slotMap.add(time)
+            
+            const key = `${day}-${time}`
+            grid[key] = s
         })
-        return map
+
+        return {
+            days: Array.from(dayMap).sort((a, b) => {
+                const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                return dayOrder.indexOf(a) - dayOrder.indexOf(b)
+            }),
+            timeSlots: Array.from(slotMap).sort(),
+            byDayAndSlot: grid
+        }
     }, [schedule])
 
     if (activeCall && activeSlot) {
@@ -86,8 +120,10 @@ export default function TutorTimetable() {
                 <LiveClassroom
                     call={activeCall}
                     squadName={activeSlot.subject?.title}
+                    courseCode={activeSlot.subject?.code}
                     squadId={activeSlot._id || activeSlot.id}
-                    onLeave={() => { setActiveCall(null); setActiveSlot(null); }}
+                    dbSessionId={dbSessionId}
+                    onLeave={() => { setActiveCall(null); setActiveSlot(null); setDbSessionId(null); }}
                 />
             </div>
         )
@@ -116,7 +152,7 @@ export default function TutorTimetable() {
                         <thead>
                             <tr className="bg-slate-50/50">
                                 <th className="p-8 border-b border-r border-slate-100 w-32"></th>
-                                {DAYS.map(day => (
+                                {days.map(day => (
                                     <th key={day} className="p-8 border-b border-r border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                         {day}
                                     </th>
@@ -124,12 +160,12 @@ export default function TutorTimetable() {
                             </tr>
                         </thead>
                         <tbody>
-                            {TIME_SLOTS.map(time => (
+                            {timeSlots.map(time => (
                                 <tr key={time}>
                                     <td className="p-8 border-b border-r border-slate-100 text-[11px] font-black text-slate-400 text-center uppercase tracking-widest bg-slate-50/20">
                                         {time}
                                     </td>
-                                    {DAYS.map(day => {
+                                    {days.map(day => {
                                         const slot = byDayAndSlot[`${day}-${time}`]
                                         return (
                                             <td key={`${day}-${time}`} className="p-4 border-b border-r border-slate-100 last:border-r-0 h-40 align-top group">
@@ -141,7 +177,10 @@ export default function TutorTimetable() {
                                                             </span>
                                                             <Video className="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                         </div>
-                                                        <p className="text-sm font-black text-slate-800 leading-tight uppercase">{slot.subject?.title}</p>
+                                                        <div className="space-y-1">
+                                                            <span className="text-[7px] font-black text-blue-400 uppercase tracking-widest">Teaching Course</span>
+                                                            <p className="text-[12px] font-black text-slate-900 leading-tight uppercase italic">{slot.subject?.title || slot.title || "Academic Session"}</p>
+                                                        </div>
                                                         <Button 
                                                             onClick={() => handleJoinClass(slot)}
                                                             className="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] uppercase tracking-widest"

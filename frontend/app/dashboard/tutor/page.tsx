@@ -12,22 +12,25 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { tutorActivity, tutorCourses } from "@/lib/mock-data"
-import { userApi, courseApi } from "@/lib/api"
+import { userApi, courseApi, schedulingApi } from "@/lib/api"
 
 export default function TeacherOverview() {
     const [stats, setStats] = useState<any>(null);
     const [courses, setCourses] = useState<any[]>([]);
+    const [schedule, setSchedule] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [statsRes, coursesRes] = await Promise.all([
+            const [statsRes, coursesRes, scheduleRes] = await Promise.all([
                 userApi.getTutorStats(),
-                courseApi.getMyCourses() // For tutors, this should return courses they teach
+                courseApi.getMyCourses(),
+                schedulingApi.getMySchedule()
             ]);
             setStats(statsRes.data);
             setCourses(coursesRes.data);
+            setSchedule(scheduleRes.data || []);
         } catch (error) {
             console.error("Failed to fetch tutor data", error);
         } finally {
@@ -194,41 +197,67 @@ export default function TeacherOverview() {
                 {/* Right Column: Schedule & Tasks */}
                 <div className="space-y-10">
 
-                    {/* Live Schedule */}
-                    <div className="space-y-6">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Today's Schedule</h3>
-                        <div className="space-y-4">
-                            {tutorActivity.map((item, idx) => (
-                                <div key={idx} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden">
-                                    <div className="flex items-start gap-4">
-                                        <div className={cn(
-                                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm",
-                                            item.category === 'Message' ? "bg-rose-50 border-rose-100 text-rose-500" :
-                                                item.category === 'Quiz' ? "bg-sky-50 border-sky-100 text-sky-500" :
-                                                    "bg-sky-50 border-sky-100 text-sky-500"
-                                        )}>
-                                            {item.category === 'Message' ? <Video className="w-5 h-5" /> :
-                                                item.category === 'Quiz' ? <Clock className="w-5 h-5" /> :
-                                                    <GraduationCap className="w-5 h-5" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.time}</span>
-                                                {item.category === 'Message' && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
-                                            </div>
-                                            <h4 className="text-[13px] font-black text-slate-900 leading-tight mb-1 truncate">{item.title}</h4>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.sub}</p>
-                                        </div>
-                                    </div>
-                                    {item.category === 'Message' && (
-                                        <div className="mt-4 pt-4 border-t border-slate-50">
-                                            <Button className="w-full h-10 rounded-xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
-                                                Reply to Message
-                                            </Button>
-                                        </div>
-                                    )}
+                    {/* Academic Agenda Table */}
+                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 relative group overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 blur-2xl rounded-full -mr-16 -mt-16" />
+                        <div className="relative z-10 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-xl font-black uppercase italic tracking-tight mb-1 text-slate-900">Academic <span className="text-sky-600">Agenda</span></h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assigned by Manager</p>
                                 </div>
-                            ))}
+                                <Link href="/dashboard/tutor/timetable">
+                                    <Button variant="ghost" size="sm" className="rounded-xl text-[9px] font-black uppercase tracking-widest text-sky-600 hover:bg-sky-50">
+                                        Full Table <ChevronRight className="w-3 h-3 ml-1" />
+                                    </Button>
+                                </Link>
+                            </div>
+
+                            <div className="overflow-hidden rounded-3xl border border-slate-50">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-slate-50/50">
+                                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Time</th>
+                                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
+                                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {schedule.length > 0 ? schedule.slice(0, 5).map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors group/row">
+                                                <td className="px-6 py-4">
+                                                    <p className="text-[10px] font-black text-slate-900">{item.startTime}</p>
+                                                    <p className="text-[8px] font-medium text-slate-400 uppercase">{item.dayOfWeek}</p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Teaching Course</span>
+                                                        <p className="text-[13px] font-black text-slate-900 uppercase italic leading-none group-hover:text-sky-600 transition-colors">{item.subject?.title}</p>
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 text-[8px] font-black uppercase">Grade {item.grade}</span>
+                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sem {item.semester || 1}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <Link href="/dashboard/tutor/timetable">
+                                                        <Button size="sm" className="h-8 px-4 rounded-xl bg-slate-900 text-white font-black text-[8px] uppercase tracking-widest hover:bg-sky-600 transition-all opacity-0 group-hover/row:opacity-100">
+                                                            Go Live
+                                                        </Button>
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={3} className="px-6 py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                                    No assigned classes
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -244,13 +273,13 @@ export default function TeacherOverview() {
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                {tutorCourses.slice(0, 2).map((squad, idx) => (
+                                {courses.slice(0, 2).map((course, idx) => (
                                     <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer">
                                         <div className="flex items-center gap-3">
                                             <div className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-lg shadow-sky-500/50" />
                                             <div>
-                                                <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{squad.name}</p>
-                                                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest">{squad.studentCount} Students</p>
+                                                <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{course.title}</p>
+                                                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest">{(course.students?.length || 0)} Students</p>
                                             </div>
                                         </div>
                                         <ChevronRight className="w-4 h-4 text-slate-400" />

@@ -7,7 +7,7 @@ import {
     BookOpen, Video, MonitorPlay, Calendar, Zap, Lock,
     ChevronRight, GraduationCap, Sparkles, BrainCircuit, FileDown,
     Youtube, Book, ExternalLink, Library, ArrowUpRight, Search,
-    MessageSquare, FileText, Send, X, PenTool, ChevronDown, ChevronUp
+    MessageSquare, FileText, Send, X, PenTool, ChevronDown, ChevronUp, FileUp
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,15 @@ import { AIQuiz } from "@/components/dashboard/courses/ai-quiz"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Message {
     role: "user" | "assistant"
@@ -28,17 +37,23 @@ interface Message {
 
 const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return "";
-    let videoId = "";
-    if (url.includes("youtu.be/")) {
-        videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    } else if (url.includes("youtube.com/watch?v=")) {
-        videoId = url.split("v=")[1]?.split("&")[0];
-    } else if (url.includes("youtube.com/embed/")) {
-        videoId = url.split("embed/")[1]?.split("?")[0];
-    } else if (url.includes("youtube.com/shorts/")) {
-        videoId = url.split("shorts/")[1]?.split("?")[0];
+    
+    // Regular expression to extract YouTube ID from various formats
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0`;
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : url;
+    
+    // Fallback if ID extraction fails but it's clearly a YT link
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        return url; 
+    }
+    
+    return url;
 };
 
 export default function CourseDetailPage() {
@@ -60,6 +75,11 @@ export default function CourseDetailPage() {
     const [aiInput, setAiInput] = useState("")
     const [isAiTyping, setIsAiTyping] = useState(false)
     const [activeTab, setActiveTab] = useState("lectures")
+    const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
+    const [selectedAssignment, setSelectedAssignment] = useState<any>(null)
+    const [submissionContent, setSubmissionContent] = useState("")
+    const [submissionFile, setSubmissionFile] = useState<File | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
         const userStr = localStorage.getItem("smarttutor_user")
@@ -73,6 +93,11 @@ export default function CourseDetailPage() {
                 const res = await courseApi.getById(courseId)
                 const data = res.data || res
                 
+                const isEnrolled = data.isEnrolled || data.students?.some((s: any) => 
+                    (typeof s === 'string' && s === currentUser?._id) || 
+                    (s._id && s._id === currentUser?._id)
+                ) || false
+
                 setCourse({
                     id: data._id || data.id,
                     name: data.title || data.name || "Untitled Course",
@@ -86,41 +111,37 @@ export default function CourseDetailPage() {
                     lessonsCount: data.lessons?.length || 0,
                     completed: 0,
                     priceValue: data.price || 0,
-                    enrolled: data.isEnrolled || false
+                    enrolled: isEnrolled
                 })
-                const { supabase } = await import("@/lib/supabase")
-                if (supabase) {
-                    const { data: sbLessons, error: sbError } = await supabase
-                        .from('course_contents')
-                        .select('*')
-                        .eq('course_id', courseId)
+                // Load unified content from MongoDB
+                try {
+                    const contentRes = await courseApi.getContent(courseId)
+                    const unifiedContent = contentRes.data || []
                     
-                    if (!sbError && sbLessons && sbLessons.length > 0) {
-                        // Merge lessons: prioritize Supabase content if title matches
-                        const mongoLessons = data.lessons || [];
-                        const lessonsMap = new Map();
-                        
-                        // First add all mongo lessons
-                        mongoLessons.forEach((ml: any) => lessonsMap.set(ml.title, ml));
-                        
-                        // Then add/override with Supabase lessons
-                        sbLessons.forEach(sbL => {
-                            lessonsMap.set(sbL.title, {
-                                _id: sbL.id,
-                                title: sbL.title,
-                                type: sbL.type,
-                                videoUrl: sbL.content_url,
-                                pptUrl: sbL.content_url,
-                                exerciseUrl: sbL.content_url,
-                                content: sbL.quiz_data ? JSON.stringify(sbL.quiz_data) : null
-                            });
-                        });
-                        
-                        setLessons(Array.from(lessonsMap.values()));
-                    } else {
-                        setLessons(data.lessons || [])
-                    }
-                } else {
+                    const mongoLessons = data.lessons || []
+                    const lessonsMap = new Map()
+                    
+                    // Legacy lessons
+                    mongoLessons.forEach((ml: any) => lessonsMap.set(ml.title, { ...ml, source: 'legacy' }))
+                    
+                    // Unified content
+                    unifiedContent.forEach((c: any) => {
+                        const type = c.category?.toLowerCase() || 'video'
+                        lessonsMap.set(c.title, {
+                            ...c,
+                            _id: c._id,
+                            type: type,
+                            videoUrl: c.contentId?.url || c.contentId?.videoId || c.videoUrl || c.url,
+                            pptUrl: c.contentId?.url || c.pptUrl || c.url,
+                            exerciseUrl: c.contentId?.url || c.exerciseUrl || c.url,
+                            quizData: c.contentId?.questions,
+                            source: 'unified'
+                        })
+                    })
+                    
+                    setLessons(Array.from(lessonsMap.values()))
+                } catch (contentErr) {
+                    console.error("Failed to load unified content", contentErr)
                     setLessons(data.lessons || [])
                 }
                 
@@ -143,9 +164,16 @@ export default function CourseDetailPage() {
 
     useEffect(() => {
         if (lessons.length > 0 && !activeLesson) {
+            // Don't auto-set if we want user to click first, but for now we'll keep it
             setActiveLesson(lessons[0])
         }
-    }, [lessons, activeLesson])
+    }, [lessons]) // Removed activeLesson from deps to prevent infinite loop or resets
+
+    // Handle lesson selection with scroll
+    const handleSelectLesson = (lesson: any) => {
+        setActiveLesson(lesson)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
 
     const handleEnroll = async () => {
         if (!currentUser) return router.push("/auth/login")
@@ -193,8 +221,8 @@ export default function CourseDetailPage() {
 
     if (!course) return <div className="p-20 text-center font-black uppercase text-slate-400">Course Not Found</div>
 
-    const lectures = lessons.filter(l => l.type === 'video' || !l.type)
-    const materials = lessons.filter(l => l.type === 'ppt' || l.type === 'document')
+    const lectures = lessons.filter(l => l.type === 'video' || l.type === 'youtube' || l.type === 'recording' || !l.type)
+    const materials = lessons.filter(l => l.type === 'ppt' || l.type === 'pdf' || l.type === 'document')
     const practice = [...lessons.filter(l => l.type === 'quiz' || l.type === 'exercise' || l.type === 'exam'), ...assignments]
 
     return (
@@ -220,24 +248,69 @@ export default function CourseDetailPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full h-full bg-slate-950 flex flex-col relative">
+                    <div className="w-full h-full bg-slate-950 flex flex-col relative no-copy">
                         {activeLesson ? (
                             <div className="flex-1 w-full relative">
-                                {activeLesson.type === "video" ? (
+                                { (activeLesson.type === "video" || activeLesson.type === "youtube") ? (
                                     <div className="w-full h-full aspect-video bg-black">
-                                        {(activeLesson.videoUrl?.includes('youtube.com') || activeLesson.videoUrl?.includes('youtu.be')) ? (
-                                            <iframe 
-                                                src={getYouTubeEmbedUrl(activeLesson.videoUrl)}
-                                                className="w-full h-full border-none"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            ></iframe>
+                                        {(activeLesson.videoUrl?.includes('youtube.com') || activeLesson.videoUrl?.includes('youtu.be') || activeLesson.type === "youtube") ? (
+                                            <div className="w-full h-full flex flex-col">
+                                                <div className="flex-1 relative">
+                                                    <iframe 
+                                                        src={getYouTubeEmbedUrl(activeLesson.videoUrl)}
+                                                        className="w-full h-full border-none"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    ></iframe>
+                                                </div>
+                                                <div className="bg-slate-900 p-4 border-t border-white/5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Youtube className="w-5 h-5 text-rose-500" />
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">YouTube Content • {activeLesson.title}</p>
+                                                    </div>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="h-10 px-6 rounded-xl bg-white/5 hover:bg-rose-500 hover:text-white text-white font-black text-[9px] uppercase tracking-widest transition-all"
+                                                        onClick={() => window.open(activeLesson.videoUrl, '_blank')}
+                                                    >
+                                                        <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                                                        Open on YouTube
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         ) : activeLesson.videoUrl ? (
-                                            <video 
-                                                src={activeLesson.videoUrl} 
-                                                controls 
-                                                className="w-full h-full object-contain"
-                                            />
+                                            <div className="w-full h-full flex flex-col">
+                                                <div className="flex-1 bg-black">
+                                                    <div className="relative w-full h-full">
+                                                        <video 
+                                                            src={activeLesson.videoUrl} 
+                                                            controls 
+                                                            controlsList="nodownload"
+                                                            onContextMenu={(e) => e.preventDefault()}
+                                                            className="w-full h-full object-contain shadow-2xl"
+                                                            poster={activeLesson.thumbnail}
+                                                        />
+                                                        {/* Anti-Piracy Watermark */}
+                                                        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10">
+                                                            <div className="absolute animate-marquee whitespace-nowrap text-white text-[8px] font-black uppercase tracking-[0.5em] rotate-12">
+                                                                {user?.email || "SECURE STREAM"} • {user?.email || "SECURE STREAM"} • {user?.email || "SECURE STREAM"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-900 p-4 border-t border-white/5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        {activeLesson.source === 'recording' ? (
+                                                            <MonitorPlay className="w-5 h-5 text-sky-500" />
+                                                        ) : (
+                                                            <Video className="w-5 h-5 text-indigo-500" />
+                                                        )}
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                            {activeLesson.source === 'recording' ? "Live Session Recording" : "Internal Video Module"} • {activeLesson.title}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
                                                 <Video className="w-16 h-16 opacity-20" />
@@ -245,34 +318,43 @@ export default function CourseDetailPage() {
                                             </div>
                                         )}
                                     </div>
-                                ) : (activeLesson.type === "ppt" || activeLesson.type === "document") ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-900 text-center">
-                                        <div className="w-24 h-24 rounded-3xl bg-amber-500/10 flex items-center justify-center mb-8 border border-amber-500/20">
-                                            <FileText className="w-12 h-12 text-amber-500" />
+                                ) : (activeLesson.type === "ppt" || activeLesson.type === "document" || activeLesson.type === "pdf") ? (
+                                    <div className="w-full h-full flex flex-col bg-slate-900">
+                                        <div className="flex-1 relative bg-slate-800">
+                                            <iframe 
+                                                src={activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl}
+                                                className="w-full h-full border-none"
+                                                title={activeLesson.title}
+                                            ></iframe>
                                         </div>
-                                        <h3 className="text-2xl font-black text-white uppercase italic mb-4">{activeLesson.title}</h3>
-                                        <p className="text-slate-400 font-bold text-center max-w-md mb-8">This document is ready for review. Click below to open in a secure viewer or download for offline study.</p>
-                                        <div className="flex items-center gap-4">
-                                            <Button 
-                                                className="h-14 px-8 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black uppercase italic tracking-widest text-xs"
-                                                onClick={() => window.open(activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl, '_blank')}
-                                            >
-                                                <Eye className="w-4 h-4 mr-2" />
-                                                Open Document
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                className="h-14 px-8 rounded-2xl border-white/10 text-white hover:bg-white/5 font-black uppercase italic tracking-widest text-xs"
-                                                onClick={() => {
-                                                    const link = document.createElement('a');
-                                                    link.href = activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl;
-                                                    link.download = `${activeLesson.title}.pdf`;
-                                                    link.click();
-                                                }}
-                                            >
-                                                <FileDown className="w-4 h-4 mr-2" />
-                                                Download PDF
-                                            </Button>
+                                        <div className="p-6 border-t border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <FileText className="w-5 h-5 text-amber-500" />
+                                                <h3 className="text-sm font-black text-white uppercase italic">{activeLesson.title}</h3>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <Button 
+                                                    variant="ghost"
+                                                    className="h-10 px-6 rounded-xl bg-white/5 text-white hover:bg-amber-500 hover:text-black font-black uppercase text-[9px] tracking-widest transition-all"
+                                                    onClick={() => window.open(activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl, '_blank')}
+                                                >
+                                                    <Eye className="w-3.5 h-3.5 mr-2" />
+                                                    Full Screen
+                                                </Button>
+                                                <Button 
+                                                    variant="outline"
+                                                    className="h-10 px-6 rounded-xl border-white/10 text-white hover:bg-white/5 font-black uppercase text-[9px] tracking-widest transition-all"
+                                                    onClick={() => {
+                                                        const link = document.createElement('a');
+                                                        link.href = activeLesson.pptUrl || activeLesson.content_url || activeLesson.videoUrl;
+                                                        link.download = `${activeLesson.title}.pdf`;
+                                                        link.click();
+                                                    }}
+                                                >
+                                                    <FileDown className="w-3.5 h-3.5 mr-2" />
+                                                    Download
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (activeLesson.type === "quiz" || activeLesson.type === "exercise" || activeLesson.type === "exam") ? (
@@ -299,6 +381,7 @@ export default function CourseDetailPage() {
                                                 <AIQuiz 
                                                     lessonTitle={activeLesson.title}
                                                     type={activeLesson.type as any}
+                                                    questions={activeLesson.quizData} // Pass tutor questions
                                                     onComplete={(score) => {
                                                         toast({ title: "Module Complete", description: `You achieved a score of ${score}%` })
                                                     }}
@@ -370,7 +453,19 @@ export default function CourseDetailPage() {
                         <TabsContent value="lectures" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {lectures.map((l, i) => (
-                                    <div key={i} onClick={() => setActiveLesson(l)} className="group p-6 rounded-[32px] bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-2xl transition-all cursor-pointer">
+                                    <div 
+                                        key={i} 
+                                        onClick={() => handleSelectLesson(l)} 
+                                        className={cn(
+                                            "group p-6 rounded-[32px] border transition-all cursor-pointer relative overflow-hidden",
+                                            activeLesson?._id === l._id || activeLesson?.title === l.title 
+                                                ? "bg-indigo-50 border-indigo-200 shadow-xl" 
+                                                : "bg-white border-slate-100 hover:border-indigo-100 hover:shadow-2xl"
+                                        )}
+                                    >
+                                        {activeLesson?._id === l._id && (
+                                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                                        )}
                                         <div className="aspect-video rounded-2xl bg-slate-50 mb-6 overflow-hidden relative border border-slate-100">
                                             <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors">
                                                 <PlayCircle className="w-10 h-10 text-indigo-600 opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all" />
@@ -406,8 +501,91 @@ export default function CourseDetailPage() {
                         </TabsContent>
 
                         {/* ── Practice Tab ── */}
-                        <TabsContent value="practice" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                            {practice.map((l, i) => (
+                        <TabsContent value="practice" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+                            {/* Assignments Section */}
+                            {assignments.length > 0 && (
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3 ml-2">
+                                        <FileText className="w-5 h-5 text-indigo-600" />
+                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Active Assignments</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {assignments.map((assignment) => {
+                                            const submission = submissions.find(s => s.assignment === assignment._id);
+                                            const dueDate = new Date(assignment.dueDate);
+                                            const isOverdue = dueDate < new Date() && !submission;
+                                            const isUrgent = !submission && !isOverdue && (dueDate.getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000;
+                                            
+                                            return (
+                                                <div key={assignment._id} className={cn(
+                                                    "p-8 rounded-[40px] bg-white border shadow-xl transition-all flex flex-col justify-between",
+                                                    isUrgent ? "border-rose-200 bg-rose-50/10 shadow-rose-500/5" : "border-slate-100 shadow-slate-200/10 hover:border-indigo-100"
+                                                )}>
+                                                    <div className="space-y-6">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className={cn(
+                                                                "w-14 h-14 rounded-2xl flex items-center justify-center border",
+                                                                isUrgent ? "bg-rose-50 text-rose-600 border-rose-100 animate-pulse" : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                                            )}>
+                                                                <FileText className="w-7 h-7" />
+                                                            </div>
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <Badge className={cn(
+                                                                    "border-none text-[8px] font-black uppercase italic",
+                                                                    submission?.status === "evaluated" ? "bg-emerald-50 text-emerald-600" : 
+                                                                    submission ? "bg-amber-50 text-amber-600" :
+                                                                    isOverdue ? "bg-rose-50 text-rose-600" : 
+                                                                    isUrgent ? "bg-rose-600 text-white shadow-lg shadow-rose-500/20" : "bg-slate-50 text-slate-400"
+                                                                )}>
+                                                                    {submission?.status === "evaluated" ? "Graded" : 
+                                                                     submission ? "Submitted" : 
+                                                                     isOverdue ? "Overdue" : 
+                                                                     isUrgent ? "Urgent: < 24h" : "Pending"}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-lg font-black text-slate-900 leading-tight mb-2 uppercase italic">{assignment.title}</h4>
+                                                            <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                                <span className="flex items-center gap-1.5"><Percent className="w-3.5 h-3.5" /> {assignment.weight}% Weight</span>
+                                                                <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-rose-500" /> {format(new Date(assignment.dueDate), "MMM dd")}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-8 mt-8 border-t border-slate-50">
+                                                        {submission?.status === "evaluated" ? (
+                                                            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-2">
+                                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Result: {submission.marksObtained} / {assignment.maxMarks}</p>
+                                                                {submission.feedback && <p className="text-[9px] text-emerald-700/70 font-medium italic line-clamp-2">"{submission.feedback}"</p>}
+                                                            </div>
+                                                        ) : (
+                                                            <Button 
+                                                                onClick={() => {
+                                                                    setSelectedAssignment(assignment);
+                                                                    setIsSubmitModalOpen(true);
+                                                                }}
+                                                                className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-[9px] tracking-widest shadow-xl shadow-slate-200"
+                                                            >
+                                                                {submission ? "Update Submission" : "Submit Work"}
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Quizzes & Exams Section */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3 ml-2">
+                                    <Zap className="w-5 h-5 text-emerald-600" />
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Interactive Assessments</h3>
+                                </div>
+                                <div className="space-y-6">
+                                    {practice.map((l, i) => (
                                 <div key={i} className={cn(
                                     "group p-8 rounded-[48px] bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-8",
                                     l.type === 'exam' ? "border-amber-100 hover:border-amber-300 hover:shadow-amber-500/10" : "border-slate-100 hover:border-emerald-100 hover:shadow-2xl"
@@ -452,6 +630,8 @@ export default function CourseDetailPage() {
                                     </Button>
                                 </div>
                             ))}
+                                </div>
+                            </div>
                             {practice.length === 0 && <div className="py-20 text-center font-black uppercase text-slate-400 italic">No practice modules or exams assigned.</div>}
                         </TabsContent>
 
@@ -561,6 +741,89 @@ export default function CourseDetailPage() {
                     </Button>
                 </div>
             )}
+            {/* Submission Modal */}
+            <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
+                <DialogContent className="sm:max-w-[550px] rounded-[48px] border-none p-10 shadow-2xl">
+                    <DialogHeader>
+                        <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
+                            <Send className="w-8 h-8" />
+                        </div>
+                        <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic">Submit <span className="text-indigo-600">Work</span></DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            Upload your completed assignment for "{selectedAssignment?.title}". Ensure all files meet the requirements.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-8 space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Submission Notes</label>
+                            <Textarea 
+                                placeholder="Add any comments for your teacher..."
+                                className="min-h-[100px] rounded-2xl bg-slate-50 border-slate-100 font-medium text-sm p-4"
+                                value={submissionContent}
+                                onChange={(e) => setSubmissionContent(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Attach Files</label>
+                            <div className="group relative border-2 border-dashed border-slate-200 rounded-3xl p-8 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer bg-slate-50/50">
+                                <input 
+                                    type="file"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+                                />
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                                        <FileUp className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase text-slate-900 leading-tight">
+                                            {submissionFile ? submissionFile.name : "Choose File"}
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">PDF, Docs, or Images (Max 10MB)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button 
+                            disabled={isSubmitting}
+                            onClick={async () => {
+                                if (!submissionFile && !submissionContent) return;
+                                try {
+                                    setIsSubmitting(true);
+                                    let fileUrl = "";
+                                    if (submissionFile) {
+                                        const { uploadToSupabase } = await import("@/lib/supabase");
+                                        fileUrl = await uploadToSupabase(submissionFile, 'submissions');
+                                    }
+                                    await assignmentApi.submit(selectedAssignment._id, {
+                                        content: submissionContent,
+                                        attachments: fileUrl ? [fileUrl] : []
+                                    });
+                                    toast({ title: "Success", description: "Assignment submitted successfully!" });
+                                    setIsSubmitModalOpen(false);
+                                    setSubmissionContent("");
+                                    setSubmissionFile(null);
+                                    // Refresh data
+                                    const subRes = await assignmentApi.getMySubmissionsForCourse(courseId);
+                                    setSubmissions(subRes.data || []);
+                                } catch (error: any) {
+                                    toast({ title: "Submission Failed", description: error.message, variant: "destructive" });
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                            className="w-full h-16 rounded-[24px] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-500/30"
+                        >
+                            {isSubmitting ? "Uploading..." : "Confirm Submission"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

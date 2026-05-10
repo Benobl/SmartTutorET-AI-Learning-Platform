@@ -1,5 +1,6 @@
 import { SubjectService } from "./subject.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
+import fs from "fs";
 
 export class SubjectController {
     static async createSubject(req, res, next) {
@@ -58,7 +59,7 @@ export class SubjectController {
 
     static async getSubject(req, res, next) {
         try {
-            const subject = await SubjectService.getSubjectDetails(req.params.subjectId);
+            const subject = await SubjectService.getSubjectDetails(req.params.subjectId, req.user._id);
             if (!subject) throw new ApiError(404, "Subject not found");
             res.json({ success: true, data: subject });
         } catch (error) {
@@ -140,6 +141,16 @@ export class SubjectController {
         }
     }
 
+    static async enrollStudent(req, res, next) {
+        try {
+            const { subjectId, email } = req.body;
+            const student = await SubjectService.enrollStudentByEmail(req.user._id, subjectId, email);
+            res.json({ success: true, message: "Student enrolled successfully", data: student });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async addLesson(req, res, next) {
         try {
             const subject = await SubjectService.addLesson(req.params.subjectId, req.body);
@@ -195,6 +206,36 @@ export class SubjectController {
         try {
             const subject = await SubjectService.autoGenerateLessons(req.params.subjectId);
             res.json({ success: true, message: "AI has successfully populated the curriculum", data: subject });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async addContent(req, res, next) {
+        try {
+            const { subjectId } = req.params;
+            const content = await SubjectService.addCourseContent(subjectId, req.user._id, req.body);
+            res.status(201).json({ success: true, message: "Content added successfully", data: content });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getContent(req, res, next) {
+        try {
+            const { subjectId } = req.params;
+            const content = await SubjectService.getCourseContent(subjectId, req.user._id, req.user.role);
+            res.json({ success: true, data: content });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async deleteContent(req, res, next) {
+        try {
+            const { contentId } = req.params;
+            await SubjectService.deleteCourseContent(contentId, req.user._id);
+            res.json({ success: true, message: "Content deleted successfully" });
         } catch (error) {
             next(error);
         }

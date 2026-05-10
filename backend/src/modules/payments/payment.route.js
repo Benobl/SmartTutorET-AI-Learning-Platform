@@ -5,7 +5,9 @@ import { verifyToken } from "../../middleware/auth.middleware.js";
 const router = express.Router();
 
 router.post("/initialize", verifyToken, PaymentController.initialize);
-router.get("/verify/:tx_ref", verifyToken, PaymentController.verify);
+// Public because Chapa callback_url cannot send JWT/cookies.
+// Verification is still secure since we verify against Chapa using our secret key.
+router.get("/verify/:tx_ref", PaymentController.verify);
 router.get("/subject/:subjectId", verifyToken, PaymentController.getPayments);
 router.get("/check-enrollment/:subjectId", verifyToken, PaymentController.checkEnrollment);
 

@@ -17,9 +17,15 @@ router.patch("/:subjectId/approve", verifyToken, allowRoles("manager", "admin"),
 router.patch("/:subjectId/reject", verifyToken, allowRoles("manager", "admin"), SubjectController.reject);
 router.get("/:subjectId", verifyToken, SubjectController.getSubject);
 router.post("/:subjectId/enroll", verifyToken, SubjectController.enroll);
+router.post("/manual-enroll", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.enrollStudent);
 router.post("/:subjectId/lessons", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.addLesson);
 router.post("/:subjectId/lessons/upload-video", verifyToken, allowRoles("tutor", "admin", "manager"), uploadVideo.single("video"), SubjectController.uploadLessonVideo);
 router.post("/:subjectId/lessons/auto-generate", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.autoGenerateLessons);
 router.get("/:subjectId/lessons", verifyToken, SubjectController.getLessons);
+
+// Unified Content Management
+router.post("/:subjectId/content", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.addContent);
+router.get("/:subjectId/content", verifyToken, SubjectController.getContent);
+router.delete("/content/:contentId", verifyToken, allowRoles("tutor", "admin", "manager"), SubjectController.deleteContent);
 
 export default router;

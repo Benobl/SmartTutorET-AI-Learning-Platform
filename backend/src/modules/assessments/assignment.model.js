@@ -25,6 +25,11 @@ const assignmentSchema = new mongoose.Schema(
             required: true,
             default: 100,
         },
+        weight: {
+            type: Number,
+            required: true,
+            default: 10, // Percentage of final grade
+        },
         dueDate: {
             type: Date,
             required: true,

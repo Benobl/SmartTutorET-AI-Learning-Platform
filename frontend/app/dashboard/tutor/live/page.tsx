@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { tutorProfile as mockTeacherData } from "@/lib/mock-data"
+import { liveApi, courseApi } from "@/lib/api"
 
 const MOCK_LIVE_SESSSIONS = [
     { id: "ls1", title: "Grade 12 Physics: Quantum Entanglement", time: "Starts in 15 mins", students: 42, active: true },
@@ -46,7 +47,26 @@ export default function TeacherLive() {
     const { toast } = useToast()
     const [isLive, setIsLive] = useState(false)
     const [activeTab, setActiveTab] = useState<"chat" | "students" | "settings">("chat")
-    const [sessions, setSessions] = useState(MOCK_LIVE_SESSSIONS)
+    const [sessions, setSessions] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+    const [isEnding, setIsEnding] = useState(false)
+
+    const fetchSessions = async () => {
+        try {
+            setLoading(true)
+            const res = await liveApi.getActive()
+            setSessions(res.data || [])
+        } catch (error) {
+            console.error("Failed to fetch live sessions", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchSessions()
+    }, [])
 
     // Media Refs & States
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -73,6 +93,25 @@ export default function TeacherLive() {
     ])
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [recordings, setRecordings] = useState<any[]>([])
+    const [loadingRecordings, setLoadingRecordings] = useState(false)
+
+    const fetchRecordings = async () => {
+        try {
+            setLoadingRecordings(true)
+            const res = await liveApi.getRecordings()
+            setRecordings(res.data || [])
+        } catch (error) {
+            console.error("Failed to fetch recordings", error)
+        } finally {
+            setLoadingRecordings(false)
+        }
+    }
+
+    useEffect(() => {
+        if (isRecordingsOpen) fetchRecordings()
+    }, [isRecordingsOpen])
+
     const [newSession, setNewSession] = useState({
         title: "",
         course: "",
@@ -81,7 +120,7 @@ export default function TeacherLive() {
     })
 
     // Media Logic
-    const startCamera = async () => {
+    const startCamera = async (sessionId?: string) => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
@@ -92,6 +131,11 @@ export default function TeacherLive() {
                 videoRef.current.srcObject = stream
             }
             setIsLive(true)
+            setActiveSessionId(sessionId || null)
+
+
+
+
         } catch (err) {
             console.error("Error accessing media devices.", err)
             toast({
@@ -102,13 +146,28 @@ export default function TeacherLive() {
         }
     }
 
-    const stopMedia = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop())
-            streamRef.current = null
+    const stopMedia = async () => {
+        setIsEnding(true)
+        try {
+            if (activeSessionId) {
+                await liveApi.end(activeSessionId)
+                toast({ title: "Session Ended", description: "The live session has been closed successfully." })
+            }
+
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop())
+                streamRef.current = null
+            }
+            setIsLive(false)
+            setIsSharingScreen(false)
+            setActiveSessionId(null)
+            fetchSessions()
+        } catch (error: any) {
+            console.error("Failed to end session", error)
+            toast({ title: "End Session Error", description: error.message, variant: "destructive" })
+        } finally {
+            setIsEnding(false)
         }
-        setIsLive(false)
-        setIsSharingScreen(false)
     }
 
     const toggleMute = () => {
@@ -282,21 +341,31 @@ export default function TeacherLive() {
         setChatInput("")
     }
 
-    const handleSchedule = () => {
-        const session = {
-            id: `ls${Date.now()}`,
-            title: newSession.title,
-            time: "Scheduled",
-            students: 0,
-            active: false
+    const handleSchedule = async () => {
+        try {
+            if (!newSession.title || !newSession.course || !newSession.time) {
+                toast({ title: "Missing Information", description: "Please fill in all fields.", variant: "destructive" })
+                return
+            }
+
+            const sessionData = {
+                title: newSession.title,
+                subject: newSession.course,
+                startTime: new Date(newSession.time).toISOString(),
+                grade: newSession.grade
+            }
+
+            await liveApi.create(sessionData)
+            toast({
+                title: "Broadcast Scheduled",
+                description: `Successfully scheduled "${newSession.title}" for students.`,
+            })
+            setIsSchedulingOpen(false)
+            setNewSession({ title: "", course: "", time: "", grade: "" })
+            fetchSessions()
+        } catch (error: any) {
+            toast({ title: "Scheduling Failed", description: error.message, variant: "destructive" })
         }
-        setSessions([session, ...sessions])
-        toast({
-            title: "Broadcast Scheduled",
-            description: `Successfully scheduled "${newSession.title}" for ${newSession.time}.`,
-        })
-        setIsSchedulingOpen(false)
-        setNewSession({ title: "", course: "", time: "", grade: "" })
     }
 
     if (isLive) {
@@ -403,16 +472,8 @@ export default function TeacherLive() {
                                 <MonitorPlay className="w-6 h-6" />
                             </button>
                             <div className="h-10 w-px bg-white/10" />
-                            <button
-                                onClick={toggleRecording}
-                                className={cn(
-                                    "w-14 h-14 rounded-2xl transition-all border flex items-center justify-center group relative",
-                                    isRecording ? "bg-rose-500 border-rose-500 text-white animate-pulse shadow-xl shadow-rose-500/30" : "bg-rose-500/20 hover:bg-rose-500/30 border-rose-500 text-rose-500"
-                                )}
-                            >
-                                <Disc className="w-6 h-6" />
-                                <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-rose-500 text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Rec</span>
-                            </button>
+                            <div className="h-10 w-px bg-white/10" />
+
                         </div>
                     </div>
 
@@ -549,8 +610,8 @@ export default function TeacherLive() {
 
             {/* Upcoming Sessions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-                {sessions.map(session => (
-                    <div key={session.id} className="group p-10 rounded-[48px] bg-white border border-slate-100 hover:border-rose-100 hover:shadow-2xl hover:shadow-rose-500/5 transition-all duration-700 relative overflow-hidden flex flex-col">
+                {sessions.map((session, idx) => (
+                    <div key={session._id || session.id || `session-${idx}`} className="group p-10 rounded-[48px] bg-white border border-slate-100 hover:border-rose-100 hover:shadow-2xl hover:shadow-rose-500/5 transition-all duration-700 relative overflow-hidden flex flex-col">
                         <div className="absolute top-0 right-0 p-8">
                             <span className={cn(
                                 "px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest border",
@@ -566,31 +627,36 @@ export default function TeacherLive() {
                             </div>
 
                             <div className="flex-1 flex flex-col items-center justify-center min-h-[100px]">
-                                <h3 className="text-xl font-black text-slate-900 leading-[1.3] uppercase italic mb-3 group-hover:text-rose-600 transition-colors line-clamp-2">{session.title}</h3>
+                                <h3 className="text-xl font-black text-slate-900 leading-[1.3] uppercase italic mb-1 group-hover:text-rose-600 transition-colors line-clamp-2">{session.title}</h3>
+                                <div className="mb-4">
+                                    <span className="px-2 py-1 rounded-lg bg-sky-50 text-sky-600 text-[9px] font-black uppercase tracking-widest border border-sky-100">
+                                        {session.subject?.title || "Special Session"}
+                                    </span>
+                                </div>
                                 <div className="flex flex-wrap items-center justify-center gap-3">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
-                                        <Clock className="w-3.5 h-3.5" /> {session.time}
+                                        <Clock className="w-3.5 h-3.5" /> {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                     <span className="w-1 h-1 rounded-full bg-slate-200 hidden sm:block" />
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
-                                        <Users2 className="w-3.5 h-3.5" /> {session.students} Enrolled
+                                        <Users2 className="w-3.5 h-3.5" /> {session.participants?.length || 0} Enrolled
                                     </p>
                                 </div>
                             </div>
 
                             <Button
                                 onClick={() => {
-                                    if (session.active) startCamera()
+                                    if (session.active || session.isActive) startCamera(session._id)
                                     else setIsResourcesOpen(true)
                                 }}
                                 className={cn(
                                     "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl mt-auto",
-                                    session.active
+                                    (session.active || session.isActive)
                                         ? "bg-rose-500 text-white shadow-rose-500/20 hover:scale-105"
                                         : "bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-100"
                                 )}
                             >
-                                {session.active ? "Start Live Session" : "Prepare Resources"}
+                                {(session.active || session.isActive) ? "Start Live Session" : "Prepare Resources"}
                             </Button>
                         </div>
                     </div>
@@ -695,23 +761,35 @@ export default function TeacherLive() {
                             "p-8 space-y-4 overflow-y-auto border-r border-slate-100 transition-all",
                             selectedRecording ? "w-1/3" : "w-full"
                         )}>
-                            {[1, 2, 3, 4].map(i => (
+                            {loadingRecordings ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-4">
+                                    <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Scanning Archive...</p>
+                                </div>
+                            ) : recordings.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <Disc className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No recordings found</p>
+                                </div>
+                            ) : recordings.map(rec => (
                                 <div
-                                    key={i}
-                                    onClick={() => setSelectedRecording({ id: i })}
+                                    key={rec._id}
+                                    onClick={() => setSelectedRecording(rec)}
                                     className={cn(
                                         "group flex flex-col gap-3 p-4 rounded-[24px] border transition-all cursor-pointer",
-                                        selectedRecording?.id === i ? "bg-sky-50 border-sky-200" : "bg-slate-50 border-slate-50 hover:border-sky-100 hover:bg-white"
+                                        selectedRecording?._id === rec._id ? "bg-sky-50 border-sky-200" : "bg-slate-50 border-slate-50 hover:border-sky-100 hover:bg-white"
                                     )}
                                 >
-                                    <div className="w-full aspect-video rounded-xl bg-slate-200 flex items-center justify-center relative overflow-hidden shrink-0">
+                                    <div className="w-full aspect-video rounded-xl bg-slate-900 flex items-center justify-center relative overflow-hidden shrink-0">
                                         <div className="absolute inset-0 bg-sky-600/10" />
                                         <PlayCircle className="w-6 h-6 text-sky-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-black text-white">45:20</span>
+                                        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-black text-white">READY</span>
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-xs text-slate-900 uppercase italic truncate">Lecture on Quantum Physics {i}</h4>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">April {10 - i}, 2024</p>
+                                        <h4 className="font-black text-xs text-slate-900 uppercase italic truncate">{rec.title}</h4>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                            {new Date(rec.endTime).toLocaleDateString()} • {rec.subject?.title || "Live"}
+                                        </p>
                                     </div>
                                 </div>
                             ))}
@@ -726,15 +804,25 @@ export default function TeacherLive() {
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
-                                <div className="w-full aspect-video rounded-[32px] bg-black ring-1 ring-white/10 flex flex-col items-center justify-center gap-4 group">
-                                    <div className="w-20 h-20 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform cursor-pointer shadow-2xl">
-                                        <PlayCircle className="w-8 h-8 fill-current ml-1" />
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Watch Playback</p>
+                                <div className="w-full aspect-video rounded-[32px] bg-black ring-1 ring-white/10 flex flex-col items-center justify-center gap-4 group overflow-hidden relative">
+                                    {selectedRecording.recordingUrl ? (
+                                        <video 
+                                            src={selectedRecording.recordingUrl} 
+                                            controls 
+                                            className="w-full h-full object-contain"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-20 h-20 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform cursor-pointer shadow-2xl">
+                                                <PlayCircle className="w-8 h-8 fill-current ml-1" />
+                                            </div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Processing Playback...</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
-                                    <h5 className="text-white font-black uppercase italic tracking-wider">Quantum Physics Lecture {selectedRecording.id}</h5>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">1,240 Total views • 85% Engagement</p>
+                                    <h5 className="text-white font-black uppercase italic tracking-wider">{selectedRecording.title}</h5>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Recorded on {new Date(selectedRecording.endTime).toLocaleDateString()} • {selectedRecording.subject?.title}</p>
                                 </div>
                             </div>
                         )}

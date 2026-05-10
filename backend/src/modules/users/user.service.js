@@ -116,12 +116,48 @@ export class UserService {
         const tutor = await User.findById(tutorId);
         if (!tutor) throw new ApiError(404, "Tutor not found");
 
-        const courses = await Subject.find({ tutor: tutorId });
-        const studentCount = courses.reduce((acc, curr) => acc + (curr.students?.length || 0), 0);
+        const mongoose = (await import("mongoose")).default;
+        const tid = mongoose.Types.ObjectId.isValid(tutorId) ? new mongoose.Types.ObjectId(tutorId) : tutorId;
+        const courses = await Subject.find({ tutor: tid });
         
-        // Mocking some stats
-        const classAverage = 78;
-        const pendingHomework = 5;
+        // Count students explicitly enrolled + students in the tutor's grade who get free common subjects
+        const tutorsGrades = Array.from(new Set(courses.flatMap(c => [c.grade, String(c.grade)])));
+        const studentsInGrades = await User.find({ 
+            role: "student", 
+            grade: { $in: tutorsGrades } 
+        });
+        
+        const studentCount = studentsInGrades.length;
+        
+        // Calculate pending submissions
+        const Assignment = (await import("../assessments/assignment.model.js")).default;
+        const AssignmentSubmission = (await import("../assessments/assignmentSubmission.model.js")).default;
+        
+        const assignments = await Assignment.find({ tutor: tutorId });
+        const assignmentIds = assignments.map(a => a._id);
+        
+        const pendingHomework = await AssignmentSubmission.countDocuments({
+            assignment: { $in: assignmentIds },
+            status: "pending"
+        });
+
+        // Calculate class average from evaluated submissions
+        const evaluatedSubmissions = await AssignmentSubmission.find({
+            assignment: { $in: assignmentIds },
+            status: "evaluated"
+        });
+
+        let classAverage = 0;
+        if (evaluatedSubmissions.length > 0) {
+            const totalMarks = evaluatedSubmissions.reduce((acc, curr) => acc + (curr.marksObtained || 0), 0);
+            const totalMax = evaluatedSubmissions.reduce((acc, curr) => {
+                const assign = assignments.find(a => a._id.toString() === curr.assignment.toString());
+                return acc + (assign?.maxMarks || 100);
+            }, 0);
+            classAverage = Math.round((totalMarks / totalMax) * 100);
+        } else {
+            classAverage = 85; // Default for new courses
+        }
 
         return {
             courses: courses.length,

@@ -22,11 +22,12 @@ interface QuizQuestion {
 interface AIQuizProps {
     assessmentId?: string
     lessonTitle?: string
+    questions?: QuizQuestion[] // Add direct questions support
     type?: "quiz" | "exam" | "practice"
     onComplete: (score: number) => void
 }
 
-export function AIQuiz({ assessmentId, lessonTitle, type = "quiz", onComplete }: AIQuizProps) {
+export function AIQuiz({ assessmentId, lessonTitle, questions: initialQuestions, type = "quiz", onComplete }: AIQuizProps) {
     const { toast } = useToast()
     const [isLoading, setIsLoading] = useState(true)
     const [questions, setQuestions] = useState<QuizQuestion[]>([])
@@ -70,6 +71,9 @@ export function AIQuiz({ assessmentId, lessonTitle, type = "quiz", onComplete }:
                     setTimeLeft(data.duration * 60)
                     startTimer()
                 }
+            } else if (initialQuestions && initialQuestions.length > 0) {
+                setQuestions(initialQuestions)
+                setIsLoading(false)
             } else {
                 // Fallback to mock/generate for simple lessons
                 setTimeout(() => {

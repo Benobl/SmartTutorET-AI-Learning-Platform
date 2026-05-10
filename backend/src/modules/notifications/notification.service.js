@@ -75,4 +75,19 @@ export class NotificationService {
     static async markAllAsRead(userId) {
         return Notification.updateMany({ user: userId, isRead: false }, { isRead: true });
     }
+
+    static async sendToUsers({ senderId, userIds, message, type = "direct_message" }) {
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        const notifications = userIds.map((uid) => ({
+            user: uid,
+            message,
+            type,
+        }));
+
+        await Notification.insertMany(notifications);
+        return { success: true, count: userIds.length };
+    }
 }

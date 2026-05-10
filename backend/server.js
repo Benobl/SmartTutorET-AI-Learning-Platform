@@ -40,7 +40,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 5001;
 
 // --- CORS MUST BE FIRST ---
-// Manually inject ACAO header for every request to ensure it survives Cloudflare/CDN stripping
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {

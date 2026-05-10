@@ -7,12 +7,13 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null
 
-export const uploadToSupabase = async (file: File, bucket: string = 'pedagogical-content') => {
+export const uploadToSupabase = async (file: File | Blob, bucket: string = 'pedagogical-content') => {
   if (!supabase || !supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase credentials are not configured. Falling back to local storage.')
   }
 
-  const fileExt = file.name.split('.').pop()
+  const name = (file as File).name || `recording-${Date.now()}.webm`
+  const fileExt = name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
   const filePath = `uploads/${fileName}`
 

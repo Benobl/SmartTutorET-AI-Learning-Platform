@@ -8,7 +8,7 @@ export class AssignmentController {
 
     static async createAssignment(req, res, next) {
         try {
-            const { subjectId, title, description, maxMarks, dueDate, attachments } = req.body;
+            const { subjectId, title, description, maxMarks, weight, dueDate, attachments } = req.body;
             
             // Verify tutor owns the subject
             const subject = await Subject.findOne({ _id: subjectId, tutor: req.user._id });
@@ -22,9 +22,18 @@ export class AssignmentController {
                 title,
                 description,
                 maxMarks,
+                weight: weight || 10,
                 dueDate,
                 attachments: attachments || []
             });
+
+            // Notify enrolled students
+            const { NotificationService } = await import("../notifications/notification.service.js");
+            await NotificationService.notifyEnrolledStudents(
+                subject, 
+                `New assignment posted for ${subject.title}: "${title}". Due on ${new Date(dueDate).toLocaleDateString()}.`,
+                "new_assignment"
+            );
 
             res.status(201).json({ success: true, data: assignment });
         } catch (error) {

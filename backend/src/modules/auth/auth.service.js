@@ -95,6 +95,14 @@ export class AuthService {
         }
 
         logger.info(`[AuthService] Login successful for ${email}`);
+
+        // Sync with Stream (async)
+        upsertStreamUser({
+            id: user._id.toString(),
+            name: user.name,
+            image: user.profile.avatar || "",
+        }).catch(err => logger.error("Stream sync error (login):", err));
+
         return user;
     }
 
@@ -184,13 +192,14 @@ export class AuthService {
                     googleId: sub,
                     tutorStatus: "none"
                 });
-
-                upsertStreamUser({
-                    id: user._id.toString(),
-                    name: user.name,
-                    image: user.profile.avatar || "",
-                }).catch(err => console.error("Stream sync error:", err));
             }
+
+            // Sync with Stream (async) for both new and existing users
+            upsertStreamUser({
+                id: user._id.toString(),
+                name: user.name,
+                image: user.profile.avatar || "",
+            }).catch(err => logger.error("Stream sync error (google login):", err));
 
             return user;
         } catch (error) {

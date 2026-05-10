@@ -130,6 +130,10 @@ export const courseApi = {
     getRecommendations: () => fetchWithAuth("/courses/recommendations"),
     getMyCourses: () => fetchWithAuth("/courses/my-courses"),
     getMyStudents: () => fetchWithAuth("/courses/my-students"),
+    manualEnroll: (data: { subjectId: string; email: string }) => fetchWithAuth("/courses/manual-enroll", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
     approve: (id: string) => fetchWithAuth(`/courses/${id}/approve`, { method: "PATCH" }),
     reject: (id: string) => fetchWithAuth(`/courses/${id}/reject`, { method: "PATCH" }),
     getById: (courseId: string) => fetchWithAuth(`/courses/${courseId}`),
@@ -172,6 +176,15 @@ export const courseApi = {
         }
         return response.json();
     },
+    // Unified Content Management
+    getContent: (courseId: string) => fetchWithAuth(`/courses/${courseId}/content`),
+    addContent: (courseId: string, data: any) => fetchWithAuth(`/courses/${courseId}/content`, {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    deleteContent: (contentId: string) => fetchWithAuth(`/courses/content/${contentId}`, {
+        method: "DELETE"
+    }),
 };
 
 export const paymentApi = {
@@ -402,6 +415,11 @@ export const notificationApi = {
     getMine: () => fetchWithAuth("/notifications/mine"),
     markAsRead: (id: string) => fetchWithAuth(`/notifications/mark-read/${id}`, { method: "PATCH" }),
     markAllAsRead: () => fetchWithAuth("/notifications/mark-all-read", { method: "PATCH" }),
+    send: (data: { userIds: string[]; message: string; type?: string }) =>
+        fetchWithAuth("/notifications/send", {
+            method: "POST",
+            body: JSON.stringify(data),
+        }),
 };
 
 export const uploadApi = {
@@ -462,4 +480,37 @@ export const assessmentApi = {
     delete: (id: string) => fetchWithAuth(`/assessments/${id}`, {
         method: "DELETE"
     }),
+};
+
+export const liveApi = {
+    getActive: () => fetchWithAuth("/live/active"),
+    getRecordings: () => fetchWithAuth("/live/recordings"),
+    create: (data: any) => fetchWithAuth("/live", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    join: (sessionId: string) => fetchWithAuth(`/live/join/${sessionId}`, {
+        method: "POST"
+    }),
+    end: (sessionId: string, recordingUrl?: string) => fetchWithAuth(`/live/end/${sessionId}`, {
+        method: "POST",
+        body: JSON.stringify({ recordingUrl })
+    }),
+    uploadRecording: async (blob: Blob) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const formData = new FormData();
+        const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        formData.append("video", blob, `recording-${Date.now()}.${extension}`);
+        
+        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api").replace(/\/$/, "");
+        const response = await fetch(`${cleanBaseUrl}/live/upload-recording`, {
+            method: "POST",
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        });
+        if (!response.ok) throw new Error("Recording upload failed");
+        return response.json();
+    }
 };

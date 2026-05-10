@@ -11,11 +11,11 @@ import {
     useCallStateHooks,
     ParticipantView,
 } from '@stream-io/video-react-sdk'
-import { ArrowLeft, Video, Users, Mic, MicOff, VideoOff, UserPlus, Search, X, Loader2, Monitor, Radio } from 'lucide-react'
+import { ArrowLeft, Video, Users, Mic, MicOff, VideoOff, UserPlus, Search, X, Loader2, Monitor, Radio, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { userApi } from '@/lib/api'
+import { userApi, liveApi } from '@/lib/api'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,9 @@ interface LiveClassroomProps {
     onLeave: () => void
     squadName: string
     squadId?: string
+    dbSessionId?: string | null
     socket?: any
+    courseCode?: string
 }
 
 // --- Consumer Component (Uses Hooks) ---
@@ -36,7 +38,9 @@ const LiveSessionContent = ({
     onLeave,
     squadName,
     squadId,
-    socket
+    dbSessionId,
+    socket,
+    courseCode
 }: LiveClassroomProps) => {
     const { 
         useParticipants, 
@@ -44,7 +48,9 @@ const LiveSessionContent = ({
         useCallCallingState,
         useCameraState,
         useMicrophoneState,
-        useScreenShareState
+        useScreenShareState,
+        useIsCallRecordingInProgress,
+        useIsAutoplayBlocked
     } = useCallStateHooks()
 
     const participants = useParticipants()
@@ -53,29 +59,111 @@ const LiveSessionContent = ({
     const { isEnabled: camEnabled, camera } = useCameraState()
     const { isEnabled: micEnabled, microphone } = useMicrophoneState()
     const { isSharing: isSharing, screenShare } = useScreenShareState()
+    const isRecordingRunning = useIsCallRecordingInProgress()
+    const isAutoplayBlocked = useIsAutoplayBlocked()
 
     const [isInviteOpen, setIsInviteOpen] = React.useState(false)
     const [searchQuery, setSearchQuery] = React.useState("")
     const [students, setStudents] = React.useState<any[]>([])
+    const [isRecordingLoading, setIsRecordingLoading] = React.useState(false)
 
-    // Auto-join logic
+    // Auto-join and media enablement logic
     React.useEffect(() => {
-        if (callingState === CallingState.IDLE) {
-            call.join({ create: true }).catch(console.error)
+        let mounted = true
+        
+        const joinAndEnable = async () => {
+            if (callingState === CallingState.IDLE) {
+                try {
+                    await call.join({ create: true })
+                } catch (err) {
+                    if (mounted) console.error("Failed to join call:", err)
+                }
+            }
+            
+            // Once joined, the user will click 'Start Teaching' to enable hardware
+            if (callingState === CallingState.JOINED) {
+                // No automatic hardware start to prevent NegotiationError
+            }
         }
-    }, [call, callingState])
+
+        joinAndEnable()
+
+        return () => {
+            mounted = false
+        }
+    }, [call, callingState, camEnabled, micEnabled, localParticipant])
+
+    // Cleanup on unmount - IMPORTANT to turn off camera/mic lights
+    React.useEffect(() => {
+        return () => {
+            const shutdown = async () => {
+                try {
+                    // Force disable media first
+                    await call.camera.disable()
+                    await call.microphone.disable()
+                    
+                    if (call.state.callingState !== CallingState.IDLE && call.state.callingState !== CallingState.LEFT) {
+                        await call.leave()
+                    }
+                } catch (err) {
+                    console.error("Cleanup error:", err)
+                }
+            }
+            shutdown()
+        }
+    }, [call])
 
     const activeSpeaker = participants.find(p => p.isSpeaking) || participants[0]
     const screenSharingParticipant = participants.find(p => p.screenShareStream)
 
-    if (callingState !== CallingState.JOINED) {
+    const [isHardwareReady, setIsHardwareReady] = React.useState(false)
+
+    if (callingState !== CallingState.JOINED || !isHardwareReady) {
         return (
-            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white gap-4">
-                <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Syncing Laboratory...</p>
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white gap-6">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
+                    <Radio className="w-6 h-6 text-sky-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                </div>
+                <div className="text-center space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-500 animate-pulse">
+                        {callingState === CallingState.JOINED ? "Secure Channel Established" : "Establishing Secure Stream..."}
+                    </p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">{squadName || "Academic Session"}</p>
+                </div>
+                <div className="flex flex-col items-center gap-3 mt-4">
+                    {callingState === CallingState.JOINED ? (
+                        <Button 
+                            onClick={async () => {
+                                try {
+                                    await call.camera.enable()
+                                    await call.microphone.enable()
+                                    setIsHardwareReady(true)
+                                } catch (err) {
+                                    console.error("Hardware failed:", err)
+                                    toast({ title: "Hardware Error", description: "Could not access camera/mic. Please check permissions." })
+                                }
+                            }}
+                            className="h-12 px-8 rounded-xl bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 animate-bounce"
+                        >
+                            Start Teaching Now
+                        </Button>
+                    ) : (
+                        <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Awaiting Server Synchronization...</p>
+                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={onLeave}
+                        className="text-[9px] font-black uppercase text-slate-500 hover:text-white"
+                    >
+                        Cancel & Return
+                    </Button>
+                </div>
             </div>
         )
     }
+
 
     return (
         <div className="h-screen w-full flex flex-col bg-slate-950 text-white overflow-hidden font-sans">
@@ -85,9 +173,24 @@ const LiveSessionContent = ({
                     <Button variant="ghost" size="icon" onClick={onLeave} className="rounded-full text-slate-400">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
-                    <h2 className="text-[10px] font-black uppercase tracking-widest">{squadName} Live</h2>
+                    <h2 className="text-[12px] font-black uppercase tracking-widest text-white flex items-center gap-2">
+                        <span className="text-sky-400 animate-pulse">●</span> 
+                        <span className="truncate max-w-[200px]">{squadName || "Active Class"}</span>
+                        {courseCode && (
+                            <span className="text-slate-500 font-bold ml-1">#{courseCode}</span>
+                        )}
+                        <span className="ml-2 px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 text-[8px] border border-sky-500/20">LIVE</span>
+                    </h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    {isRecordingRunning && (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/20 animate-pulse">
+                            <Circle className="w-2 h-2 fill-current" />
+                            <span className="text-[8px] font-black uppercase tracking-widest">Recording</span>
+                        </div>
+                    )}
+                    <div className="w-px h-8 bg-white/10 mx-2" />
+
                     <Button 
                         onClick={() => setIsInviteOpen(true)}
                         className="h-8 px-4 rounded-full bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase"
@@ -95,10 +198,29 @@ const LiveSessionContent = ({
                         <UserPlus className="w-3 h-3 mr-2" /> Invite
                     </Button>
                     <Button 
-                        onClick={onLeave}
+                        onClick={async () => {
+                            if (dbSessionId) {
+                                try {
+                                    // Robustly try to stop recording if UI thinks it's running
+                                    if (isRecordingRunning) {
+                                        try {
+                                            await call.stopRecording();
+                                        } catch (stopErr) {
+                                            console.warn("Stop recording failed (egress might not be running):", stopErr);
+                                        }
+                                    }
+                                    await liveApi.end(dbSessionId);
+                                    toast({ title: "Session Ended", description: "Class session has been archived." });
+                                } catch (err) {
+                                    console.error("End session error:", err);
+                                }
+                            }
+                            await call.leave();
+                            onLeave();
+                        }}
                         className="h-8 px-4 rounded-full bg-rose-600 hover:bg-rose-700 text-[9px] font-black uppercase"
                     >
-                        Exit
+                        End Class
                     </Button>
                 </div>
             </div>

@@ -10,10 +10,11 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: (origin, callback) => {
-            if (!origin) return callback(null, true);
-            if (origin.endsWith(".vercel.app") || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+            // Allow all origins in development or matching patterns
+            if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1") || origin.endsWith(".vercel.app") || /^http:\/\/10\./.test(origin) || /^http:\/\/192\./.test(origin)) {
                 callback(null, true);
             } else {
+                console.log("[Socket CORS] Rejected Origin:", origin);
                 callback(null, false);
             }
         },

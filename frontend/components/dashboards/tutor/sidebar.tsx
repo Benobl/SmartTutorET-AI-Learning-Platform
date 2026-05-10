@@ -8,10 +8,11 @@ import { useState } from "react"
 
 const sidebarItems = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard/tutor" },
+  { icon: BookOpen, label: "Course Manager", href: "/dashboard/tutor/courses" },
+  { icon: FileText, label: "Assignments", href: "/dashboard/tutor/assignments" },
   { icon: Users, label: "My Students", href: "/dashboard/tutor/students" },
   { icon: Clock, label: "Schedule", href: "/dashboard/tutor/schedule" },
   { icon: DollarSign, label: "Earnings", href: "/dashboard/tutor/earnings" },
-  { icon: FileText, label: "Materials", href: "/dashboard/tutor/materials" },
   { icon: BarChart3, label: "Analytics", href: "/dashboard/tutor/analytics" },
 ]
 
