@@ -1,18 +1,18 @@
 "use client"
 
 import { announcementApi } from "@/lib/api"
+import { getCurrentUser } from "@/lib/auth-utils"
 import { cn } from "@/lib/utils"
-import { Bell, Search, Pin, Check, Eye, AlertTriangle, BookOpen, Building2, Globe, LayoutGrid, List, Loader2 } from "lucide-react"
+import { Bell, Search, Pin, Check, Eye, AlertTriangle, BookOpen, Building2, Globe, LayoutGrid, List, Loader2, Calendar, RefreshCw, GraduationCap } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { ModernDataTable } from "@/components/dashboards/student/modern-data-table"
 import { Button } from "@/components/ui/button"
+import { initializeSocket, getSocket } from "@/lib/socket"
 
 const categoryConfig: any = {
-    all: { label: "All", icon: Globe, color: "sky" },
-    academic: { label: "Academic", icon: BookOpen, color: "indigo" },
-    administrative: { label: "Administrative", icon: Building2, color: "emerald" },
-    urgent: { label: "Urgent", icon: AlertTriangle, color: "red" },
+    all: { label: "All Feed", icon: Globe, color: "slate" },
+    academic: { label: "Academic", icon: GraduationCap, color: "sky" },
     general: { label: "General", icon: Bell, color: "amber" },
 }
 
@@ -25,13 +25,35 @@ export default function StudentAnnouncements() {
     const [readState, setReadState] = useState<Record<string, boolean>>({})
 
     useEffect(() => {
+        const currentUser = getCurrentUser()
         loadAnnouncements()
+
+        // Real-time listener
+        if (currentUser?._id) {
+            const s = initializeSocket(currentUser._id)
+            if (s) {
+                s.on("new-announcement", (data: any) => {
+                    const targetGrade = data.targetGrade ? String(data.targetGrade) : ""
+                    const studentGrade = currentUser?.grade ? String(currentUser.grade) : ""
+                    
+                    if (!targetGrade || targetGrade === studentGrade) {
+                        setRealAnnouncements(prev => [data, ...prev])
+                    }
+                })
+            }
+        }
+
+        return () => {
+            const s = getSocket()
+            if (s) s.off("new-announcement")
+        }
     }, [])
 
     const loadAnnouncements = async () => {
         try {
             setLoading(true)
-            const res = await announcementApi.getAll()
+            const currentUser = getCurrentUser()
+            const res = await announcementApi.getAll(currentUser?.grade)
             setRealAnnouncements(res.data || [])
             
             // Initialize read state from localStorage or default
@@ -51,7 +73,12 @@ export default function StudentAnnouncements() {
     }
 
     const filtered = realAnnouncements.filter((a) => {
-        if (activeTab !== "all" && a.category !== activeTab) return false
+        if (activeTab === "academic") {
+            if (a.category !== "academic" && a.category !== "exam") return false
+        } else if (activeTab === "general") {
+            if (a.category === "academic" || a.category === "exam") return false
+        }
+        
         if (searchQuery && !a.title.toLowerCase().includes(searchQuery.toLowerCase()) && !a.body.toLowerCase().includes(searchQuery.toLowerCase())) return false
         return true
     })
@@ -78,22 +105,33 @@ export default function StudentAnnouncements() {
             header: "Category",
             accessorKey: "category",
             className: "text-center",
-            cell: (ann: any) => (
-                <span className={cn(
-                    "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border",
-                    ann.category === "urgent" ? "bg-red-50 text-red-500 border-red-100" :
-                        ann.category === "academic" ? "bg-indigo-50 text-indigo-500 border-indigo-100" :
-                            ann.category === "administrative" ? "bg-emerald-50 text-emerald-500 border-emerald-100" :
-                                "bg-amber-50 text-amber-500 border-amber-100"
-                )}>
-                    {ann.category}
-                </span>
-            )
+            cell: (ann: any) => {
+                const config = categoryConfig[ann.category] || categoryConfig.general
+                return (
+                    <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border flex items-center gap-1.5 w-fit",
+                        ann.category === "exam" ? "bg-rose-50 text-rose-500 border-rose-100" :
+                        ann.category === "holiday" ? "bg-emerald-50 text-emerald-500 border-emerald-100" :
+                        ann.category === "schedule" ? "bg-amber-50 text-amber-500 border-amber-100" :
+                        ann.category === "academic" ? "bg-sky-50 text-sky-500 border-sky-100" :
+                        ann.category === "administrative" ? "bg-indigo-50 text-indigo-500 border-indigo-100" :
+                        "bg-slate-50 text-slate-500 border-slate-100"
+                    )}>
+                        <config.icon className="w-3 h-3" />
+                        {config.label}
+                    </span>
+                )
+            }
         },
         {
             header: "Author",
             accessorKey: "createdBy",
-            cell: (ann: any) => <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
+            cell: (ann: any) => (
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">{ann.role || "Admin"}</span>
+                </div>
+            )
         },
         {
             header: "Date",
@@ -141,7 +179,7 @@ export default function StudentAnnouncements() {
 
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6 px-2">
                 {/* Category Tabs */}
-                <div className="flex bg-slate-100/80 p-1.5 rounded-[28px] border border-slate-200/50 backdrop-blur-md w-full lg:w-auto overflow-x-auto no-scrollbar">
+                <div className="flex bg-slate-900 p-1.5 rounded-[28px] shadow-2xl shadow-slate-900/20 w-full lg:w-auto">
                     {(Object.keys(categoryConfig) as (AnnouncementCategory | "all")[]).map((cat) => {
                         const config = categoryConfig[cat]
                         return (
@@ -149,10 +187,10 @@ export default function StudentAnnouncements() {
                                 key={cat}
                                 onClick={() => setActiveTab(cat)}
                                 className={cn(
-                                    "flex-1 lg:flex-none flex items-center justify-center gap-2.5 px-6 py-3 rounded-[22px] text-xs font-black uppercase tracking-widest transition-all duration-500 whitespace-nowrap",
+                                    "flex-1 lg:flex-none flex items-center justify-center gap-3 px-10 py-3.5 rounded-[22px] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap",
                                     activeTab === cat
-                                        ? "bg-white text-sky-600 shadow-xl shadow-sky-500/10 border border-sky-100"
-                                        : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                                        ? "bg-white text-slate-900 shadow-xl scale-105"
+                                        : "text-slate-400 hover:text-white"
                                 )}
                             >
                                 <config.icon className="w-4 h-4" />
@@ -163,12 +201,12 @@ export default function StudentAnnouncements() {
                 </div>
 
                 {/* View Switcher */}
-                <div className="flex p-1.5 bg-slate-900 rounded-[28px] shadow-lg shadow-slate-900/10 shrink-0">
+                <div className="flex p-1.5 bg-slate-900 rounded-[28px] shadow-2xl shadow-slate-900/20 shrink-0">
                     <button
                         onClick={() => setViewMode("card")}
                         className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all",
-                            viewMode === "card" ? "bg-white text-slate-900 shadow-xl" : "text-slate-400 hover:text-slate-200"
+                            "flex items-center gap-2 px-8 py-3.5 rounded-[22px] text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                            viewMode === "card" ? "bg-white text-slate-900 shadow-xl scale-105" : "text-slate-400 hover:text-white"
                         )}
                     >
                         <LayoutGrid className="w-4 h-4" />
@@ -177,12 +215,12 @@ export default function StudentAnnouncements() {
                     <button
                         onClick={() => setViewMode("table")}
                         className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all",
-                            viewMode === "table" ? "bg-white text-slate-900 shadow-xl" : "text-slate-400 hover:text-slate-200"
+                            "flex items-center gap-2 px-8 py-3.5 rounded-[22px] text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                            viewMode === "table" ? "bg-white text-slate-900 shadow-xl scale-105" : "text-slate-400 hover:text-white"
                         )}
                     >
                         <List className="w-4 h-4" />
-                        Advanced Table
+                        Table
                     </button>
                 </div>
             </div>

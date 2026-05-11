@@ -206,4 +206,16 @@ export class UserService {
         // Sort and return top 10
         return leaderboard.sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
     }
+
+    static async changePassword(userId, currentPassword, newPassword) {
+        const user = await User.findById(userId).select("+password");
+        if (!user) throw new ApiError(404, "User not found");
+
+        const isMatch = await user.matchPassword(currentPassword);
+        if (!isMatch) throw new ApiError(401, "Current password incorrect");
+
+        user.password = newPassword;
+        await user.save();
+        return { success: true };
+    }
 }

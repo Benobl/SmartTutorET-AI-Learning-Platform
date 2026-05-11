@@ -91,4 +91,14 @@ export class UserController {
             next(error);
         }
     }
+
+    static async changePassword(req, res, next) {
+        try {
+            const { currentPassword, newPassword } = req.body;
+            await UserService.changePassword(req.user._id, currentPassword, newPassword);
+            res.json({ success: true, message: "Password updated successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

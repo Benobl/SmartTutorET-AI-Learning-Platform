@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { ProfileManager } from "@/components/dashboard/shared/profile-manager"
 
-export default function StudentProfile() {
+export default function AdminProfile() {
     const [user, setUser] = useState<any>(null)
 
     useEffect(() => {

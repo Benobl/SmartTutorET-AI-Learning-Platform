@@ -323,6 +323,14 @@ export const userApi = {
     getStats: () => fetchWithAuth("/users/stats"),
     getTutorStats: () => fetchWithAuth("/users/tutor-stats"),
     getLeaderboard: (grade?: string) => fetchWithAuth(`/users/leaderboard${grade ? `?grade=${grade}` : ""}`),
+    updateProfile: (data: any) => fetchWithAuth("/users/profile", {
+        method: "PATCH",
+        body: JSON.stringify(data)
+    }),
+    changePassword: (data: any) => fetchWithAuth("/users/change-password", {
+        method: "PATCH",
+        body: JSON.stringify(data)
+    }),
 };
 
 export const authApi = {

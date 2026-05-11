@@ -118,6 +118,12 @@ const studentNavItems: NavItem[] = [
         activeColor: "sky",
         badge: 2,
     },
+    {
+        title: "My Profile",
+        url: "/dashboard/student/profile",
+        icon: User,
+        activeColor: "slate",
+    },
 ]
 
 /**
@@ -173,6 +179,12 @@ const teacherNavItems: NavItem[] = [
         icon: GraduationCap,
         activeColor: "sky",
     },
+    {
+        title: "My Profile",
+        url: "/dashboard/tutor/profile",
+        icon: User,
+        activeColor: "slate",
+    },
 ]
 
 /**
@@ -221,6 +233,12 @@ const managerNavItems: NavItem[] = [
         icon: Bell,
         activeColor: "sky",
     },
+    {
+        title: "My Profile",
+        url: "/dashboard/manager/profile",
+        icon: User,
+        activeColor: "slate",
+    },
 ]
 
 /**
@@ -268,6 +286,12 @@ const adminNavItems: NavItem[] = [
         title: "Settings",
         url: "/dashboard/admin/settings",
         icon: Settings,
+        activeColor: "slate",
+    },
+    {
+        title: "My Profile",
+        url: "/dashboard/admin/profile",
+        icon: User,
         activeColor: "slate",
     },
 ];

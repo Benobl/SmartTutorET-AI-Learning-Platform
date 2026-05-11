@@ -14,5 +14,6 @@ router.get("/search", verifyToken, UserController.searchByEmail);
 router.get("/stats", verifyToken, UserController.getStudentStats);
 router.get("/tutor-stats", verifyToken, UserController.getTutorStats);
 router.get("/leaderboard", verifyToken, UserController.getLeaderboard);
+router.patch("/change-password", verifyToken, UserController.changePassword);
 
 export default router;
