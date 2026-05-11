@@ -40,7 +40,6 @@ function UsersContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get("q") || "";
     
-    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -198,10 +197,10 @@ function UsersContent() {
                                                         <UserCheck className="w-4 h-4 mr-2" />
                                                         Verify Identity
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleEditClick(user)} className="rounded-xl font-bold p-3 text-slate-600 focus:bg-slate-50 cursor-pointer">
-                                                        <Edit3 className="w-4 h-4 mr-2" />
-                                                        Modify Record
-                                                    </DropdownMenuItem>
+                                                     <DropdownMenuItem onClick={() => handleEditClick(user)} className="rounded-xl font-bold p-3 text-slate-600 focus:bg-slate-50 cursor-pointer">
+                                                         <Edit3 className="w-4 h-4 mr-2" />
+                                                         Modify Record
+                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="bg-slate-50 mx-2 my-1" />
                                                     <DropdownMenuItem onClick={() => handleDeleteUser(user._id, user.name)} className="rounded-xl font-bold p-3 text-rose-500 focus:bg-rose-50 cursor-pointer">
                                                         <Trash2 className="w-4 h-4 mr-2" />
