@@ -112,8 +112,9 @@ userSchema.pre("validate", function (next) {
 userSchema.pre("save", async function (next) {
   if (!this.password || !this.isModified("password")) return next();
   
-  // If it already looks like a bcrypt hash, don't hash it again
-  if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$")) {
+  // Prevent double hashing
+  if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$") || this.password.startsWith("$2y$")) {
+    console.log(`[AUTH-DEBUG] Skipping hash for already hashed password: ${this.email}`);
     return next();
   }
 

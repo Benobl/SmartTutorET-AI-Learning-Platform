@@ -1,7 +1,6 @@
 import express from "express";
 import { AdminController } from "./admin.controller.js";
-import { verifyToken } from "../../middleware/auth.middleware.js";
-import { allowRoles } from "../../middleware/rbac.middleware.js";
+import { verifyToken, allowRoles } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -34,6 +33,7 @@ router.delete("/users/:userId", allowRoles("admin"), AdminController.deleteUser)
 router.post("/appoint-manager", allowRoles("admin"), AdminController.appointManager);
 router.patch("/users/:userId", allowRoles("admin", "manager"), AdminController.updateUser);
 router.patch("/users/:userId/status", allowRoles("admin", "manager"), AdminController.updateUserStatus);
+router.patch("/users/:userId/reset-password", allowRoles("admin", "manager"), AdminController.resetPassword);
 router.get("/settings", allowRoles("admin"), AdminController.getSettings);
 router.patch("/settings", allowRoles("admin"), AdminController.updateSettings);
 router.get("/health", allowRoles("admin", "manager"), AdminController.getHealth);

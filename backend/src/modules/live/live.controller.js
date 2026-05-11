@@ -1,4 +1,6 @@
 import { LiveService } from "./live.service.js";
+import { uploadToSupabase } from "../../lib/supabase.js";
+import { ApiError } from "../../middleware/error.middleware.js";
 
 export class LiveController {
     static async join(req, res, next) {
@@ -49,10 +51,14 @@ export class LiveController {
 
     static async uploadRecording(req, res, next) {
         try {
-            console.log(`[Upload] Received recording upload request. File: ${req.file ? req.file.filename : 'MISSING'}`);
+            console.log(`[Upload] Received recording upload request. File: ${req.file ? req.file.originalname : 'MISSING'}`);
             if (!req.file) throw new ApiError(400, "No recording file provided.");
             
-            const fileUrl = `${process.env.BASE_URL}/uploads/videos/${req.file.filename}`;
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            const extension = req.file.originalname.split(".").pop();
+            const filename = `recording-${uniqueSuffix}.${extension}`;
+
+            const fileUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', req.file.mimetype);
             res.json({ success: true, url: fileUrl });
         } catch (error) {
             next(error);

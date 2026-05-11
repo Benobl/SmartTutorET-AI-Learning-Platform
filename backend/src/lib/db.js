@@ -1,10 +1,8 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import dns from "dns";
+
 export const connectDB = async () => {
     try {
-        // Force public resolvers for Atlas SRV lookups when local router DNS is unreliable.
-        dns.setServers(["8.8.8.8", "1.1.1.1"]);
         const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/smarttutor";
         if (!mongoUri) {
             throw new Error("MONGO_URI is not configured");
@@ -20,8 +18,8 @@ export const connectDB = async () => {
         const adminEmail = "admin@smarttutor.com";
         const adminExists = await User.findOne({ email: adminEmail });
         
-        const hashedPassword = bcrypt.hashSync("adminpassword", 10);
-        console.log(`[DB-SEED] Generated Hash for "adminpassword": ${hashedPassword}`);
+        const defaultAdminPass = "adminpassword";
+        const hashedPassword = bcrypt.hashSync(defaultAdminPass, 10);
 
         if (!adminExists) {
             console.log("🚀 Seeding initial admin account...");
@@ -33,12 +31,14 @@ export const connectDB = async () => {
                 isApproved: true,
                 isVerified: true
             });
-            console.log("✅ Admin account created: admin@smarttutor.com / adminpassword");
+            console.log(`✅ Admin account created: ${adminEmail} / ${defaultAdminPass}`);
         } else {
-            // Force reset for stabilization
-            adminExists.password = hashedPassword;
-            await adminExists.save();
-            console.log("ℹ️ Admin account password reset to default (pre-hashed).");
+            // Use updateOne to skip pre-save hooks and prevent double-hashing
+            await User.updateOne(
+                { _id: adminExists._id },
+                { $set: { password: hashedPassword } }
+            );
+            console.log("ℹ️ Admin password synchronized.");
         }
 
         // --- Mock Students Seeding ---

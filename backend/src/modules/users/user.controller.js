@@ -101,4 +101,14 @@ export class UserController {
             next(error);
         }
     }
+
+    static async adminResetPassword(req, res, next) {
+        try {
+            const { userId, newPassword } = req.body;
+            await UserService.adminResetPassword(userId, newPassword);
+            res.json({ success: true, message: "User password reset successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

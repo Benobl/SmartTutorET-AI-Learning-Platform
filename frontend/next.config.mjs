@@ -12,6 +12,7 @@ const nextConfig = {
   reactStrictMode: false,
   images: {
     unoptimized: true,
+    qualities: [75, 90],
   },
   turbopack: {
     root: __dirname,

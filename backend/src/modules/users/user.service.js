@@ -218,4 +218,15 @@ export class UserService {
         await user.save();
         return { success: true };
     }
+
+    static async adminResetPassword(targetUserId, newPassword) {
+        const user = await User.findById(targetUserId);
+        if (!user) throw new ApiError(404, "User not found");
+
+        // Use updateOne to bypass pre-save hooks and manually set the hash if needed, 
+        // but here we want the pre-save hook to hash the new plaintext password.
+        user.password = newPassword;
+        await user.save();
+        return { success: true };
+    }
 }

@@ -1,6 +1,33 @@
 import { AIService } from "./ai.service.js";
+import { TutorService } from "./tutor.service.js";
 
 export class AIController {
+    static async askTutor(req, res, next) {
+        try {
+            const { subject, query, historyId, attachments } = req.body;
+            const result = await TutorService.getResponse({
+                studentId: req.user._id,
+                subject: subject || "General",
+                query,
+                historyId,
+                attachments
+            });
+            res.json({ success: true, data: result });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getChatHistory(req, res, next) {
+        try {
+            const { subject } = req.query;
+            const history = await TutorService.getHistory(req.user._id, subject);
+            res.json({ success: true, data: history });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async generateResponse(req, res, next) {
         try {
             const { question, context } = req.body;

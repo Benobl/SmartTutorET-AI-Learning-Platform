@@ -160,22 +160,10 @@ export const courseApi = {
         method: "POST"
     }),
     uploadLessonVideo: async (courseId: string, formData: FormData) => {
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api").replace(/\/$/, "");
-        const response = await fetch(`${cleanBaseUrl}/courses/${courseId}/lessons/upload-video`, {
+        return fetchWithAuth(`/courses/${courseId}/lessons/upload-video`, {
             method: "POST",
-            headers: {
-                "X-ST-CSRF": "XMLHttpRequest",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            credentials: "include",
             body: formData,
         });
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || "Video upload failed");
-        }
-        return response.json();
     },
     // Unified Content Management
     getContent: (courseId: string) => fetchWithAuth(`/courses/${courseId}/content`),
@@ -286,7 +274,12 @@ export const aiApi = {
     generateStudyPlan: (data: any) => fetchWithAuth("/ai/generate-study-plan", {
         method: "POST",
         body: JSON.stringify(data)
-    })
+    }),
+    askTutor: (data: { subject: string; query: string; historyId?: string; attachments?: any[] }) => fetchWithAuth("/ai/ask-tutor", {
+        method: "POST",
+        body: JSON.stringify(data)
+    }),
+    getChatHistory: (subject?: string) => fetchWithAuth(`/ai/history${subject ? `?subject=${subject}` : ""}`),
 };
 
 export const assignmentApi = {
@@ -330,6 +323,10 @@ export const userApi = {
     }),
     changePassword: (data: any) => fetchWithAuth("/users/change-password", {
         method: "PATCH",
+        body: JSON.stringify(data)
+    }),
+    adminResetPassword: (data: { userId: string, newPassword: string }) => fetchWithAuth("/users/admin-reset-password", {
+        method: "POST",
         body: JSON.stringify(data)
     }),
 };
@@ -441,31 +438,16 @@ export const notificationApi = {
 
 export const uploadApi = {
     uploadDocument: async (file: File, type: "degree" | "cv" | "assignment" | "avatar"): Promise<{ url: string; filename: string }> => {
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const formData = new FormData();
         formData.append("file", file);
         formData.append("type", type);
 
-        const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
-
-        const response = await fetch(`${cleanBaseUrl}/upload/document`, {
+        const response = await fetchWithAuth("/upload/document", {
             method: "POST",
-            headers: {
-                "X-ST-CSRF": "XMLHttpRequest",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                // NOTE: Do NOT set Content-Type — browser sets multipart/form-data with boundary automatically
-            },
-            credentials: "include",
             body: formData,
         });
 
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || "File upload failed");
-        }
-
-        const data = await response.json();
-        return data.data; // { url, filename, originalName, size, type }
+        return response.data;
     },
 };
 
@@ -514,20 +496,14 @@ export const liveApi = {
         body: JSON.stringify({ recordingUrl })
     }),
     uploadRecording: async (blob: Blob) => {
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const formData = new FormData();
         const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
         formData.append("video", blob, `recording-${Date.now()}.${extension}`);
         
-        const cleanBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api").replace(/\/$/, "");
-        const response = await fetch(`${cleanBaseUrl}/live/upload-recording`, {
+        return fetchWithAuth("/live/upload-recording", {
             method: "POST",
-            headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
             body: formData,
         });
-        if (!response.ok) throw new Error("Recording upload failed");
     }
 };
 

@@ -112,6 +112,18 @@ const studentNavItems: NavItem[] = [
         activeColor: "orange",
     },
     {
+        title: "AI Tutor",
+        url: "/dashboard/student/ai-tutor",
+        icon: Sparkles,
+        activeColor: "sky",
+    },
+    {
+        title: "Learning DNA",
+        url: "/dashboard/student/ai-tutor/analytics",
+        icon: Activity,
+        activeColor: "indigo",
+    },
+    {
         title: "Quizzes",
         url: "/dashboard/student/quizzes",
         icon: GraduationCap,

@@ -64,31 +64,31 @@ export class AuthService {
             throw new ApiError(503, "Database is temporarily unavailable. Please try again shortly.");
         }
         const normalizedEmail = email.trim().toLowerCase();
-        logger.info(`[AuthService] Attempting login for ${normalizedEmail}`);
+        console.log(`[AUTH-DEBUG] Attempting login for normalized email: "${normalizedEmail}"`);
         
         const user = await User.findOne({ email: normalizedEmail }).select("+password");
         if (!user) {
-            logger.warn(`[AuthService] User not found: ${normalizedEmail}`);
-            throw new ApiError(401, "Invalid email or password");
+            console.log(`[AUTH-DEBUG] User NOT FOUND in database for: "${normalizedEmail}"`);
+            throw new ApiError(401, "Invalid email or password (Code: U-404)");
         }
 
         if (!user.password) {
-            logger.warn(`[AuthService] User has no password (likely Google Auth): ${normalizedEmail}`);
-            throw new ApiError(401, "Invalid email or password");
+            console.log(`[AUTH-DEBUG] User has NO password field (Google Auth?): "${normalizedEmail}"`);
+            throw new ApiError(401, "Invalid email or password (Code: P-MIS)");
         }
 
         const isMatch = await user.matchPassword(password);
-        console.log(`[AUTH-DEBUG] Email: "${normalizedEmail}" | Input Pass Length: ${password.length} | Match: ${isMatch}`);
+        console.log(`[AUTH-DEBUG] Match Result: ${isMatch} | Input Length: ${password?.length} | Hash Prefix: ${user.password.substring(0, 7)}`);
         
         if (!isMatch) {
-            logger.warn(`[AuthService] Password mismatch for ${normalizedEmail}`);
-            throw new ApiError(401, "Invalid email or password");
+            console.warn(`[AuthService] Password mismatch for ${normalizedEmail}`);
+            throw new ApiError(401, "Invalid email or password (Code: P-MIS)");
         }
 
         // Check approval status
         if (!user.isApproved) {
-            logger.warn(`[AuthService] Account not approved: ${email}`);
-            throw new ApiError(403, "Invalid email or password");
+            console.log(`[AUTH-DEBUG] Account NOT APPROVED for: "${normalizedEmail}"`);
+            throw new ApiError(403, "Invalid email or password (Code: A-REQ)");
         }
 
         logger.info(`[AuthService] Login successful for ${email}`);

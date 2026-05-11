@@ -1,4 +1,5 @@
 import Attendance from "./attendance.model.js";
+import Subject from "../courses/subject.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 
 export class AttendanceController {
@@ -24,6 +25,16 @@ export class AttendanceController {
     static async getTutorAttendance(req, res, next) {
         try {
             const { subjectId } = req.params;
+            
+            // SECURITY: Verify subject ownership
+            if (req.user.role !== "admin" && req.user.role !== "manager") {
+                const subject = await Subject.findById(subjectId);
+                if (!subject) throw new ApiError(404, "Subject not found");
+                if (subject.tutor.toString() !== req.user._id.toString()) {
+                    throw new ApiError(403, "FORBIDDEN: You are not the tutor for this subject");
+                }
+            }
+
             const attendance = await Attendance.find({ subject: subjectId })
                 .populate("student", "name email profile.avatar")
                 .sort({ createdAt: -1 });

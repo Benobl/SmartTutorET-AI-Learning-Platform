@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Search, Filter, Mail, UserCheck, Shield, Trash2, Edit3, MoreHorizontal } from "lucide-react";
-import { adminApi } from "@/lib/api";
+import { adminApi, userApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -42,8 +42,11 @@ function UsersContent() {
     
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [editForm, setEditForm] = useState({ name: "", email: "", role: "" });
+    const [resetPass, setResetPass] = useState("");
+    const [users, setUsers] = useState<any[]>([]);
 
     const fetchData = async () => {
         try {
@@ -95,6 +98,18 @@ function UsersContent() {
             toast({ title: "Record Updated", description: "User details synchronized successfully." });
             setIsEditing(false);
             fetchData();
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!selectedUser || !resetPass) return;
+        try {
+            await userApi.adminResetPassword({ userId: selectedUser._id, newPassword: resetPass });
+            toast({ title: "Credential Reset", description: `Password for ${selectedUser.name} has been updated.` });
+            setIsResetting(false);
+            setResetPass("");
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
         }
@@ -201,6 +216,13 @@ function UsersContent() {
                                                          <Edit3 className="w-4 h-4 mr-2" />
                                                          Modify Record
                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => {
+                                                          setSelectedUser(user);
+                                                          setIsResetting(true);
+                                                      }} className="rounded-xl font-bold p-3 text-amber-600 focus:bg-amber-50 cursor-pointer">
+                                                          <Shield className="w-4 h-4 mr-2" />
+                                                          Reset Password
+                                                      </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="bg-slate-50 mx-2 my-1" />
                                                     <DropdownMenuItem onClick={() => handleDeleteUser(user._id, user.name)} className="rounded-xl font-bold p-3 text-rose-500 focus:bg-rose-50 cursor-pointer">
                                                         <Trash2 className="w-4 h-4 mr-2" />
@@ -261,6 +283,32 @@ function UsersContent() {
                             className="w-full h-14 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-sky-500/20"
                         >
                             Sync Changes
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isResetting} onOpenChange={setIsResetting}>
+                <DialogContent className="sm:max-w-md border-0 shadow-2xl rounded-[40px] overflow-hidden bg-white">
+                    <DialogHeader className="p-4">
+                        <DialogTitle className="text-2xl font-black text-slate-900">Security <span className="text-amber-500">Override</span></DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 uppercase tracking-widest text-[10px] mt-2">Resetting credentials for {selectedUser?.name}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 p-4 pt-0">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Temporary Password</Label>
+                            <Input 
+                                type="password"
+                                value={resetPass} 
+                                onChange={(e) => setResetPass(e.target.value)}
+                                className="h-12 rounded-xl border-slate-100 font-bold" 
+                                placeholder="Enter new password"
+                            />
+                        </div>
+                        <Button 
+                            onClick={handleResetPassword}
+                            className="w-full h-14 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-amber-500/20"
+                        >
+                            Confirm Override
                         </Button>
                     </div>
                 </DialogContent>

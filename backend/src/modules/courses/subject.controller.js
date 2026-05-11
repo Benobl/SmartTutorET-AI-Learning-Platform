@@ -1,6 +1,6 @@
 import { SubjectService } from "./subject.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
-import fs from "fs";
+import { uploadToSupabase } from "../../lib/supabase.js";
 
 export class SubjectController {
     static async createSubject(req, res, next) {
@@ -12,10 +12,17 @@ export class SubjectController {
                 throw new ApiError(403, "Students cannot create subjects.");
             }
 
+            let syllabusUrl = undefined;
+            if (req.file) {
+                const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+                const filename = `syllabus-${uniqueSuffix}.pdf`;
+                syllabusUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', 'application/pdf');
+            }
+
             const subjectData = {
                 ...req.body,
                 status: req.user.tutorStatus === "approved" ? "approved" : "pending",
-                syllabusUrl: req.file ? `/uploads/syllabus/${req.file.filename}` : undefined
+                syllabusUrl
             };
 
             const subject = await SubjectService.createSubject(req.user._id, subjectData);
@@ -29,7 +36,9 @@ export class SubjectController {
         try {
             const updateData = { ...req.body };
             if (req.file) {
-                updateData.syllabusUrl = `/uploads/syllabus/${req.file.filename}`;
+                const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+                const filename = `syllabus-${uniqueSuffix}.pdf`;
+                updateData.syllabusUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', 'application/pdf');
                 updateData.status = "pending";
             }
             const subject = await SubjectService.updateSubject(req.params.subjectId, updateData);
@@ -163,19 +172,18 @@ export class SubjectController {
         }
     }
 
-    /**
-     * Upload a video file as a new lesson.
-     * The video is stored at /uploads/videos/<filename>.
-     * Students can only view (not download) via the served static route.
-     */
     static async uploadLessonVideo(req, res, next) {
         try {
-            if (!req.file) throw new ApiError(400, "No video file provided.");
+            if (!req.file) throw new ApiError(400, "No file provided.");
 
             const { title, duration } = req.body;
             if (!title) throw new ApiError(400, "Lesson title is required.");
 
-            const fileUrl = `/uploads/videos/${req.file.filename}`;
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            const extension = req.file.originalname.split(".").pop();
+            const filename = `lesson-${uniqueSuffix}.${extension}`;
+
+            const fileUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', req.file.mimetype);
             const fileType = req.body.type || (req.file.mimetype.includes("video") ? "video" : "ppt");
             
             const lessonData = {
@@ -189,7 +197,7 @@ export class SubjectController {
             };
 
             const subject = await SubjectService.addLesson(req.params.subjectId, lessonData);
-            res.json({ success: true, message: "Video lesson uploaded successfully", data: subject });
+            res.json({ success: true, message: "File uploaded successfully", data: subject });
         } catch (error) {
             next(error);
         }

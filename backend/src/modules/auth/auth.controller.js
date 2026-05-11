@@ -125,7 +125,12 @@ export class AuthController {
                 secure: process.env.NODE_ENV === "production",
             });
 
-            res.json({ success: true, message: "Token refreshed" });
+            res.json({ 
+                success: true, 
+                message: "Token refreshed",
+                token: newAccessToken,
+                accessToken: newAccessToken
+            });
         } catch (error) {
             next(error);
         }

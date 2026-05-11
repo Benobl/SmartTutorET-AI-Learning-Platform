@@ -85,9 +85,28 @@ export class SubjectService {
     }
 
     static async deleteSubject(subjectId) {
-        const subject = await Subject.findByIdAndDelete(subjectId);
+        const subject = await Subject.findById(subjectId);
         if (!subject) throw new ApiError(404, "Subject not found");
-        return subject;
+
+        // 1. Delete associated CourseContent and their child models
+        const contents = await CourseContent.find({ course: subjectId });
+        for (const content of contents) {
+            try {
+                const Model = mongoose.model(content.categoryModel);
+                await Model.findByIdAndDelete(content.contentId);
+            } catch (err) {
+                console.error(`Failed to delete child content for ${content.categoryModel}:`, err.message);
+            }
+            await CourseContent.findByIdAndDelete(content._id);
+        }
+
+        // 2. Delete associated LiveSessions
+        await LiveSession.deleteMany({ subject: subjectId });
+
+        // 3. Delete the subject itself
+        await Subject.findByIdAndDelete(subjectId);
+        
+        return { success: true };
     }
 
     static async getRecommended(user) {

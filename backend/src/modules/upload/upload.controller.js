@@ -1,26 +1,26 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { uploadToSupabase } from "../../lib/supabase.js";
+import { ApiError } from "../../middleware/error.middleware.js";
 
 export class UploadController {
-    static uploadDocument(req, res, next) {
+    static async uploadDocument(req, res, next) {
         try {
             if (!req.file) {
-                return res.status(400).json({ success: false, message: "No file uploaded" });
+                throw new ApiError(400, "No file uploaded");
             }
 
-            const fileType = req.body.type || "document"; // 'degree' or 'cv'
-            const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
-            // Files are stored under uploads/syllabus by middleware, and served via /uploads/syllabus
-            const fileUrl = `${backendUrl}/uploads/syllabus/${req.file.filename}`;
+            const fileType = req.body.type || "document";
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            const extension = req.file.originalname.split(".").pop();
+            const filename = `${fileType}-${uniqueSuffix}.${extension}`;
+
+            const fileUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', req.file.mimetype);
 
             return res.status(200).json({
                 success: true,
                 message: "File uploaded successfully",
                 data: {
                     url: fileUrl,
-                    filename: req.file.filename,
+                    filename: filename,
                     originalName: req.file.originalname,
                     size: req.file.size,
                     type: fileType,

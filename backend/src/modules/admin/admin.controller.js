@@ -248,4 +248,15 @@ export class AdminController {
             next(error);
         }
     }
+
+    static async resetPassword(req, res, next) {
+        try {
+            const { userId } = req.params;
+            const { newPassword } = req.body;
+            await AdminService.resetUserPassword(userId, newPassword);
+            res.json({ success: true, message: "User password reset successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

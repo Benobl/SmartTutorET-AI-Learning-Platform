@@ -15,5 +15,11 @@ router.get("/stats", verifyToken, UserController.getStudentStats);
 router.get("/tutor-stats", verifyToken, UserController.getTutorStats);
 router.get("/leaderboard", verifyToken, UserController.getLeaderboard);
 router.patch("/change-password", verifyToken, UserController.changePassword);
+router.post("/admin-reset-password", verifyToken, (req, res, next) => {
+    if (req.user.role !== "admin") {
+        return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    }
+    next();
+}, UserController.adminResetPassword);
 
 export default router;

@@ -1,7 +1,6 @@
 import express from "express";
 import { SubjectController } from "./subject.controller.js";
-import { verifyToken } from "../../middleware/auth.middleware.js";
-import { allowRoles } from "../../middleware/rbac.middleware.js";
+import { verifyToken, allowRoles } from "../../middleware/auth.middleware.js";
 import { uploadSyllabus, uploadVideo } from "../../middleware/upload.middleware.js";
 
 const router = express.Router();

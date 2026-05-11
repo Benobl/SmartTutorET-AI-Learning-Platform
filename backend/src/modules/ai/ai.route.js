@@ -13,6 +13,8 @@ const aiLimiter = rateLimit({
     message: "Too many AI requests, please try again later"
 });
 
+router.post("/ask-tutor", verifyToken, aiLimiter, AIController.askTutor);
+router.get("/history", verifyToken, AIController.getChatHistory);
 router.post("/tutor-response", verifyToken, aiLimiter, validate(generateResponseSchema), AIController.generateResponse);
 router.post("/course-outline", verifyToken, AIController.getCourseOutline);
 router.post("/resource-suggestions", verifyToken, AIController.getSuggestions);

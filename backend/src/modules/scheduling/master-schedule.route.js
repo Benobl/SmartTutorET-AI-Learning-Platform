@@ -1,7 +1,6 @@
 import express from "express";
 import { MasterScheduleController } from "./master-schedule.controller.js";
-import { verifyToken } from "../../middleware/auth.middleware.js";
-import { allowRoles } from "../../middleware/rbac.middleware.js";
+import { verifyToken, allowRoles } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 

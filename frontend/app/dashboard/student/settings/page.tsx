@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { Settings, Moon, Sun, Bell, BellOff, Shield, Eye, EyeOff, User, Globe, Palette, Volume2, Sparkles, ChevronRight, Save } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { SecuritySettings } from "@/components/dashboard/settings/security-settings"
 
 /**
  * Settings page — appearance, notifications, privacy, and account preferences.
@@ -185,7 +186,7 @@ export default function StudentSettings() {
                             <Shield className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-black text-slate-900 leading-tight uppercase tracking-tight">Security Vault</h3>
+                            <h3 className="text-xl font-black text-slate-900 leading-tight uppercase tracking-tight">Security Shield</h3>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Safety & Data Control</p>
                         </div>
                     </div>
@@ -193,8 +194,8 @@ export default function StudentSettings() {
                         <ToggleSwitch
                             enabled={settings.profileVisibility}
                             onToggle={() => toggle("profileVisibility")}
-                            label="Stealth Mode Off"
-                            description="Allow other students to see your profile in groups"
+                            label="Discovery Mode"
+                            description="Allow peers to find your profile in searches"
                         />
                         <ToggleSwitch
                             enabled={settings.twoFactor}
@@ -202,17 +203,13 @@ export default function StudentSettings() {
                             label="Guardian Auth (2FA)"
                             description="Multi-factor authentication for enhanced security"
                         />
-                        <div className="py-6 px-1 flex items-center justify-between group/cell">
-                            <div className="flex-1 min-w-0 mr-6">
-                                <p className="text-sm font-black text-slate-800 transition-colors group-hover/cell:text-indigo-600 uppercase tracking-tight">Access Key</p>
-                                <p className="text-[11px] text-slate-400 mt-1 font-bold uppercase tracking-widest leading-relaxed">Secured with AES-256. Updated 3m ago</p>
-                            </div>
-                            <Button variant="outline" className="h-10 px-6 rounded-xl border-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50">
-                                Rotate
-                            </Button>
-                        </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Security Settings Section */}
+            <div className="grid grid-cols-1 gap-8">
+                 <SecuritySettings />
             </div>
 
             {/* Danger Zone */}

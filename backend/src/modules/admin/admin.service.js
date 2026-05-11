@@ -315,4 +315,13 @@ export class AdminService {
         
         return await flag.save();
     }
+
+    static async resetUserPassword(userId, newPassword) {
+        const user = await User.findById(userId);
+        if (!user) throw new ApiError(404, "User not found");
+
+        user.password = newPassword;
+        await user.save();
+        return { success: true };
+    }
 }
