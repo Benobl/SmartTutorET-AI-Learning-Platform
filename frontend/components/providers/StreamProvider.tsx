@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react"
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
 import { StreamChat } from "stream-chat"
 import {
     StreamVideoClient,
@@ -37,122 +37,134 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
     const [userId, setUserId] = useState<string | null>(null)
     const [retryTrigger, setRetryTrigger] = useState(0)
 
+    const initializedRef = useRef<string | null>(null)
+
     // Watch for session changes (Client Side Only)
     useEffect(() => {
-        const updateUserId = () => {
-            const user = getCurrentUser()
-            const currentId = (user?._id || user?.id)?.toString() || null
-            if (currentId !== userId) {
-                setUserId(currentId)
+        const user = getCurrentUser()
+        const currentId = (user?._id || user?.id)?.toString() || null
+        
+        if (currentId !== userId) {
+            console.log("[StreamProvider] User identity changed:", currentId)
+            setUserId(currentId)
+            if (!currentId) {
+                setChatClient(null)
+                setVideoClient(null)
+                setIsReady(false)
+                initializedRef.current = null
             }
         }
-        updateUserId()
-        const interval = setInterval(updateUserId, 2000)
-        return () => clearInterval(interval)
     }, [userId])
 
     const retryInit = useCallback(() => {
+        console.log("[StreamProvider] Manual Retry Triggered")
         setInitError(null)
         setIsReady(false)
+        initializedRef.current = null
         setRetryTrigger(t => t + 1)
     }, [])
 
     useEffect(() => {
+        // Defensive Guard: No User ID
         if (!userId) {
-            setIsReady(false)
+            console.log("[StreamProvider] Awaiting valid user session...")
+            return
+        }
+
+        // Defensive Guard: Duplicate Initialization for same user
+        if (initializedRef.current === userId && videoClient) {
+            console.log("[StreamProvider] Already initialized for:", userId)
             return
         }
 
         const user = getCurrentUser()
-        if (!user) return
-
-        // Detailed debug for environment variables
-        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_STREAM_API_KEY : null)
-
-        if (!apiKey || apiKey === 'your_stream_api_key') {
-            console.warn("[StreamProvider] Stream API Key is missing or placeholder. Video/Chat features will be disabled.");
-            setIsReady(false);
+        // Defensive Guard: Missing user object
+        if (!user || (!user._id && !user.id)) {
+            console.warn("[StreamProvider] Critical: User object missing ID")
             return
         }
 
-        console.log("[StreamProvider] API Key Detected:", apiKey.slice(0, 3) + "...")
+        const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_STREAM_API_KEY : null)
+
+        if (!apiKey || apiKey === 'your_stream_api_key') {
+            console.error("[StreamProvider] Missing API Key")
+            setInitError("Stream configuration error: API Key missing")
+            return
+        }
+
+        let isMounted = true
 
         const initStream = async () => {
-            console.log("[StreamProvider] Initializing Stream for:", userId)
-            setInitError(null)
+            console.log("[StreamProvider] Starting secure initialization sequence for:", userId)
             try {
-                // 1. Get Token from your Render Backend
                 const tokenRes = await authApi.getStreamToken()
-                const token = tokenRes?.token
+                if (!isMounted) return
                 
-                if (!token) {
-                    console.error("[StreamProvider] Token is null. Check Render Environment Variables for STREAM_API_KEY/SECRET.")
-                    throw new Error("Server failed to generate a secure stream token. Please check backend environment variables.")
-                }
+                const token = tokenRes?.token
+                if (!token) throw new Error("Security handshake failed: No token returned from server")
 
-                // 2. Chat Client Singleton
-                // We use a singleton pattern to prevent multiple initializations
+                console.log("[StreamProvider] Handshake successful. Configuring clients...")
+
+                // Chat Client
                 const chat = StreamChat.getInstance(apiKey)
-
-                // Disconnect on identity change to prevent session bleeding
                 if (chat.userID && chat.userID !== userId) {
                     await chat.disconnectUser()
                 }
-
                 if (!chat.userID) {
                     await chat.connectUser(
                         { id: userId, name: user.fullName || user.name || "User", image: user.profilePic || "" },
                         token
                     )
                 }
-                setChatClient(chat)
+                if (isMounted) setChatClient(chat)
 
-                // 3. Video Client
-                // For Video, we create a fresh client to ensure the token and user are perfectly synced
-                const videoUser: StreamVideoUser = {
-                    id: userId,
-                    name: user.fullName || user.name || "User",
-                    image: user.profilePic || ""
+                // Video Client - Defensive check before creation
+                const existingUserId = videoClient?.user?.id
+                if (!videoClient || existingUserId !== userId) {
+                    console.log("[StreamProvider] Initializing new StreamVideoClient")
+                    const vClient = new StreamVideoClient({ 
+                        apiKey, 
+                        user: { id: userId, name: user.fullName || user.name || "User", image: user.profilePic || "" }, 
+                        token,
+                        options: { timeout: 15000, region: 'us-east' } 
+                    })
+                    if (isMounted) setVideoClient(vClient)
                 }
-
-                const vClient = new StreamVideoClient({ 
-                    apiKey, 
-                    user: videoUser, 
-                    token,
-                    // Explicitly set the region to ensure consistency across Vercel/Render
-                    options: { timeout: 10000 } 
-                })
                 
-                setVideoClient(vClient)
-                setIsReady(true)
-                console.log("[StreamProvider] Stream Production Ready")
+                if (isMounted) {
+                    initializedRef.current = userId
+                    setIsReady(true)
+                    console.log("[StreamProvider] Deployment Ready")
+                }
             } catch (error: any) {
-                const msg = error?.message || "Failed to initialize live stream"
-                console.error("[StreamProvider] Init Failed:", error)
-                setInitError(msg)
+                if (!isMounted) return
+                console.error("[StreamProvider] Initialization Error:", error)
+                setInitError(error.message || "Connection failed")
                 setIsReady(false)
-                
-                // Use standard toast import
-                toast({
-                    title: "Live Stream Sync Error",
-                    description: msg,
-                    variant: "destructive"
-                })
+                initializedRef.current = null
             }
         }
 
         initStream()
-    }, [userId, retryTrigger])
+        return () => { isMounted = false }
+    }, [userId, retryTrigger, videoClient])
+
+    // IMPORTANT: We NO LONGER wrap the children in StreamVideo here.
+    // Wrapping here causes a full app remount when the client initializes.
+    // Instead, we just provide the clients in context.
+    // Individual components (like LiveClassroom) will wrap themselves in StreamVideo.
+    
+    const contextValue = React.useMemo(() => ({
+        chatClient,
+        videoClient,
+        isReady,
+        initError,
+        retryInit
+    }), [chatClient, videoClient, isReady, initError, retryInit])
 
     return (
-        <StreamContext.Provider value={{ chatClient, videoClient, isReady, initError, retryInit }}>
-            {videoClient ? (
-                <StreamVideo client={videoClient}>
-                    {children}
-                </StreamVideo>
-            ) : (
-                children
-            )}
+        <StreamContext.Provider value={contextValue}>
+            <div className="contents">{children}</div>
         </StreamContext.Provider>
     )
 }

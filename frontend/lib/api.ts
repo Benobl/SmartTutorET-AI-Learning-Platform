@@ -68,11 +68,12 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
                     }
                 } catch (refreshErr) {
                     console.error("[API] Refresh failed:", refreshErr);
-                    onRefreshed(""); // Unblock queue, but with failure
+                    onRefreshed(""); // Unblock queue
                     if (typeof window !== "undefined") {
                         localStorage.removeItem("token");
                         localStorage.removeItem("user");
-                        window.location.href = "/login";
+                        // We avoid a hard redirect here to prevent destructive unmounts
+                        // The AuthGuard or the component will handle the error
                     }
                     throw refreshErr;
                 } finally {
@@ -439,7 +440,7 @@ export const notificationApi = {
 };
 
 export const uploadApi = {
-    uploadDocument: async (file: File, type: "degree" | "cv" | "assignment"): Promise<{ url: string; filename: string }> => {
+    uploadDocument: async (file: File, type: "degree" | "cv" | "assignment" | "avatar"): Promise<{ url: string; filename: string }> => {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const formData = new FormData();
         formData.append("file", file);

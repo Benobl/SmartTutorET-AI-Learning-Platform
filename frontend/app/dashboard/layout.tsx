@@ -1,4 +1,5 @@
 "use client"
+import React from "react"
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
@@ -36,6 +37,23 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
+    const [isMounted, setIsMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
+    if (!isMounted) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e27]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest animate-pulse">Initializing Interface...</p>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <AuthGuard>
             <StreamProvider>

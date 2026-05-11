@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-utils";
 
@@ -13,38 +13,41 @@ export function AuthGuard({ children, allowedRoles }: { children: React.ReactNod
     const router = useRouter();
     const pathname = usePathname();
 
-    // Synchronously check localStorage on first render to avoid the spinner flash
+    const allowedRolesStr = allowedRoles?.join(',') || '';
+    const [isMounted, setIsMounted] = useState(false);
     const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-    const [isMounted, setIsMounted] = useState<boolean>(false);
+    const lastCheckedPath = useRef<string>("");
 
     useEffect(() => {
         setIsMounted(true);
         const user = getCurrentUser();
-        console.log("[AuthGuard] Checking authorization for path:", pathname, "User:", user?.email, "Role:", user?.role);
+        
+        // Prevent infinite loops on same path
+        if (lastCheckedPath.current === pathname && isAuthorized) return;
+        lastCheckedPath.current = pathname;
 
         if (!user) {
-            console.log("[AuthGuard] No user found, redirecting to login");
             router.push(`/login?callbackUrl=${pathname}`);
             return;
         }
 
-        if (allowedRoles && !allowedRoles.includes(user.role)) {
-            console.log("[AuthGuard] Role not allowed. Redirecting to:", `/dashboard/${user.role}`);
+        const roles = allowedRolesStr ? allowedRolesStr.split(',') : null;
+        if (roles && !roles.includes(user.role)) {
             router.push(`/dashboard/${user.role}`);
             return;
         }
 
-        console.log("[AuthGuard] Authorized successfully");
         setIsAuthorized(true);
-    }, [router, pathname, allowedRoles]);
+    }, [router, pathname, allowedRolesStr, isAuthorized]);
 
-    if (!isAuthorized) {
+    // Hydration Guard: Return a stable container on the server and first client render
+    if (!isMounted || !isAuthorized) {
         return (
             <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e27]">
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
                     <p className="text-sm font-bold text-slate-500 uppercase tracking-widest animate-pulse">
-                        Verifying Credentials...
+                        {isMounted ? "Verifying Credentials..." : "Syncing Academy..."}
                     </p>
                 </div>
             </div>

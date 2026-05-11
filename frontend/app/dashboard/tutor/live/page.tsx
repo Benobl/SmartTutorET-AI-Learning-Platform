@@ -31,6 +31,11 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { tutorProfile as mockTeacherData } from "@/lib/mock-data"
 import { liveApi, courseApi } from "@/lib/api"
+import { useStream } from "@/components/providers/StreamProvider"
+import { Call, CallingState } from "@stream-io/video-react-sdk"
+import { LiveClassroom } from "@/components/dashboard/stream/LiveClassroom"
+import { getCurrentUser } from "@/lib/auth-utils"
+import { getCallId } from "@/lib/utils"
 
 const MOCK_LIVE_SESSSIONS = [
     { id: "ls1", title: "Grade 12 Physics: Quantum Entanglement", time: "Starts in 15 mins", students: 42, active: true },
@@ -50,7 +55,11 @@ export default function TeacherLive() {
     const [sessions, setSessions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+    const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [isEnding, setIsEnding] = useState(false)
+    
+    const { videoClient } = useStream()
+    const currentUser = getCurrentUser()
 
     const fetchSessions = async () => {
         try {
@@ -119,49 +128,72 @@ export default function TeacherLive() {
         grade: ""
     })
 
-    // Media Logic
-    const startCamera = async (sessionId?: string) => {
+    // Media Logic - Now integrated with Stream SDK
+    const startCamera = async (sessionId: string) => {
+        if (!videoClient || !sessionId) return
+        
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
+            const callId = getCallId('class', sessionId)
+            const call = videoClient.call('default', callId)
+            
+            await call.getOrCreate({
+                data: {
+                    custom: {
+                        type: 'academic-broadcast',
+                        dbSessionId: sessionId
+                    }
+                }
             })
-            streamRef.current = stream
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream
+
+            // Signal to students
+            const { getSocket } = await import("@/lib/socket")
+            const socket = getSocket(currentUser?._id || currentUser?.id)
+            if (socket) {
+                // We'd need to find the session details to get the grade, 
+                // but for now we'll broadcast a general live start
+                socket.emit("class-live-started", {
+                    callId,
+                    courseName: "Special Live Session",
+                    tutorName: currentUser?.name
+                })
             }
+            
+            setActiveCall(call)
+            setActiveSessionId(sessionId)
             setIsLive(true)
-            setActiveSessionId(sessionId || null)
-
-
-
-
-        } catch (err) {
-            console.error("Error accessing media devices.", err)
+            toast({ title: "Live Session Started", description: "Students can now join your broadcast." })
+        } catch (err: any) {
+            console.error("Stream initialization failed", err)
             toast({
                 variant: "destructive",
-                title: "Camera Access Failed",
-                description: "Please ensure you have given permission to access your camera and microphone.",
+                title: "Broadcast Failed",
+                description: err.message || "Could not initialize video server.",
             })
         }
     }
 
     const stopMedia = async () => {
+        if (!activeCall) {
+            setIsLive(false)
+            return
+        }
+        
         setIsEnding(true)
         try {
             if (activeSessionId) {
                 await liveApi.end(activeSessionId)
-                toast({ title: "Session Ended", description: "The live session has been closed successfully." })
             }
 
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop())
-                streamRef.current = null
+            const s = activeCall.state.callingState
+            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
+                await activeCall.leave()
             }
+            
+            setActiveCall(null)
             setIsLive(false)
-            setIsSharingScreen(false)
             setActiveSessionId(null)
             fetchSessions()
+            toast({ title: "Session Ended", description: "The live session has been closed successfully." })
         } catch (error: any) {
             console.error("Failed to end session", error)
             toast({ title: "End Session Error", description: error.message, variant: "destructive" })
@@ -368,194 +400,15 @@ export default function TeacherLive() {
         }
     }
 
-    if (isLive) {
+    if (isLive && activeCall) {
         return (
-            <div className="fixed inset-0 bg-slate-900 z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500">
-                {/* Teaching Header */}
-                <header className="h-20 bg-black/40 backdrop-blur-md px-8 flex items-center justify-between shrink-0 border-b border-white/10 relative z-20">
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white">Live Session: Grade 12 Physics</span>
-                        </div>
-                        <div className="h-6 w-px bg-white/10" />
-                        <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-slate-400" />
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">42 Participating</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button onClick={stopMedia} className="h-10 px-6 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all">
-                            End Session <X className="w-4 h-4" />
-                        </Button>
-                    </div>
-                </header>
-
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Video / Whiteboard Area */}
-                    <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
-                        <div className="flex-1 rounded-[48px] bg-slate-800 border border-white/10 relative overflow-hidden group">
-                            {/* Real Video Stream */}
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                className={cn(
-                                    "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000",
-                                    isVideoOff ? "opacity-0" : "opacity-100"
-                                )}
-                            />
-
-                            {/* Fallback / Video Off State */}
-                            {isVideoOff && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center p-20 text-center space-y-4">
-                                    <div className="w-32 h-32 rounded-full bg-slate-900 flex items-center justify-center border-4 border-slate-700 shadow-2xl">
-                                        <VideoOff className="w-12 h-12 text-slate-500" />
-                                    </div>
-                                    <p className="text-slate-400 font-black uppercase tracking-widest text-sm">Camera is Off</p>
-                                </div>
-                            )}
-
-                            {/* Overlays */}
-                            <div className="absolute top-8 left-8 p-4 rounded-3xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-sky-500 flex items-center justify-center font-black text-white text-xs">AK</div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Abebe Kebede (Teacher)</p>
-                                    <p className="text-[9px] font-medium text-slate-400 tracking-widest uppercase">Presenter View</p>
-                                </div>
-                            </div>
-
-                            {/* Whiteboard Overlay Toggle (UI Mock) */}
-                            <div className="absolute bottom-8 right-8 flex gap-3">
-                                <button className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
-                                    <LayoutGrid className="w-5 h-5" />
-                                </button>
-                                <button className="w-12 h-12 rounded-2xl bg-sky-600 text-white shadow-xl shadow-sky-500/20 flex items-center justify-center hover:scale-110 transition-all">
-                                    <PanelRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Controls Bar */}
-                        <div className="h-24 px-10 rounded-[40px] bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center gap-6 relative z-10 shrink-0">
-                            <button
-                                onClick={toggleMute}
-                                className={cn(
-                                    "w-14 h-14 rounded-2xl transition-all flex items-center justify-center group relative",
-                                    isMuted ? "bg-rose-500 text-white" : "bg-white/10 hover:bg-white/20 text-white"
-                                )}
-                            >
-                                {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6 group-hover:scale-110" />}
-                                <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-black/60 text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Audio</span>
-                            </button>
-                            <button
-                                onClick={toggleVideo}
-                                className={cn(
-                                    "w-14 h-14 rounded-2xl transition-all flex items-center justify-center group relative",
-                                    isVideoOff ? "bg-rose-500 text-white" : "bg-white/10 hover:bg-white/20 text-white"
-                                )}
-                            >
-                                {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6 group-hover:scale-110" />}
-                                <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-black/60 text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Video</span>
-                            </button>
-                            <div className="h-10 w-px bg-white/10" />
-                            <button className="w-14 h-14 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center group relative">
-                                <Share2 className="w-6 h-6" />
-                            </button>
-                            <button
-                                onClick={() => isSharingScreen ? stopScreenShare() : startScreenShare()}
-                                className={cn(
-                                    "w-14 h-14 rounded-2xl transition-all flex items-center justify-center group relative",
-                                    isSharingScreen ? "bg-sky-500 text-white ring-4 ring-sky-500/20 shadow-xl shadow-sky-500/30" : "bg-white/10 hover:bg-white/20 text-white"
-                                )}
-                            >
-                                <MonitorPlay className="w-6 h-6" />
-                            </button>
-                            <div className="h-10 w-px bg-white/10" />
-                            <div className="h-10 w-px bg-white/10" />
-
-                        </div>
-                    </div>
-
-                    {/* Right Panel: Chat / Students */}
-                    <div className="w-96 bg-black/20 backdrop-blur-md border-l border-white/10 flex flex-col overflow-hidden relative z-20">
-                        <div className="h-20 shrink-0 flex items-center justify-around px-4 border-b border-white/10">
-                            {[
-                                { id: 'chat', icon: MessageSquare, label: 'Chat' },
-                                { id: 'students', icon: Users, label: 'Class' },
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={cn(
-                                        "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                        activeTab === tab.id ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5" : "text-slate-500 hover:text-slate-300"
-                                    )}
-                                >
-                                    <tab.icon className="w-4 h-4 mb-1.5 mx-auto" />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {activeTab === 'chat' ? (
-                                <>
-                                    <div className="space-y-4">
-                                        {messages.map(m => (
-                                            <div key={m.id} className="p-4 rounded-3xl bg-white/5 border border-white/10 space-y-2">
-                                                <p className={cn("text-[9px] font-black uppercase tracking-widest", m.user.includes("You") ? "text-rose-400" : "text-sky-400")}>{m.user}</p>
-                                                <p className="text-xs text-slate-300 font-medium leading-relaxed">{m.text}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-auto pt-6">
-                                        <div className="h-14 bg-white/5 border border-white/10 rounded-2xl px-5 flex items-center gap-3">
-                                            <input
-                                                placeholder="Type a message..."
-                                                value={chatInput}
-                                                onChange={(e) => setChatInput(e.target.value)}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                                className="bg-transparent border-0 outline-none w-full text-xs text-white"
-                                            />
-                                            <button
-                                                onClick={handleSendMessage}
-                                                className="p-2 rounded-lg bg-sky-500 text-white shadow-lg"
-                                            >
-                                                <ArrowUpRight className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <Button variant="ghost" className="w-full mt-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white">
-                                            Message All Participants
-                                        </Button>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="space-y-4">
-                                    {MIGHTY_STUDENTS.map(student => (
-                                        <div key={student.id} className="p-4 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-[10px] text-white">
-                                                    {student.name.split(' ').map(n => n[0]).join('')}
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-black text-white">{student.name}</p>
-                                                    <p className="text-[8px] font-medium text-slate-500 uppercase tracking-widest">{student.status}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {student.handRaised && <Hand className="w-4 h-4 text-rose-500 animate-bounce" />}
-                                                <button className="p-1.5 rounded-lg hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100">
-                                                    <MoreVertical className="w-4 h-4 text-slate-500" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <div className="fixed inset-0 bg-slate-900 z-[100] flex flex-col overflow-hidden">
+                <LiveClassroom 
+                    call={activeCall} 
+                    squadName="Global Academic Broadcast" 
+                    dbSessionId={activeSessionId || undefined}
+                    onLeave={stopMedia} 
+                />
             </div>
         )
     }

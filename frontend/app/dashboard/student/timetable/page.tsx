@@ -3,7 +3,7 @@
 import { timetable as initialTimetable, type TimetableSlot } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { CalendarDays, Clock, MapPin, User, GraduationCap, LayoutPanelLeft, ListChecks, Plus, X, Brain, Sparkles, Download, ArrowUpRight, Activity, Book, PenTool, SearchCode, History, CheckCircle, Video } from "lucide-react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { schedulingApi, aiApi, attendanceApi } from "@/lib/api"
@@ -168,26 +168,27 @@ export default function StudentTimetable() {
     const [loading, setLoading] = useState(true)
     const [isGenerating, setIsGenerating] = useState(false)
 
-    const currentUser = getCurrentUser()
+    const currentUser = useMemo(() => getCurrentUser(), [])
+    const mountedRef = useRef(false)
+
+    useEffect(() => {
+        if (mountedRef.current) {
+            console.warn("[StudentTimetable] Unexpected Remount Detected!")
+        }
+        mountedRef.current = true
+        console.log("[StudentTimetable] Component Mounted")
+        return () => {
+            console.log("[StudentTimetable] Component Unmounting")
+        }
+    }, [])
 
     useEffect(() => {
         const fetchSchedule = async () => {
-            if (!currentUser) return
+            if (!currentUser?._id || activeCall) return
             try {
                 setLoading(true)
-                // Fetch all schedules for this grade
                 const response = await schedulingApi.getByGrade(currentUser.grade || "9")
-                const data = response.data || []
-                
-                // Filter by section and semester (defaulting to current academic settings)
-                const filtered = data.filter((item: any) => {
-                    const gradeMatch = String(item.grade) === String(currentUser.grade || "9")
-                    const sectionMatch = !item.section || item.section === (currentUser.section || "Section A")
-                    const semesterMatch = !item.semester || item.semester === "Semester 1" || item.semester === "Full Year"
-                    return gradeMatch && sectionMatch && semesterMatch
-                })
-
-                const mapped: TimetableSlot[] = filtered.map((item: any) => ({
+                const mapped: TimetableSlot[] = (response.data || []).map((item: any) => ({
                     id: item._id || item.id,
                     subjectId: item.subject?._id || item.subject?.id,
                     course: item.subject?.title || item.subject?.name || "Academic Class",
@@ -207,7 +208,38 @@ export default function StudentTimetable() {
             }
         }
         fetchSchedule()
-    }, [currentUser?.id, currentUser?.grade, currentUser?.section])
+    }, [currentUser?._id, currentUser?.grade, currentUser?.section])
+
+    useEffect(() => {
+        if (!currentUser?.id) return
+        
+        let socket: any
+        const initSocket = async () => {
+            const { getSocket } = await import("@/lib/socket")
+            socket = getSocket(currentUser?._id || currentUser?.id)
+            
+            if (socket) {
+                socket.on("class-live-started", (data: any) => {
+                    // Only show if it's for their grade
+                    if (String(data.grade) === String(currentUser.grade)) {
+                        toast({
+                            title: "Class Started! 🎥",
+                            description: `${data.tutorName} has started ${data.courseName}. Join now!`,
+                            action: (
+                                <Button size="sm" onClick={() => {
+                                    // Manually trigger the join logic
+                                    const slot = academicSlots.find(s => s.course === data.courseName)
+                                    if (slot) handleJoinClass(slot)
+                                }}>Join Now</Button>
+                            )
+                        })
+                    }
+                })
+            }
+        }
+        initSocket()
+        return () => { if (socket) socket.off("class-live-started") }
+    }, [currentUser?._id, academicSlots.length])
 
     const [activeCall, setActiveCall] = useState<Call | null>(null)
     const [activeSlot, setActiveSlot] = useState<TimetableSlot | null>(null)
@@ -332,8 +364,9 @@ export default function StudentTimetable() {
             return
         }
         setIsJoining(true)
-        // Stable ID for the class so all students land in the same room for this specific slot
-        const callId = `class-${slot.id.toString().toLowerCase()}`
+        // Unified ID: Uses the schedule slot ID to ensure everyone joins the same room
+        const { getCallId } = await import("@/lib/utils")
+        const callId = getCallId('class', slot.id.toString())
         const call = videoClient.call('default', callId)
         
         try {

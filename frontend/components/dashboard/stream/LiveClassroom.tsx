@@ -67,101 +67,198 @@ const LiveSessionContent = ({
     const [students, setStudents] = React.useState<any[]>([])
     const [isRecordingLoading, setIsRecordingLoading] = React.useState(false)
 
-    // Auto-join and media enablement logic
+    // Auto-join logic - ONLY runs when IDLE or LEFT
     React.useEffect(() => {
-        let mounted = true
-        
-        const joinAndEnable = async () => {
-            if (callingState === CallingState.IDLE) {
-                try {
-                    await call.join({ create: true })
-                } catch (err) {
-                    if (mounted) console.error("Failed to join call:", err)
-                }
-            }
+        const joinCall = async () => {
+            const s = call.state.callingState
+            console.log("[LiveClassroom] Join Logic Triggered. State:", s)
             
-            // Once joined, the user will click 'Start Teaching' to enable hardware
-            if (callingState === CallingState.JOINED) {
-                // No automatic hardware start to prevent NegotiationError
-            }
-        }
-
-        joinAndEnable()
-
-        return () => {
-            mounted = false
-        }
-    }, [call, callingState, camEnabled, micEnabled, localParticipant])
-
-    // Cleanup on unmount - IMPORTANT to turn off camera/mic lights
-    React.useEffect(() => {
-        return () => {
-            const shutdown = async () => {
+            if (s === CallingState.IDLE || s === CallingState.LEFT) {
                 try {
-                    // Force disable media first
-                    await call.camera.disable()
-                    await call.microphone.disable()
-                    
-                    if (call.state.callingState !== CallingState.IDLE && call.state.callingState !== CallingState.LEFT) {
-                        await call.leave()
-                    }
+                    console.log("[LiveClassroom] Attempting call.join()...")
+                    await call.join({ create: true })
+                    console.log("[LiveClassroom] Joined call successfully")
                 } catch (err) {
-                    console.error("Cleanup error:", err)
+                    console.error("[LiveClassroom] Failed to join call:", err)
                 }
             }
-            shutdown()
+        }
+        joinCall()
+    }, [call])
+
+    // Cleanup on unmount - ONLY stop tracks, don't leave the call server-side
+    // This prevents the "Unmount -> Leave -> Mount" race condition in development/Strict Mode
+    React.useEffect(() => {
+        const mountedAt = Date.now()
+        console.log(`[LiveClassroom] Session Instance Mounted at ${mountedAt}`)
+        
+        return () => {
+            const duration = Date.now() - mountedAt
+            console.log(`[LiveClassroom] Session Instance Unmounting after ${duration}ms`)
+            
+            // 1. Stop all local media tracks to turn off camera/mic lights
+            // This is safe even if we remount immediately
+            if (call.camera) call.camera.disable().catch(e => console.warn("Cam disable failed:", e))
+            if (call.microphone) call.microphone.disable().catch(e => console.warn("Mic disable failed:", e))
+            
+            // 2. We DO NOT call call.leave() here. 
+            // Why? Because React StrictMode or a Parent re-render can unmount us 
+            // and we don't want to kill the active WebRTC connection for a temporary UI flicker.
+            // The call.leave() is now handled explicitly by handleCloseSession.
+            
+            console.log("[LiveClassroom] Local media tracks disposed.")
         }
     }, [call])
 
-    const activeSpeaker = participants.find(p => p.isSpeaking) || participants[0]
-    const screenSharingParticipant = participants.find(p => p.screenShareStream)
+    const handleCloseSession = async () => {
+        console.log("[LiveClassroom] Explicit Leave Triggered by User")
+        try {
+            if (dbSessionId) {
+                await liveApi.end(dbSessionId).catch(e => console.warn("End session log failed:", e))
+                toast({ title: "Session Ended", description: "Class session has been archived." })
+            }
+            await call.leave()
+            onLeave() 
+        } catch (e) {
+            console.error("[LiveClassroom] Error during explicit leave:", e)
+            onLeave() 
+        }
+    }
 
     const [isHardwareReady, setIsHardwareReady] = React.useState(false)
+    const [joinError, setJoinError] = React.useState<string | null>(null)
+    const [showPermissionModal, setShowPermissionModal] = React.useState(false)
+
+    // 1. Diagnostic Logging
+    React.useEffect(() => {
+        console.log(`[LiveClassroom] State: ${callingState} | Participants: ${participants.length}`)
+        if (participants.length > 0) {
+            console.log("[LiveClassroom] Active Participants:", participants.map(p => ({ id: p.userId, role: p.role, name: p.name })))
+        }
+    }, [callingState, participants])
+
+    // 2. Hardware Sync Logic
+    React.useEffect(() => {
+        if (callingState === CallingState.JOINED && !isHardwareReady) {
+            console.log("[LiveClassroom] Session Joined. Synchronizing Media Hardware...")
+            const syncMedia = async () => {
+                try {
+                    // Force a permission prompt if not already granted
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    console.log("[LiveClassroom] Permissions Granted. Media Tracks:", stream.getTracks().length)
+                    
+                    await call.camera.enable()
+                    await call.microphone.enable()
+                    setIsHardwareReady(true)
+                    console.log("[LiveClassroom] Media Hardware Synchronized")
+                } catch (err: any) {
+                    console.warn("[LiveClassroom] Auto-hardware sync failed:", err)
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        setShowPermissionModal(true)
+                    }
+                }
+            }
+            syncMedia()
+        }
+    }, [callingState, isHardwareReady, call])
+
+    const activeSpeaker = participants.find(p => p.isSpeaking) || participants.find(p => p.role === 'host') || participants[0]
+    const screenSharingParticipant = participants.find(p => p.screenShareStream)
+
+    // Log call state changes
+    React.useEffect(() => {
+        console.log(`[LiveClassroom] State Update: ${callingState}`)
+    }, [callingState])
+
+    // Force re-join if stuck
+    const handleForceSync = async () => {
+        console.log("[LiveClassroom] Manual Force Sync Triggered")
+        setJoinError(null)
+        try {
+            if (call.state.callingState !== CallingState.JOINED) {
+                console.log("[LiveClassroom] Attempting manual call.join()")
+                await call.join({ create: true })
+            }
+            if (call.state.localParticipant) {
+                console.log("[LiveClassroom] Enabling hardware tracks...")
+                await call.camera.enable()
+                await call.microphone.enable()
+                setIsHardwareReady(true)
+            } else {
+                console.warn("[LiveClassroom] Cannot sync: localParticipant still null")
+            }
+        } catch (err: any) {
+            console.error("[LiveClassroom] Force Sync Failed:", err)
+            setJoinError(err.message || "Manual sync failed")
+        }
+    }
 
     if (callingState !== CallingState.JOINED || !isHardwareReady) {
         return (
             <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white gap-6">
                 <div className="relative">
-                    <div className="w-16 h-16 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
-                    <Radio className="w-6 h-6 text-sky-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                    <div className={cn(
+                        "w-16 h-16 border-4 rounded-full animate-spin",
+                        joinError ? "border-rose-500/20 border-t-rose-500" : "border-sky-500/20 border-t-sky-500"
+                    )} />
+                    <Radio className={cn(
+                        "w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse",
+                        joinError ? "text-rose-500" : "text-sky-500"
+                    )} />
                 </div>
                 <div className="text-center space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-500 animate-pulse">
-                        {callingState === CallingState.JOINED && localParticipant ? "Secure Channel Established" : "Establishing Secure Stream..."}
+                    <p className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.3em] animate-pulse",
+                        joinError ? "text-rose-500" : "text-sky-500"
+                    )}>
+                        {joinError ? "Handshake Error" : (callingState === CallingState.JOINED && localParticipant ? "Secure Channel Established" : "Establishing Secure Stream...")}
                     </p>
                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">{squadName || "Academic Session"}</p>
+                    {joinError && <p className="text-[8px] text-rose-400/60 max-w-xs mx-auto">{joinError}</p>}
                 </div>
                 <div className="flex flex-col items-center gap-3 mt-4">
                     {callingState === CallingState.JOINED && localParticipant ? (
                         <Button 
                             onClick={async () => {
+                                console.log("[LiveClassroom] User clicked Enter Classroom")
                                 try {
-                                    // Ensure participant is still valid
-                                    if (!call.state.localParticipant) {
-                                        throw new Error("Local participant synchronization pending...");
-                                    }
                                     await call.camera.enable()
                                     await call.microphone.enable()
                                     setIsHardwareReady(true)
                                 } catch (err) {
-                                    console.error("Hardware failed:", err)
-                                    toast({ title: "Sync Pending", description: "Waiting for server signal. Please try again in a moment." })
+                                    console.error("[LiveClassroom] Permission Error:", err)
+                                    handleForceSync()
                                 }
                             }}
-                            className="h-12 px-8 rounded-xl bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 animate-bounce"
+                            className="h-12 px-8 rounded-xl bg-sky-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-sky-500/20 animate-bounce"
                         >
-                            {localParticipant ? "Join Academic Session" : "Synchronizing..."}
+                            Enter Classroom
                         </Button>
                     ) : (
-                        <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
-                            <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Awaiting Server Synchronization...</p>
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
+                                <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">
+                                    {callingState === CallingState.MIGRATING ? "Switching Server Nodes..." : "Awaiting Server Synchronization..."}
+                                </p>
+                                <p className="text-[8px] text-slate-500 uppercase font-bold tracking-tight">Stream State: {callingState}</p>
+                            </div>
+                            <Button 
+                                onClick={handleForceSync}
+                                variant="outline"
+                                className="h-10 px-6 rounded-xl border-white/10 text-white font-black text-[9px] uppercase tracking-widest hover:bg-white/5"
+                            >
+                                Force Sync Session
+                            </Button>
                         </div>
                     )}
                     <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={onLeave}
+                        onClick={() => {
+                            console.log("[LiveClassroom] User clicked Cancel & Return")
+                            handleCloseSession()
+                        }}
                         className="text-[9px] font-black uppercase text-slate-500 hover:text-white"
                     >
                         Cancel & Return
@@ -177,7 +274,7 @@ const LiveSessionContent = ({
             {/* Minimal Header */}
             <div className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-black/20">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={onLeave} className="rounded-full text-slate-400">
+                    <Button variant="ghost" size="icon" onClick={handleCloseSession} className="rounded-full text-slate-400">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <h2 className="text-[12px] font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -205,26 +302,7 @@ const LiveSessionContent = ({
                         <UserPlus className="w-3 h-3 mr-2" /> Invite
                     </Button>
                     <Button 
-                        onClick={async () => {
-                            if (dbSessionId) {
-                                try {
-                                    // Robustly try to stop recording if UI thinks it's running
-                                    if (isRecordingRunning) {
-                                        try {
-                                            await call.stopRecording();
-                                        } catch (stopErr) {
-                                            console.warn("Stop recording failed (egress might not be running):", stopErr);
-                                        }
-                                    }
-                                    await liveApi.end(dbSessionId);
-                                    toast({ title: "Session Ended", description: "Class session has been archived." });
-                                } catch (err) {
-                                    console.error("End session error:", err);
-                                }
-                            }
-                            await call.leave();
-                            onLeave();
-                        }}
+                        onClick={handleCloseSession}
                         className="h-8 px-4 rounded-full bg-rose-600 hover:bg-rose-700 text-[9px] font-black uppercase"
                     >
                         End Class
@@ -311,14 +389,34 @@ const LiveSessionContent = ({
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <PermissionRecoveryModal open={showPermissionModal} onOpenChange={setShowPermissionModal} />
         </div>
     )
 }
 
+import { useStream } from '@/components/providers/StreamProvider'
+import { StreamVideo } from '@stream-io/video-react-sdk'
+
 export const LiveClassroom = (props: LiveClassroomProps) => {
+    const { videoClient, isReady } = useStream()
+
+    if (!videoClient || !isReady) {
+        return (
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-500/60">Synchronizing Video Engine...</p>
+            </div>
+        )
+    }
+
     return (
-        <StreamCall call={props.call}>
-            <LiveSessionContent {...props} />
-        </StreamCall>
+        <StreamVideo client={videoClient}>
+            <StreamCall call={props.call}>
+                <StreamTheme>
+                    <LiveSessionContent {...props} />
+                </StreamTheme>
+            </StreamCall>
+        </StreamVideo>
     )
 }

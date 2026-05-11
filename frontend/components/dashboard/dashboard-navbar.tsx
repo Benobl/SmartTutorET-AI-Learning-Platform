@@ -30,6 +30,7 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
     const [user, setUser] = useState<any>(null)
     const [isMounted, setIsMounted] = useState(false)
     const [invites, setInvites] = useState<any[]>([])
+    const [notifications, setNotifications] = useState<any[]>([])
 
     useEffect(() => {
         setIsMounted(true)
@@ -37,25 +38,43 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
         setUser(currentUser)
 
         if (currentUser) {
-            const fetchInvites = async () => {
+            const fetchData = async () => {
                 try {
-                    const { inviteApi } = await import("@/lib/api")
-                    const res = await inviteApi.getMine()
-                    const incoming = (res.data || []).filter((inv: any) => {
+                    const { inviteApi, notificationApi } = await import("@/lib/api")
+                    const [invRes, notifRes] = await Promise.all([
+                        inviteApi.getMine(),
+                        notificationApi.getMine()
+                    ])
+                    
+                    // Filter pending invites
+                    const incomingInvites = (invRes.data || []).filter((inv: any) => {
                         const inviteeId = (inv.invitee?._id || inv.invitee)?.toString()
                         return (inviteeId === currentUser._id || inviteeId === currentUser.id) && inv.status === "pending"
                     })
-                    setInvites(incoming)
-                } catch (e) { console.error("Error fetching invites:", e) }
+                    setInvites(incomingInvites)
+
+                    // Filter unread notifications
+                    const unreadNotifs = (notifRes.data || []).filter((n: any) => !n.isRead)
+                    setNotifications(unreadNotifs)
+                } catch (e) { console.error("Error fetching dashboard data:", e) }
             }
-            fetchInvites()
+            fetchData()
 
             // Socket Listener
             const { initializeSocket } = require("@/lib/socket")
             const socket = initializeSocket(currentUser._id || currentUser.id)
+            
             socket.on("new-invite", (data: any) => {
                 setInvites(prev => [data, ...prev])
-                // Optional: trigger a sound or browser notification
+            })
+
+            socket.on("new-notification", (data: any) => {
+                setNotifications(prev => [data, ...prev])
+                const { toast } = require("sonner")
+                toast.info("New Notification", {
+                    description: data.message,
+                    className: "rounded-[20px] border-none shadow-2xl bg-white text-slate-900 font-bold",
+                })
             })
             
             socket.on("squad-live-notification", (data: any) => {
@@ -74,6 +93,7 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
 
             return () => {
                 socket.off("new-invite")
+                socket.off("new-notification")
                 socket.off("squad-live-notification")
             }
         }
@@ -81,7 +101,7 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
 
     const handleRespond = async (inviteId: string, status: 'accepted' | 'declined') => {
         try {
-            const { inviteApi, groupApi } = await import("@/lib/api")
+            const { inviteApi } = await import("@/lib/api")
             await inviteApi.respond(inviteId, status)
             setInvites(prev => prev.filter(inv => inv._id !== inviteId))
             if (status === 'accepted') {
@@ -97,18 +117,14 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
 
     const handleProfile = () => {
         const role = user?.role || 'student'
-        router.push(`/dashboard/${role}/settings`) // Defaulting to settings as profile view
-    }
-
-    const handleSettings = () => {
-        const role = user?.role || 'student'
-        router.push(`/dashboard/${role}/settings`)
+        router.push(`/dashboard/${role}/profile`)
     }
 
     const displayName = user?.name || "User"
     const initials = displayName.split(" ").filter(Boolean).slice(0, 2).map((n: string) => n[0]).join("").toUpperCase() || "U"
     const fullName = displayName
     const email = user ? user.email : "user@example.com"
+    const totalAlerts = invites.length + notifications.length
 
     return (
         <header className={cn(
@@ -159,31 +175,33 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
                             <Bell className="w-5 h-5" />
-                            {invites.length > 0 && (
-                                <span className="absolute top-2 right-2 w-4 h-4 bg-amber-500 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center animate-pulse">
-                                    {invites.length}
+                            {totalAlerts > 0 && (
+                                <span className="absolute top-2 right-2 w-4 h-4 bg-rose-500 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center animate-pulse">
+                                    {totalAlerts}
                                 </span>
                             )}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-80 bg-white border-slate-200 text-slate-900 rounded-2xl p-2 shadow-2xl backdrop-blur-xl bg-white/90">
-                        <DropdownMenuLabel className="font-black text-[10px] uppercase tracking-widest text-slate-400 p-2">Squad Invitations</DropdownMenuLabel>
+                        <DropdownMenuLabel className="font-black text-[10px] uppercase tracking-widest text-slate-400 p-2">Intelligence Hub</DropdownMenuLabel>
                         <DropdownMenuSeparator className="bg-slate-100" />
-                        {invites.length === 0 ? (
+                        
+                        {totalAlerts === 0 ? (
                             <div className="py-8 px-4 text-center">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No pending transmissions...</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No pending updates...</p>
                             </div>
                         ) : (
-                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-1 p-1">
+                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-1 p-1">
+                                {/* Invites Section */}
                                 {invites.map((invite: any) => (
-                                    <div key={invite._id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
+                                    <div key={invite._id} className="p-3 rounded-xl bg-sky-50/50 border border-sky-100 space-y-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center font-black text-[10px]">
-                                                {invite.inviter?.fullName?.[0] || "U"}
+                                            <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-black text-[10px]">
+                                                INV
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-black text-slate-900 truncate italic">{invite.inviter?.fullName}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase truncate">To {invite.targetId?.name || "Squad"}</p>
+                                                <p className="text-xs font-black text-slate-900 truncate italic">{invite.inviter?.fullName || "A Colleague"}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase truncate">Squad Invitation</p>
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
@@ -205,11 +223,25 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Notifications Section */}
+                                {notifications.map((notif: any) => (
+                                    <div key={notif._id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex gap-3 items-start">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-500 flex items-center justify-center shrink-0">
+                                            <Bell className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-800 leading-tight">{notif.message}</p>
+                                            <p className="text-[9px] font-medium text-slate-400 mt-1 uppercase tracking-widest">System Update</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
+                        
                         <DropdownMenuSeparator className="bg-slate-100" />
                         <DropdownMenuItem onClick={() => router.push('/dashboard/student/squad')} className="justify-center text-[10px] font-black uppercase text-sky-600 focus:text-sky-700 cursor-pointer py-2">
-                            View All Squads
+                            Advanced Intelligence Settings
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -235,34 +267,35 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
                             <DropdownMenuSeparator className="bg-slate-100" />
                             <DropdownMenuItem
                                 onClick={handleProfile}
-                                className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium"
+                                className="rounded-lg focus:bg-sky-50 focus:text-sky-600 flex items-center gap-3 py-3 px-3 cursor-pointer group transition-all"
                             >
-                                <User className="w-4 h-4 text-slate-400" />
-                                <span>My Profile</span>
+                                <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                                    <User className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">View My Profile</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Account Settings</span>
+                                </div>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium">
-                                <CreditCard className="w-4 h-4 text-slate-400" />
-                                <span>Subscription</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={handleSettings}
-                                className="rounded-lg focus:bg-slate-100 focus:text-slate-900 flex items-center gap-2 py-2 cursor-pointer font-medium"
-                            >
-                                <Settings className="w-4 h-4 text-slate-400" />
-                                <span>Settings</span>
-                            </DropdownMenuItem>
+                            
                             <DropdownMenuSeparator className="bg-slate-100" />
                             <DropdownMenuItem
                                 onClick={handleLogout}
-                                className="rounded-lg focus:bg-red-50 focus:text-red-600 flex items-center gap-2 py-2 cursor-pointer text-red-600 font-medium"
+                                className="rounded-lg focus:bg-rose-50 focus:text-rose-600 flex items-center gap-3 py-3 px-3 cursor-pointer group transition-all"
                             >
-                                <LogOut className="w-4 h-4" />
-                                <span>Log out</span>
+                                <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                    <LogOut className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">Sign Out</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Secure Terminate</span>
+                                </div>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
             </div>
         </header>
+
     )
 }

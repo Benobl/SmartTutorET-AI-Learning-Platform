@@ -64,22 +64,36 @@ export default function TutorTimetable() {
             const dbSession = sessionRes.data
             setDbSessionId(dbSession._id)
 
-            // 2. Prepare Stream Call
-            const callId = `class-${dbSession._id}`
+            // Unified ID: Uses the schedule slot ID so students can find the room
+            const { getCallId } = await import("@/lib/utils")
+            const callId = getCallId('class', slot._id || slot.id)
             const call = videoClient.call('default', callId)
             
             // Ensure the tutor is the host with full permissions
+            // We remove the strict 'members' array to allow students to join dynamically
             await call.getOrCreate({
                 data: {
-                    members: [{ user_id: currentUser?.id || currentUser?._id, role: 'host' }],
                     custom: { 
                         courseName: slot.subject?.title || slot.title || "Academic Session", 
                         tutorName: currentUser?.name,
                         type: 'academic-class',
-                        dbSessionId: dbSession._id
+                        dbSessionId: dbSession._id,
+                        scheduleId: slot._id || slot.id
                     }
                 }
             })
+
+            // 3. Signal to students that the class has started
+            const { getSocket } = await import("@/lib/socket")
+            const socket = getSocket(currentUser?._id || currentUser?.id)
+            if (socket) {
+                socket.emit("class-live-started", {
+                    callId,
+                    courseName: slot.subject?.title || slot.title,
+                    grade: slot.grade,
+                    tutorName: currentUser?.name
+                })
+            }
             
             setActiveCall(call)
             setActiveSlot(slot)
