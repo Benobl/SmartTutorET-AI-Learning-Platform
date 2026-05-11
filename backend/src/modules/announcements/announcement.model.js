@@ -13,7 +13,7 @@ const announcementSchema = new mongoose.Schema(
         },
         category: {
             type: String,
-            enum: ["academic", "administrative", "urgent", "general"],
+            enum: ["academic", "administrative", "urgent", "general", "exam", "holiday", "schedule"],
             default: "general",
         },
         targetGrade: {

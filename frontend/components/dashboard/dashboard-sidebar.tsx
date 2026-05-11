@@ -215,6 +215,12 @@ const managerNavItems: NavItem[] = [
         icon: Activity,
         activeColor: "sky",
     },
+    {
+        title: "Announcements",
+        url: "/dashboard/manager/announcements",
+        icon: Bell,
+        activeColor: "sky",
+    },
 ]
 
 /**

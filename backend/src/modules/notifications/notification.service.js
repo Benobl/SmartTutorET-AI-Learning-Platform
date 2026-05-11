@@ -90,4 +90,33 @@ export class NotificationService {
         await Notification.insertMany(notifications);
         return { success: true, count: userIds.length };
     }
+
+    static async notifyBroadcast(announcement) {
+        try {
+            const { title, targetGrade, role, createdBy } = announcement;
+            
+            let query = { role: 'student' };
+            if (targetGrade && targetGrade !== "") {
+                query.grade = Number(targetGrade);
+            }
+
+            const students = await User.find(query).select("_id");
+            if (students.length === 0) return;
+
+            const prefix = role === 'manager' || role === 'admin' ? "📢 Registrar: " : "🧑‍🏫 Tutor: ";
+            const message = `${prefix}${title}`;
+
+            const notifications = students.map(s => ({
+                user: s._id,
+                message,
+                type: "announcement"
+            }));
+
+            await Notification.insertMany(notifications);
+            console.log(`📡 Broadcast notification sent to ${students.length} students.`);
+            return { success: true, count: students.length };
+        } catch (error) {
+            console.error("❌ Broadcast Notification Error:", error);
+        }
+    }
 }

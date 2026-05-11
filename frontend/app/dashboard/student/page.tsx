@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import {
   BookOpen, Clock, Calendar, GraduationCap, ChevronRight,
   PlayCircle, Bell, FileText, AlertCircle, Sparkles,
-  Zap, MessageSquare, Lightbulb, TrendingUp, Target, Users
+  Zap, MessageSquare, Lightbulb, TrendingUp, Target, Users, Megaphone, Building2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { userApi, courseApi, assignmentApi, assessmentApi, announcementApi } from "@/lib/api"
@@ -20,12 +20,15 @@ import { AssessmentList } from "@/components/dashboards/student/assessment-list"
 import { Leaderboard } from "@/components/dashboards/student/leaderboard"
 
 import { getCurrentUser } from "@/lib/auth-utils"
+import { initializeSocket, getSocket } from "@/lib/socket"
+import { toast } from "sonner"
 
 /**
  * Student Dashboard Overview — premium UI with quick stats, 
  * interactive learning paths, and personalized actions.
  */
 export default function StudentOverview() {
+  const [user, setUser] = useState<any>(null)
   const [isAITutorOpen, setIsAITutorOpen] = useState(false)
   const [isStudyHubOpen, setIsStudyHubOpen] = useState(false)
   const [collabType, setCollabType] = useState<"create" | "invite">("create")
@@ -39,10 +42,16 @@ export default function StudentOverview() {
   const [loading, setLoading] = useState(true)
   const [readState, setReadState] = useState<Record<string, boolean>>({})
 
-  const user = getCurrentUser()
+  // Initialize user from storage
+  useEffect(() => {
+    const currentUser = getCurrentUser()
+    if (currentUser) setUser(currentUser)
+  }, [])
+
   const studentName = user?.name?.split(" ")[0] || "Student"
 
   const fetchData = useCallback(async () => {
+    if (!user) return
     try {
       setLoading(true)
       const saved = localStorage.getItem("read_announcements")
@@ -67,14 +76,40 @@ export default function StudentOverview() {
     } finally {
       setLoading(false)
     }
-  }, [user?.grade])
+  }, [user])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (user) {
+      fetchData()
+
+      // Initialize Socket and Listen for Real-time Announcements
+      if (user._id) {
+        const s = initializeSocket(user._id)
+        if (s) {
+          s.on("new-announcement", (data: any) => {
+            const targetGrade = data.targetGrade ? String(data.targetGrade) : ""
+            const studentGrade = user?.grade ? String(user.grade) : ""
+            
+            if (!targetGrade || targetGrade === studentGrade) {
+              setAnnouncements(prev => [data, ...prev])
+              toast.info(`New Broadcast: ${data.title}`, {
+                description: data.body.substring(0, 50) + "...",
+                duration: 10000,
+                icon: <Megaphone className="w-4 h-4 text-sky-500" />
+              })
+            }
+          })
+        }
+      }
+    }
+
+    return () => {
+      const s = getSocket()
+      if (s) s.off("new-announcement")
+    }
+  }, [fetchData, user])
 
   const topCourses = enrolledCourses.slice(0, 6)
-  const topAnnouncements = announcements.filter((a) => !readState[a._id]).slice(0, 2)
   const latestResults = [
     ...(assignmentResults || []).map((result: any) => ({
       id: `as-${result._id}`,
@@ -369,31 +404,64 @@ export default function StudentOverview() {
             </div>
           </div>
 
-          {/* Notifications / Announcements */}
+          {/* Registrar Notices */}
           <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Bulletin</h2>
-              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest border border-indigo-100">{topAnnouncements.length} NEW</span>
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-4 bg-slate-900 rounded-full" />
+                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Registrar Notices</h2>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest border border-rose-100 animate-pulse">Official</span>
             </div>
             <div className="space-y-4">
-              {topAnnouncements.map((ann) => (
-                <div key={ann._id} className="group relative p-8 rounded-[40px] border border-indigo-100 bg-indigo-50/30 hover:bg-white hover:shadow-2xl hover:border-sky-200 transition-all duration-500 overflow-hidden">
-                  <div className="absolute -right-8 -top-8 w-24 h-24 bg-sky-400/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{ann.createdBy?.name || "System"}</span>
+              {announcements.slice(0, 3).map((ann) => {
+                const config = {
+                  exam: { label: "Exam Notice", icon: BookOpen, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", glow: "bg-rose-500" },
+                  holiday: { label: "Holiday", icon: Calendar, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", glow: "bg-emerald-500" },
+                  schedule: { label: "Schedule Change", icon: Clock, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100", glow: "bg-amber-500" },
+                  academic: { label: "Academic", icon: GraduationCap, color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", glow: "bg-sky-500" },
+                  administrative: { label: "Registrar", icon: Building2, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-100", glow: "bg-indigo-500" },
+                  general: { label: "Notice", icon: Bell, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", glow: "bg-slate-500" },
+                }[ann.category as keyof typeof config] || { label: "Notice", icon: Bell, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", glow: "bg-slate-500" };
+
+                return (
+                  <div key={ann._id} className="group relative p-8 rounded-[40px] border border-slate-100 bg-white hover:border-sky-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                    <div className={cn("absolute right-0 top-0 w-24 h-24 blur-3xl rounded-full opacity-10 transition-all group-hover:scale-150", config.glow)} />
+                    
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", config.bg, config.border, config.color)}>
+                        <config.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className={cn("text-[9px] font-black uppercase tracking-widest leading-none", config.color)}>{config.label}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">{new Date(ann.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    <h4 className="font-black text-slate-900 mb-2 leading-tight uppercase tracking-tight group-hover:text-sky-600 transition-colors">
+                      {ann.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium mb-6">
+                      {ann.body}
+                    </p>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
+                        {ann.role === 'tutor' ? `From: ${ann.createdBy?.name || "Tutor"}` : "Auth: Registrar Office"}
+                      </span>
+                      <Button variant="ghost" className="h-8 px-3 rounded-lg text-sky-500 font-black text-[9px] uppercase tracking-widest hover:bg-sky-50 transition-all">
+                        Mark as Read
+                      </Button>
+                    </div>
                   </div>
-                  <h4 className="font-black text-slate-900 mb-2 leading-tight group-hover:text-sky-600 transition-colors uppercase tracking-tight">
-                    {ann.title}
-                  </h4>
-                  <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 font-medium mb-6 italic">
-                    {ann.body}
-                  </p>
-                  <Button variant="outline" className="w-full h-11 rounded-xl bg-white border-indigo-100 text-indigo-600 font-bold text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
-                    Expand Details
-                  </Button>
+                );
+              })}
+              {announcements.length === 0 && !loading && (
+                <div className="p-10 text-center rounded-[32px] border border-dashed border-slate-100 bg-slate-50/20">
+                  <Megaphone className="w-10 h-10 text-slate-100 mx-auto mb-4" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No active notices</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

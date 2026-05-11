@@ -18,7 +18,7 @@ import { loginUser, setAuthCookies } from "@/lib/auth-utils"
 import { authApi } from "@/lib/api"
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().min(1, "Email is required").email("Invalid email format"),
   password: z.string().min(1, "Password is required"),
 })
 
@@ -68,7 +68,7 @@ function LoginForm() {
 
       if (user && !('error' in user)) {
         console.log(`[LoginPage] Success! Found user:`, user.fullName);
-        setSuccess(`Welcome back, ${user.fullName}! Redirecting...`)
+        setSuccess(`Welcome back! Redirecting...`)
         
         const callbackUrl = searchParams.get('callbackUrl')
         
@@ -79,19 +79,14 @@ function LoginForm() {
           "/dashboard/student"
         );
 
-        console.log(`[LoginPage] Success! Redirecting to ${redirectPath} via window.location`);
+        console.log(`[LoginPage] Success! Redirecting to ${redirectPath}`);
         
-        // Use a hard redirect to ensure cookies are fresh and middleware catches them
-        // Also bypasses any client-side routing hangs
         setTimeout(() => {
           window.location.href = redirectPath;
         }, 800);
-      } else if (user && 'error' in user) {
-        console.warn(`[LoginPage] Login failed: ${user.error}`);
-        setError(user.error)
       } else {
-        console.warn(`[LoginPage] Login failed: Unexpected response`);
-        setError("Invalid email or password. Please check your credentials.")
+        console.warn(`[LoginPage] Login failed`);
+        setError("Invalid email or password. Please try again.")
       }
     } catch (err: any) {
       console.warn("[Login Error]", err);

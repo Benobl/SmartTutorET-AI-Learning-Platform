@@ -33,10 +33,12 @@ import {
 } from "@/components/ui/dialog"
 
 const categoryConfig: any = {
-    academic: { label: "Academic", icon: BookOpen, color: "indigo" },
-    administrative: { label: "Administrative", icon: Building2, color: "emerald" },
-    urgent: { label: "Urgent", icon: AlertTriangle, color: "red" },
-    general: { label: "General", icon: Bell, color: "amber" },
+    exam: { label: "Exam Notice", icon: BookOpen, color: "rose" },
+    holiday: { label: "Holiday", icon: Calendar, color: "emerald" },
+    schedule: { label: "Schedule Change", icon: RefreshCw, color: "amber" },
+    academic: { label: "Academic", icon: GraduationCap, color: "sky" },
+    administrative: { label: "Registrar", icon: Building2, color: "indigo" },
+    general: { label: "General", icon: Bell, color: "slate" },
 }
 
 export default function TutorAnnouncements() {
@@ -222,9 +224,11 @@ export default function TutorAnnouncements() {
                                     onChange={(e) => setNewAnnouncement({...newAnnouncement, category: e.target.value})}
                                 >
                                     <option value="general">General Notification</option>
+                                    <option value="exam">Exam Notice (Mid/Final)</option>
+                                    <option value="holiday">Holiday/Break</option>
+                                    <option value="schedule">Schedule Change</option>
                                     <option value="academic">Academic Update</option>
                                     <option value="administrative">Administrative</option>
-                                    <option value="urgent">Urgent Alert</option>
                                 </select>
                             </div>
                             <div className="space-y-3">

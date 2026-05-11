@@ -1,5 +1,7 @@
 import Announcement from "./announcement.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
+import { io } from "../../lib/socket.js";
+import { NotificationService } from "../notifications/notification.service.js";
 
 export class AnnouncementController {
     static async createAnnouncement(req, res, next) {
@@ -16,7 +18,17 @@ export class AnnouncementController {
                 role: req.user.role
             });
 
-            res.status(201).json({ success: true, data: announcement });
+            // Populate creator info for the live broadcast
+            const populated = await announcement.populate("createdBy", "name role");
+
+            // Broadcast to all connected users
+            // Frontend components can listen for this and show a toast/notification
+            io.emit("new-announcement", populated);
+
+            // Create persistent notifications for target audience
+            NotificationService.notifyBroadcast(populated);
+
+            res.status(201).json({ success: true, data: populated });
         } catch (error) {
             next(error);
         }
@@ -28,20 +40,18 @@ export class AnnouncementController {
             
             let query = {};
             if (req.user.role === 'student') {
-                // Students see:
-                // 1. Manager/Admin announcements for their grade
-                // 2. Manager/Admin announcements for ALL grades (targetGrade null)
-                // 3. Announcements from THEIR tutors (we can expand this later)
+                const userGrade = req.user.grade ? String(req.user.grade) : (req.query.grade || "");
                 query = {
                     $or: [
-                        { targetGrade: req.user.grade },
+                        { targetGrade: userGrade },
+                        { targetGrade: "" },
                         { targetGrade: null },
-                        { role: 'admin' },
-                        { role: 'manager' }
+                        { targetGrade: "all" } // Adding a common alternative
                     ]
                 };
+                // Future: Add logic to filter tutor announcements by enrolled courses
             } else if (req.user.role === 'tutor') {
-                // Tutors see everything or just their own? Let's show everything relevant.
+                // Tutors see everything from admins/managers + their own
                 query = {
                     $or: [
                         { createdBy: req.user._id },

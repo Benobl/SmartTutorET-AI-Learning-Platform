@@ -74,7 +74,7 @@ export class AuthService {
 
         if (!user.password) {
             logger.warn(`[AuthService] User has no password (likely Google Auth): ${normalizedEmail}`);
-            throw new ApiError(401, "Please use Google Login for this account");
+            throw new ApiError(401, "Invalid email or password");
         }
 
         const isMatch = await user.matchPassword(password);
@@ -87,15 +87,8 @@ export class AuthService {
 
         // Check approval status
         if (!user.isApproved) {
-            if (user.role === "tutor") {
-                if (user.tutorStatus === "rejected") {
-                    logger.warn(`[AuthService] Rejected tutor login attempt: ${email}`);
-                    throw new ApiError(403, "Your tutor application has been rejected. Please contact support for further information.");
-                }
-                logger.warn(`[AuthService] Pending tutor login attempt: ${email}`);
-                throw new ApiError(403, "Your tutor account is pending approval by a manager. You will receive an email once reviewed.");
-            }
-            throw new ApiError(403, "Your account is not approved.");
+            logger.warn(`[AuthService] Account not approved: ${email}`);
+            throw new ApiError(403, "Invalid email or password");
         }
 
         logger.info(`[AuthService] Login successful for ${email}`);
