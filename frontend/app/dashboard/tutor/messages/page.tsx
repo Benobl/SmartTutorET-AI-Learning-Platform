@@ -8,10 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useStream } from "@/components/providers/StreamProvider"
 import {
-    Chat, Channel, MessageList, MessageInput,
+    Chat, Channel, MessageList, MessageComposer,
     Window, Thread, ChannelList
 } from "stream-chat-react"
-import "stream-chat-react/dist/css/v2/index.css"
+import "stream-chat-react/dist/css/index.css"
 import { getCurrentUser } from "@/lib/auth-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -203,7 +203,7 @@ export default function TeacherMessagesPage() {
                                     <MessageList />
                                 </div>
 
-                                <MessageInput focus />
+                                <MessageComposer focus />
                             </Window>
                             <Thread />
                         </Channel>
