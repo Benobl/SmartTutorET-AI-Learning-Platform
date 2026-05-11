@@ -127,29 +127,36 @@ const LiveSessionContent = ({
                 </div>
                 <div className="text-center space-y-2">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-500 animate-pulse">
-                        {callingState === CallingState.JOINED ? "Secure Channel Established" : "Establishing Secure Stream..."}
+                        {callingState === CallingState.JOINED && localParticipant ? "Secure Channel Established" : "Establishing Secure Stream..."}
                     </p>
                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">{squadName || "Academic Session"}</p>
                 </div>
                 <div className="flex flex-col items-center gap-3 mt-4">
-                    {callingState === CallingState.JOINED ? (
+                    {callingState === CallingState.JOINED && localParticipant ? (
                         <Button 
                             onClick={async () => {
                                 try {
+                                    // Ensure participant is still valid
+                                    if (!call.state.localParticipant) {
+                                        throw new Error("Local participant synchronization pending...");
+                                    }
                                     await call.camera.enable()
                                     await call.microphone.enable()
                                     setIsHardwareReady(true)
                                 } catch (err) {
                                     console.error("Hardware failed:", err)
-                                    toast({ title: "Hardware Error", description: "Could not access camera/mic. Please check permissions." })
+                                    toast({ title: "Sync Pending", description: "Waiting for server signal. Please try again in a moment." })
                                 }
                             }}
                             className="h-12 px-8 rounded-xl bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 animate-bounce"
                         >
-                            Start Teaching Now
+                            {localParticipant ? "Join Academic Session" : "Synchronizing..."}
                         </Button>
                     ) : (
-                        <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Awaiting Server Synchronization...</p>
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
+                            <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Awaiting Server Synchronization...</p>
+                        </div>
                     )}
                     <Button 
                         variant="ghost" 
