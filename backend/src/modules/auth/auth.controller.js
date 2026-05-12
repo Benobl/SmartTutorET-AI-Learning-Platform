@@ -1,4 +1,5 @@
 import { AuthService } from "./auth.service.js";
+import { ApiError } from "../../middleware/error.middleware.js";
 import logger from "../../config/logger.js";
 
 const sanitizeUserForResponse = (userDoc) => {
@@ -16,26 +17,16 @@ export class AuthController {
         try {
             const { user, accessToken, refreshToken } = await AuthService.signup(req.body);
 
-            res.cookie("jwt", accessToken, {
-                maxAge: 15 * 60 * 1000,
+            const cookieOptions = {
                 httpOnly: true,
+                secure: process.env.NODE_ENV === "production" ? true : false,
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+                path: "/",
+            };
 
-            res.cookie("refreshToken", refreshToken, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
-
-            res.cookie("user_role", user.role, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+            res.cookie("jwt", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+            res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie("user_role", user.role, { ...cookieOptions, httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
             res.status(201).json({
                 success: true,
@@ -63,26 +54,16 @@ export class AuthController {
             user.refreshTokens.push(refreshToken);
             await user.save();
 
-            res.cookie("jwt", accessToken, {
-                maxAge: 15 * 60 * 1000,
+            const cookieOptions = {
                 httpOnly: true,
+                secure: process.env.NODE_ENV === "production" ? true : false,
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+                path: "/",
+            };
 
-            res.cookie("refreshToken", refreshToken, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
-
-            res.cookie("user_role", user.role, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+            res.cookie("jwt", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+            res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie("user_role", user.role, { ...cookieOptions, httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
             res.status(200).json({ success: true, token: accessToken, data: sanitizeUserForResponse(user) });
         } catch (error) {
@@ -92,8 +73,14 @@ export class AuthController {
 
     static async refresh(req, res, next) {
         try {
+            console.log("[Auth Controller] Refresh Token Request Initiated");
+            console.log("[Auth Controller] Cookies received:", req.cookies);
             const token = req.cookies.refreshToken;
-            if (!token) throw new ApiError(401, "Refresh token missing");
+            
+            if (!token) {
+                console.warn("[Auth Controller] Refresh token missing from cookies");
+                throw new ApiError(401, "Refresh token missing");
+            }
 
             const user = await AuthService.verifyRefreshToken(token);
 
@@ -104,26 +91,18 @@ export class AuthController {
             user.refreshTokens.push(newRefreshToken);
             await user.save();
 
-            res.cookie("jwt", newAccessToken, {
-                maxAge: 15 * 60 * 1000,
+            const cookieOptions = {
                 httpOnly: true,
+                secure: process.env.NODE_ENV === "production" ? true : false,
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+                path: "/",
+            };
 
-            res.cookie("refreshToken", newRefreshToken, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+            res.cookie("jwt", newAccessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+            res.cookie("refreshToken", newRefreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie("user_role", user.role, { ...cookieOptions, httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-            res.cookie("user_role", user.role, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: false, // Middleware needs to read this
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+            console.log(`[Auth Controller] Refresh successful for user ${user._id}`);
 
             res.json({ 
                 success: true, 
@@ -145,26 +124,16 @@ export class AuthController {
             user.refreshTokens.push(refreshToken);
             await user.save();
 
-            res.cookie("jwt", accessToken, {
-                maxAge: 15 * 60 * 1000,
+            const cookieOptions = {
                 httpOnly: true,
+                secure: process.env.NODE_ENV === "production" ? true : false,
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+                path: "/",
+            };
 
-            res.cookie("refreshToken", refreshToken, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
-
-            res.cookie("user_role", user.role, {
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-                httpOnly: false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-                secure: process.env.NODE_ENV === "production",
-            });
+            res.cookie("jwt", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+            res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie("user_role", user.role, { ...cookieOptions, httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
             res.status(200).json({ success: true, token: accessToken, data: sanitizeUserForResponse(user) });
         } catch (error) {
@@ -175,8 +144,9 @@ export class AuthController {
     static logout(req, res) {
         const cookieOptions = {
             httpOnly: true,
+            secure: process.env.NODE_ENV === "production" ? true : false,
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            secure: process.env.NODE_ENV === "production",
+            path: "/",
         };
         res.clearCookie("jwt", cookieOptions);
         res.clearCookie("refreshToken", cookieOptions);

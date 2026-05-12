@@ -1,21 +1,28 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"
 
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshPromise: Promise<string | null> | null = null;
+let lastRefreshTime = 0;
 
-const subscribeTokenRefresh = (cb: (token: string) => void) => {
-    refreshSubscribers.push(cb);
+// Helper to broadcast a clean logout event to all providers
+const forceLogout = () => {
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.dispatchEvent(new Event("auth:logout"));
+        if (!window.location.pathname.startsWith('/auth/')) {
+            window.location.href = '/login';
+        }
+    }
 };
 
-const onRefreshed = (token: string) => {
-    refreshSubscribers.forEach((cb) => cb(token));
-    refreshSubscribers = [];
-};
-
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
+export async function fetchWithAuth(endpoint: string, options: RequestInit & { _retry?: boolean } = {}): Promise<any> {
     const isFormData = options.body instanceof FormData;
+    const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
+    const cleanEndpoint = endpoint.replace(/^\//, "");
+    const fullUrl = `${cleanBaseUrl}/${cleanEndpoint}`;
+
+    // Always pull fresh token
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
     const headers: any = {
         "X-ST-CSRF": "XMLHttpRequest",
@@ -27,10 +34,6 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         headers["Content-Type"] = "application/json";
     }
 
-    const cleanBaseUrl = API_BASE_URL.replace(/\/$/, "");
-    const cleanEndpoint = endpoint.replace(/^\//, "");
-    const fullUrl = `${cleanBaseUrl}/${cleanEndpoint}`;
-
     try {
         let response = await fetch(fullUrl, {
             ...options,
@@ -38,90 +41,105 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
             credentials: "include",
         });
 
-        // Intercept 401 Unauthorized to refresh token
-        if (response.status === 401 && endpoint !== "/auth/login" && endpoint !== "/auth/refresh") {
-            if (!isRefreshing) {
-                isRefreshing = true;
-                try {
-                    console.log("[API] Token expired, attempting refresh...");
-                    const refreshRes = await fetch(`${cleanBaseUrl}/auth/refresh`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-ST-CSRF": "XMLHttpRequest",
-                        },
-                        credentials: "include",
-                    });
-
-                    if (!refreshRes.ok) {
-                        throw new Error("Session expired. Please log in again.");
-                    }
-
-                    const refreshData = await refreshRes.json();
-                    const newToken = refreshData.token || refreshData.accessToken;
-                    
-                    if (newToken && typeof window !== "undefined") {
-                        localStorage.setItem("token", newToken);
-                        onRefreshed(newToken);
-                    } else {
-                        throw new Error("No token returned from refresh endpoint.");
-                    }
-                } catch (refreshErr) {
-                    console.error("[API] Refresh failed:", refreshErr);
-                    onRefreshed(""); // Unblock queue
-                    if (typeof window !== "undefined") {
-                        localStorage.removeItem("token");
-                        localStorage.removeItem("user");
-                        // We avoid a hard redirect here to prevent destructive unmounts
-                        // The AuthGuard or the component will handle the error
-                    }
-                    throw refreshErr;
-                } finally {
-                    isRefreshing = false;
-                }
+        // 401 Unauthorized Interception
+        if (response.status === 401 && !endpoint.includes("/auth/login") && !endpoint.includes("/auth/refresh")) {
+            
+            // If already retried, fail fast
+            if (options._retry) {
+                forceLogout();
+                throw new Error("Session expired completely.");
             }
 
-            // Wait for refresh to complete, then retry
-            const newToken = await new Promise<string>((resolve) => {
-                subscribeTokenRefresh((token) => resolve(token));
-            });
+            // Singleton Refresh Logic
+            if (!refreshPromise) {
+                // Prevent rapid fire refresh (throttle)
+                const now = Date.now();
+                if (now - lastRefreshTime < 2000) {
+                    forceLogout();
+                    throw new Error("Auth stability failure. Please login again.");
+                }
+                lastRefreshTime = now;
+
+                refreshPromise = fetch(`${cleanBaseUrl}/auth/refresh`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-ST-CSRF": "XMLHttpRequest",
+                    },
+                    credentials: "include",
+                })
+                .then(async (res) => {
+                    if (!res.ok) throw new Error("Backend refresh failed");
+                    const data = await res.json();
+                    const newToken = data.token || data.accessToken;
+                    if (newToken) {
+                        if (typeof window !== "undefined") localStorage.setItem("token", newToken);
+                        return newToken;
+                    }
+                    throw new Error("Empty token response");
+                })
+                .catch(() => {
+                    forceLogout();
+                    return null;
+                })
+                .finally(() => {
+                    refreshPromise = null;
+                });
+            }
+
+            const newToken = await refreshPromise;
 
             if (newToken) {
-                // Retry original request with new token
-                const retryHeaders = {
-                    ...headers,
-                    "Authorization": `Bearer ${newToken}`,
-                };
-                response = await fetch(fullUrl, {
+                // Retry with new token
+                return fetchWithAuth(endpoint, {
                     ...options,
-                    headers: retryHeaders,
-                    credentials: "include",
+                    _retry: true,
+                    headers: {
+                        ...options.headers,
+                        "Authorization": `Bearer ${newToken}`,
+                    }
                 });
             } else {
-                throw new Error("Session expired. Please log in again.");
+                throw new Error("Session expired.");
             }
         }
 
         if (!response.ok) {
-            let errorData: any = {};
-            const text = await response.text();
-            try {
-                errorData = JSON.parse(text);
-            } catch (e) {
-                const rawText = text || "No response body";
-                console.warn(`[API Raw Error] ${endpoint} (${response.status}):`, rawText);
-                errorData = { message: rawText || `Server error (${response.status})` };
+            const contentType = response.headers.get("content-type");
+            let errorMessage = `API Error ${response.status}`;
+            
+            if (contentType && contentType.includes("application/json")) {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorMessage;
+            } else {
+                const text = await response.text();
+                // If it's an HTML error page, extract the message or just say "Server Error"
+                if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+                    errorMessage = `Server Error (${response.status}): The requested resource was not found or an internal error occurred.`;
+                } else {
+                    errorMessage = text || errorMessage;
+                }
             }
-            throw new Error(errorData.message || "Something went wrong");
+            throw new Error(errorMessage);
         }
 
-        const data = await response.json();
-        return data;
+        return await response.json();
     } catch (error: any) {
-        console.warn(`[API FETCH ERROR] ${endpoint}:`, error.message || error);
+        if (error.message.includes("Session expired")) {
+            console.warn("[Auth] Redirecting due to session expiry");
+        } else {
+            console.error(`[API Error] ${endpoint}:`, error.message);
+        }
         throw error;
     }
 }
+
+export const api = {
+    get: (url: string, options?: any) => fetchWithAuth(url, { ...options, method: "GET" }),
+    post: (url: string, body?: any, options?: any) => fetchWithAuth(url, { ...options, method: "POST", body: body instanceof FormData ? body : JSON.stringify(body) }),
+    patch: (url: string, body?: any, options?: any) => fetchWithAuth(url, { ...options, method: "PATCH", body: body instanceof FormData ? body : JSON.stringify(body) }),
+    delete: (url: string, options?: any) => fetchWithAuth(url, { ...options, method: "DELETE" }),
+};
 
 export const courseApi = {
     getAll: (params?: any) => {
@@ -280,6 +298,15 @@ export const aiApi = {
         body: JSON.stringify(data)
     }),
     getChatHistory: (subject?: string) => fetchWithAuth(`/ai/history${subject ? `?subject=${subject}` : ""}`),
+};
+
+export const gamificationApi = {
+    getProfile: () => fetchWithAuth('/gamification/profile'),
+    awardXP: (amount: number, reason?: string) => fetchWithAuth('/gamification/award-xp', {
+        method: 'POST',
+        body: JSON.stringify({ amount, reason })
+    }),
+    getLeaderboard: () => fetchWithAuth('/gamification/leaderboard')
 };
 
 export const assignmentApi = {

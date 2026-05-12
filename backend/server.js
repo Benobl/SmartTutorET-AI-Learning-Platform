@@ -36,9 +36,14 @@ import masterScheduleRoutes from "./src/modules/scheduling/master-schedule.route
 import learningRoutes from "./src/modules/learning/learning.route.js";
 import attendanceRoutes from "./src/modules/attendance/attendance.route.js";
 import announcementRoutes from "./src/modules/announcements/announcement.route.js";
+import gamificationRoutes from "./src/modules/gamification/gamification.route.js";
 import { fileURLToPath } from "url";
 import path from "path";
+import { initCronJobs } from "./src/lib/cron.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Initialize Cron Jobs
+initCronJobs();
 
 const PORT = process.env.PORT || 5001;
 
@@ -138,6 +143,7 @@ app.use("/api/scheduling", masterScheduleRoutes);
 app.use("/api/v2/learning", learningRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/announcements", announcementRoutes);
+app.use("/api/gamification", gamificationRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {

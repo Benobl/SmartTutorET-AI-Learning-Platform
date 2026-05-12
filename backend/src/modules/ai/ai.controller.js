@@ -1,5 +1,6 @@
 import { AIService } from "./ai.service.js";
 import { TutorService } from "./tutor.service.js";
+import { awardXP } from "../gamification/gamification.controller.js";
 
 export class AIController {
     static async askTutor(req, res, next) {
@@ -12,6 +13,13 @@ export class AIController {
                 historyId,
                 attachments
             });
+
+            // Award XP for AI Study Session (+20)
+            await awardXP({
+                user: req.user,
+                body: { reason: "ai_study", metadata: { query: query.substring(0, 50) } }
+            });
+
             res.json({ success: true, data: result });
         } catch (error) {
             next(error);

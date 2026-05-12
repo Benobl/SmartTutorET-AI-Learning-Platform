@@ -7,6 +7,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { useSessionTimeout } from "@/hooks/use-session-timeout"
 import { AuthGuard } from "@/components/auth/AuthGuard"
 import { StreamProvider } from "@/components/providers/StreamProvider"
+import { GlobalAITutor } from "@/components/global/global-ai-tutor"
 
 /**
  * Dashboard layout wrapper — provides sidebar, navbar, breadcrumbs,
@@ -58,7 +59,7 @@ export default function DashboardLayout({
         <AuthGuard>
             <StreamProvider>
                 <SidebarProvider>
-                    <div className="flex h-screen w-full bg-[#f8f9fa] text-slate-900 overflow-hidden">
+                    <div className="flex h-screen w-full bg-[#f8f9fa] text-slate-900 overflow-hidden relative">
                         <DashboardSidebar />
                         <SidebarInset className="flex-1 flex flex-col bg-[#f8f9fa] overflow-y-auto custom-scrollbar relative">
                             <SessionTimeoutBanner />
@@ -69,6 +70,7 @@ export default function DashboardLayout({
                                 </div>
                             </div>
                         </SidebarInset>
+                        <GlobalAITutor />
                     </div>
                 </SidebarProvider>
             </StreamProvider>

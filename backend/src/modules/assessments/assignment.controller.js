@@ -3,6 +3,7 @@ import AssignmentSubmission from "./assignmentSubmission.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 import Subject from "../courses/subject.model.js";
 import { NotificationService } from "../notifications/notification.service.js";
+import { awardXP } from "../gamification/gamification.controller.js";
 
 const toNumberGrade = (value) => {
     const parsed = Number.parseInt(String(value ?? ""), 10);
@@ -375,6 +376,12 @@ export class AssignmentController {
                     student: req.user._id,
                     content: normalizedContent,
                     attachments: normalizedAttachments,
+                });
+
+                // Award XP for first-time submission
+                await awardXP({
+                    user: req.user,
+                    body: { amount: 100, reason: "assignment", metadata: { assignmentId } }
                 });
             }
 

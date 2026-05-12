@@ -1,4 +1,5 @@
 import { AssessmentService } from "./assessment.service.js";
+import { awardXP } from "../gamification/gamification.controller.js";
 
 export class AssessmentController {
     static async create(req, res, next) {
@@ -91,6 +92,13 @@ export class AssessmentController {
         try {
             const { answers } = req.body;
             const result = await AssessmentService.submitAttempt(req.user._id, req.params.id, answers);
+            
+            // Award XP for completing quiz
+            await awardXP({ 
+                user: req.user, 
+                body: { amount: 50, reason: "quiz", metadata: { assessmentId: req.params.id } } 
+            });
+
             const [rankedResult] = await AssessmentService.getSubmissions({ _id: result._id });
             res.json({ 
                 success: true, 

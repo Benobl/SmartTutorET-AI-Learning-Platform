@@ -52,75 +52,50 @@ export default function TeacherOverview() {
     return (
         <div className="max-w-[1600px] mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32 pt-8 px-6 lg:px-10">
 
-            {/* Premium Educator Welcome Section */}
-            <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-sky-600 to-indigo-600 rounded-[60px] blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
-                <div className="relative bg-white border border-slate-100 p-12 lg:p-16 rounded-[60px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.03)] flex flex-col lg:flex-row items-center justify-between gap-12 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-slate-50 rounded-full blur-3xl -mr-64 -mt-64 opacity-50 transition-all duration-1000 group-hover:scale-110"></div>
-                    
-                    <div className="relative z-10 space-y-8 max-w-2xl text-center lg:text-left">
-                        <div className="flex items-center gap-3 justify-center lg:justify-start">
-                            <span className="px-4 py-1.5 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 flex items-center gap-2">
-                                <Sparkles className="w-3.5 h-3.5 text-sky-400 fill-sky-400" /> Educator Node
-                            </span>
-                            <span className="px-4 py-1.5 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-[0.2em] border border-sky-100/50">Instruction Active</span>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <h1 className="text-5xl lg:text-7xl font-light text-slate-800 tracking-tight leading-none">
-                                Welcome Back, <span className="font-semibold text-slate-900 italic">{teacherName}</span>
-                            </h1>
-                            <p className="text-slate-400 text-lg lg:text-xl font-medium leading-relaxed">
-                                Your instructional impact is rising. You are currently directing <span className="text-slate-900 font-bold">{courses.length} active learning paths</span> 
-                                across <span className="text-sky-600 font-bold">{stats?.activeStudents || 0} students</span>.
-                            </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
-                            <Link href="/dashboard/tutor/courses">
-                                <Button className="h-16 px-10 rounded-[28px] bg-sky-600 hover:bg-sky-700 text-white text-xs font-black uppercase tracking-[0.2em] shadow-2xl shadow-sky-600/30 transition-all active:scale-95 gap-3">
-                                    <Plus className="w-5 h-5" /> Architect New Course
-                                </Button>
-                            </Link>
-                            <Link href="/dashboard/tutor/live">
-                                <Button variant="outline" className="h-16 px-10 rounded-[28px] border-slate-100 bg-white text-slate-900 text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-50 transition-all shadow-xl shadow-slate-200/20 gap-3">
-                                    <Video className="w-5 h-5 text-rose-500" /> Start Live Hub
-                                </Button>
-                            </Link>
-                        </div>
+            {/* HEADER */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-slate-900 shadow-[0_0_10px_rgba(0,0,0,0.1)]" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Tutor Portal</span>
                     </div>
+                    <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+                        Welcome, <span className="font-semibold text-slate-900">{teacherName}</span>
+                    </h1>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
+                        Your instructional impact is rising. You are currently directing <span className="text-slate-900 font-bold">{courses.length} active learning paths</span> across <span className="text-sky-600 font-bold">{stats?.activeStudents || 0} students</span>.
+                    </p>
+                </div>
 
-                    <div className="relative z-10 hidden lg:block">
-                        <div className="w-64 h-64 rounded-[56px] bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner group/icon overflow-hidden">
-                           <Presentation className="w-24 h-24 text-slate-200 group-hover:scale-110 group-hover:text-sky-500 transition-all duration-700 rotate-3" />
-                           <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-transparent"></div>
-                        </div>
-                        <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-[32px] bg-white border border-slate-100 shadow-2xl flex items-center justify-center animate-bounce duration-[4s]">
-                           <TrendingUp className="w-8 h-8 text-emerald-500" />
-                        </div>
-                    </div>
+                <div className="flex gap-4">
+                    <Link href="/dashboard/tutor/courses">
+                        <Button className="h-12 px-8 rounded-full bg-sky-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm">
+                            <Plus className="w-4 h-4 mr-2" /> New Course
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/tutor/live">
+                        <Button variant="outline" className="h-12 px-8 rounded-full border-slate-100 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-slate-50">
+                            <Video className="w-4 h-4 mr-2 text-rose-500" /> Live Hub
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
             {/* Impact Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 px-4">
                 {[
-                    { label: "Active Students", value: stats?.activeStudents || "0", sub: "Network Size", icon: Users, color: "text-sky-500", bg: "bg-sky-50" },
-                    { label: "Class Average", value: `${stats?.classAverage || "0"}%`, sub: "Knowledge Transfer", icon: Brain, color: "text-indigo-500", bg: "bg-indigo-50" },
-                    { label: "Pending Reviews", value: stats?.pendingHomework || "0", sub: "Grading Loop", icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
-                    { label: "Earning Node", value: `${stats?.totalEarnings || "0"} ETB`, sub: "Value Exchange", icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50" },
-                ].map((stat, i) => (
-                    <div
-                        key={i}
-                        className="p-10 rounded-[48px] bg-white border border-slate-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden"
-                    >
-                        <div className={cn("absolute right-0 top-0 w-24 h-24 blur-3xl rounded-full opacity-0 group-hover:opacity-20 transition-opacity", stat.bg)} />
-                        <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-transparent group-hover:border-current transition-all", stat.bg, stat.color)}>
-                            <stat.icon className="w-6 h-6" />
+                    { label: "Active Students", value: stats?.activeStudents || "0" },
+                    { label: "Class Average", value: `${stats?.classAverage || "0"}%` },
+                    { label: "Pending Reviews", value: stats?.pendingHomework || "0" },
+                    { label: "Earning Node", value: `${stats?.totalEarnings || "0"} ETB` },
+                ].map((s, i) => (
+                    <div key={i} className="p-10 rounded-[32px] bg-slate-50/50 border border-transparent hover:bg-white hover:border-slate-100 hover:shadow-xl transition-all duration-500 group">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+                        <h3 className="text-3xl font-semibold text-slate-900 tracking-tight">{s.value}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className="w-1 h-1 rounded-full bg-sky-400" />
+                            <p className="text-[9px] font-medium text-slate-400 uppercase">System Sync: Live</p>
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{stat.label}</p>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
-                        <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{stat.sub}</p>
                     </div>
                 ))}
             </div>
@@ -235,94 +210,84 @@ export default function TeacherOverview() {
                 </div>
 
                 {/* Sidebar Panel */}
-                <div className="xl:col-span-4 space-y-12">
+                <div className="xl:col-span-4 space-y-8">
 
                     {/* Premium Agenda Hub */}
-                    <div className="p-10 rounded-[52px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 relative group overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 blur-2xl rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-150 group-hover:opacity-30" />
-                        <div className="relative z-10 space-y-10">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-900">Academic <span className="text-sky-600">Agenda</span></h3>
-                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Managed Schedule</p>
-                                </div>
-                                <Link href="/dashboard/tutor/timetable">
-                                    <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-widest text-sky-600 hover:bg-sky-50">Timeline</Button>
-                                </Link>
+                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-sm space-y-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-1 h-6 bg-slate-900 rounded-full" />
+                                <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Academic Agenda</h4>
                             </div>
+                            <Link href="/dashboard/tutor/timetable">
+                                <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900">Timeline</Button>
+                            </Link>
+                        </div>
 
-                            <div className="space-y-4">
-                                {schedule.length > 0 ? schedule.slice(0, 5).map((item, idx) => (
-                                    <div key={idx} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-sky-100 transition-all duration-500 group/item relative overflow-hidden">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-100 shadow-sm text-slate-400 group-hover/item:text-sky-600 transition-colors">
-                                                    <Clock className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-slate-900">{item.startTime}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.dayOfWeek}</p>
-                                                </div>
+                        <div className="space-y-4">
+                            {schedule.length > 0 ? schedule.slice(0, 5).map((item, idx) => (
+                                <div key={idx} className="p-6 rounded-[24px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-slate-200 transition-all duration-300">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 text-slate-400">
+                                                <Clock className="w-4 h-4" />
                                             </div>
-                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic group-hover/item:text-emerald-500 transition-colors">Live Node</span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[14px] font-black text-slate-900 uppercase italic leading-tight group-hover/item:text-sky-600 transition-colors">{item.subject?.title}</p>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Grade {item.grade} Hub</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SEM {item.semester || 1}</span>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-900">{item.startTime}</p>
+                                                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">{item.dayOfWeek}</p>
                                             </div>
                                         </div>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Live Node</span>
                                     </div>
-                                )) : (
-                                    <div className="py-12 text-center opacity-30">
-                                        <Calendar className="w-12 h-12 mx-auto mb-4" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">No assigned nodes</p>
+                                    <div className="pt-3 border-t border-slate-100/50">
+                                        <p className="text-sm font-bold text-slate-900 truncate">{item.subject?.title}</p>
+                                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Grade {item.grade} • SEM {item.semester || 1}</p>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )) : (
+                                <div className="py-12 text-center opacity-50">
+                                    <Calendar className="w-8 h-8 mx-auto mb-3 text-slate-400" />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">No assigned nodes</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Intelligence & Grading Queue */}
-                    <div className="p-10 rounded-[52px] bg-white border border-slate-100 shadow-xl shadow-slate-200/20 relative group overflow-hidden">
-                        <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-sky-500/5 blur-3xl rounded-full opacity-50" />
-                        <div className="relative z-10 space-y-10">
-                            <div className="space-y-1">
-                                <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-900">Grading <span className="text-sky-600">Sync</span></h3>
-                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Awaiting assessment intel</p>
-                            </div>
-                            
-                            <div className="flex items-baseline gap-4">
-                                <span className="text-7xl font-black text-sky-600 tracking-tighter">{stats?.pendingHomework || "0"}</span>
-                                <div className="space-y-1">
-                                    <p className="text-xs font-black text-slate-900 uppercase italic">Pending Data</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Requires Neural Validation</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                {courses.slice(0, 2).map((course, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-5 rounded-[24px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-sky-100 transition-all duration-500 cursor-pointer shadow-sm">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-lg shadow-sky-500/30" />
-                                            <div>
-                                                <p className="text-[12px] font-black uppercase tracking-tight text-slate-900">{course.title}</p>
-                                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic">{(course.students?.length || 0)} Learners active</p>
-                                            </div>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-slate-200" />
-                                    </div>
-                                ))}
-                            </div>
-                            
-                            <Link href="/dashboard/tutor/grading" className="block pt-4">
-                                <Button className="w-full h-16 rounded-[28px] bg-slate-900 hover:bg-sky-600 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 transition-all active:scale-95">
-                                    Initialize Grading Hub
-                                </Button>
-                            </Link>
+                    <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-sm space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-1 h-6 bg-slate-900 rounded-full" />
+                            <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Grading Sync</h4>
                         </div>
+                        
+                        <div className="flex items-baseline gap-4">
+                            <span className="text-5xl font-black text-sky-600 tracking-tighter">{stats?.pendingHomework || "0"}</span>
+                            <div className="space-y-1">
+                                <p className="text-sm font-bold text-slate-900">Pending Data</p>
+                                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Requires Validation</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {courses.slice(0, 2).map((course, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 rounded-[20px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-slate-200 transition-all duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-sky-500" />
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-900 truncate max-w-[150px]">{course.title}</p>
+                                            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">{(course.students?.length || 0)} active</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <Link href="/dashboard/tutor/grading" className="block pt-2">
+                            <Button className="w-full h-11 rounded-xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm">
+                                Initialize Grading Hub
+                            </Button>
+                        </Link>
                     </div>
 
                 </div>

@@ -34,6 +34,7 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
     const [videoClient, setVideoClient] = useState<StreamVideoClient | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [initError, setInitError] = useState<string | null>(null)
+    const [isRecovering, setIsRecovering] = useState(false)
     const [userId, setUserId] = useState<string | null>(null)
     const [retryTrigger, setRetryTrigger] = useState(0)
 
@@ -56,10 +57,25 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [userId])
 
+    // Listen for the global auth:logout event fired by forceLogout() in api.ts
+    useEffect(() => {
+        const handleLogout = () => {
+            console.log("[StreamProvider] Auth logout detected — cleaning up clients")
+            setChatClient(null)
+            setVideoClient(null)
+            setIsReady(false)
+            setIsRecovering(false)
+            initializedRef.current = null
+        }
+        window.addEventListener("auth:logout", handleLogout)
+        return () => window.removeEventListener("auth:logout", handleLogout)
+    }, [])
+
     const retryInit = useCallback(() => {
         console.log("[StreamProvider] Manual Retry Triggered")
         setInitError(null)
         setIsReady(false)
+        setIsRecovering(false)
         initializedRef.current = null
         setRetryTrigger(t => t + 1)
     }, [])
@@ -138,6 +154,15 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             } catch (error: any) {
                 if (!isMounted) return
+                
+                // If auth expired, show a graceful recovery state instead of crashing
+                if (error.message?.includes("Session expired")) {
+                    console.warn("[StreamProvider] Pausing — auth session expired. Waiting for token refresh or logout.")
+                    setIsRecovering(true)
+                    setIsReady(false)
+                    return
+                }
+
                 console.error("[StreamProvider] Initialization Error:", error)
                 setInitError(error.message || "Connection failed")
                 setIsReady(false)
@@ -164,6 +189,14 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <StreamContext.Provider value={contextValue}>
+            {isRecovering && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm pointer-events-none">
+                    <div className="flex flex-col items-center gap-3 px-8 py-5 bg-slate-900/90 rounded-2xl border border-white/10 shadow-xl">
+                        <div className="w-6 h-6 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
+                        <p className="text-sm font-semibold text-slate-300 tracking-wide">Establishing Secure Connection...</p>
+                    </div>
+                </div>
+            )}
             <div className="contents">{children}</div>
         </StreamContext.Provider>
     )

@@ -31,6 +31,7 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
     const [isMounted, setIsMounted] = useState(false)
     const [invites, setInvites] = useState<any[]>([])
     const [notifications, setNotifications] = useState<any[]>([])
+    const [gamification, setGamification] = useState<any>(null)
 
     useEffect(() => {
         setIsMounted(true)
@@ -40,11 +41,14 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
         if (currentUser) {
             const fetchData = async () => {
                 try {
-                    const { inviteApi, notificationApi } = await import("@/lib/api")
-                    const [invRes, notifRes] = await Promise.all([
+                    const { inviteApi, notificationApi, gamificationApi } = await import("@/lib/api")
+                    const [invRes, notifRes, gamifRes] = await Promise.all([
                         inviteApi.getMine(),
-                        notificationApi.getMine()
+                        notificationApi.getMine(),
+                        gamificationApi.getProfile().catch(() => ({ data: null }))
                     ])
+                    
+                    if (gamifRes?.data) setGamification(gamifRes.data)
                     
                     // Filter pending invites
                     const incomingInvites = (invRes.data || []).filter((inv: any) => {
@@ -170,6 +174,23 @@ export function DashboardNavbar({ className }: DashboardNavbarProps) {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
+                {/* Gamification Indicator */}
+                {gamification && user?.role === 'student' && (
+                    <Link href="/dashboard/student/gamification" className="hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-sky-50 hover:border-sky-200 transition-all cursor-pointer group">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-500 transition-colors">Lvl {gamification.level}</span>
+                            <span className="text-xs font-black text-slate-800 italic">{gamification.xp} XP</span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-black text-xs shadow-md shadow-orange-500/20 group-hover:scale-110 transition-transform">
+                            🔥
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Streak</span>
+                            <span className="text-[11px] font-black text-orange-500">{gamification.currentStreak} Days</span>
+                        </div>
+                    </Link>
+                )}
+
                 {/* Notifications & Invites */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

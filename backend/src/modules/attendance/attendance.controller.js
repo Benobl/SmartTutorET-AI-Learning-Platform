@@ -1,6 +1,7 @@
 import Attendance from "./attendance.model.js";
 import Subject from "../courses/subject.model.js";
 import { ApiError } from "../../middleware/error.middleware.js";
+import { awardXP } from "../gamification/gamification.controller.js";
 
 export class AttendanceController {
     static async logAttendance(req, res, next) {
@@ -10,11 +11,21 @@ export class AttendanceController {
                 throw new ApiError(400, "Subject ID and Session ID are required.");
             }
 
+            const existing = await Attendance.findOne({ student: req.user._id, session: sessionId });
+            
             const attendance = await Attendance.findOneAndUpdate(
                 { student: req.user._id, session: sessionId },
                 { student: req.user._id, subject: subjectId, session: sessionId, status: "present" },
                 { upsert: true, new: true }
             );
+
+            if (!existing) {
+                // Award XP for attending live class
+                await awardXP({
+                    user: req.user,
+                    body: { amount: 30, reason: "attendance", metadata: { sessionId, subjectId } }
+                });
+            }
 
             res.json({ success: true, data: attendance });
         } catch (error) {

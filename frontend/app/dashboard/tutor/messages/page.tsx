@@ -26,6 +26,7 @@ export default function TeacherMessagesPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [searchResults, setSearchResults] = useState<any[]>([])
     const [isSearching, setIsSearching] = useState(false)
+    const [isCreatingSquad, setIsCreatingSquad] = useState(false)
     const currentUser = getCurrentUser()
 
     useEffect(() => {
@@ -77,6 +78,35 @@ export default function TeacherMessagesPage() {
             setShowMobileChat(true)
         } catch (error) {
             console.error("Error starting chat:", error)
+        }
+    }
+
+    const createGradeSquad = async (grade: string) => {
+        try {
+            setIsCreatingSquad(true)
+            const studentRes = await userApi.getAllStudents()
+            const allStudents = studentRes.data || []
+            const gradeStudents = allStudents.filter((u: any) => String(u.grade) === String(grade))
+            
+            // Add all grade students + the tutor
+            const memberIds = [currentUser._id || currentUser.id, ...gradeStudents.map((s:any) => s._id || s.id)]
+            
+            const cid = `squad-grade-${grade}-${currentUser._id || currentUser.id}`
+            
+            const channel = chatClient.channel('messaging', cid, {
+                name: `Grade ${grade} Squad`,
+                image: `https://ui-avatars.com/api/?name=G${grade}&background=0ea5e9&color=fff&size=128`,
+                members: memberIds,
+            })
+            
+            await channel.create()
+            setSelectedChannel(channel)
+            setIsSearchOpen(false)
+            setShowMobileChat(true)
+        } catch (error) {
+            console.error("Error creating squad:", error)
+        } finally {
+            setIsCreatingSquad(false)
         }
     }
 
@@ -227,7 +257,7 @@ export default function TeacherMessagesPage() {
                 <DialogContent className="bg-white border-0 text-slate-900 rounded-[40px] p-0 overflow-hidden max-w-md shadow-2xl ring-1 ring-black/5">
                     <div className="p-8 bg-slate-50 border-b border-slate-100 pb-0">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Locate <span className="text-sky-500">Student</span></DialogTitle>
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">New <span className="text-sky-500">Conversation</span></DialogTitle>
                         </DialogHeader>
 
                         <div className="my-6 relative">
@@ -241,10 +271,10 @@ export default function TeacherMessagesPage() {
                         </div>
                     </div>
                     <ScrollArea className="h-96 p-4">
-                        {isSearching ? (
+                        {isSearching || isCreatingSquad ? (
                             <div className="flex flex-col items-center justify-center h-full py-20 opacity-40">
                                 <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
-                                <p className="mt-4 text-[9px] font-black uppercase tracking-widest">Scanning Academy Records...</p>
+                                <p className="mt-4 text-[9px] font-black uppercase tracking-widest">{isCreatingSquad ? "Initializing Squad..." : "Scanning Academy Records..."}</p>
                             </div>
                         ) : searchResults.length > 0 ? (
                             <div className="space-y-2">
@@ -274,8 +304,29 @@ export default function TeacherMessagesPage() {
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Students Located</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full py-24 opacity-20 text-slate-300">
-                                <Search className="w-12 h-12" />
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 px-2">Initialize Class Squad</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['9', '10', '11', '12'].map(grade => (
+                                            <button 
+                                                key={grade}
+                                                onClick={() => createGradeSquad(grade)}
+                                                className="p-4 rounded-2xl border border-slate-100 hover:border-sky-200 hover:bg-sky-50 transition-all group flex flex-col items-center text-center shadow-sm"
+                                            >
+                                                <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                    <MessageCircle className="w-5 h-5" />
+                                                </div>
+                                                <p className="text-sm font-black text-slate-800">Grade {grade}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Class Squad</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center justify-center py-12 opacity-20 text-slate-300">
+                                    <Search className="w-12 h-12" />
+                                    <p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em]">Or search specific student</p>
+                                </div>
                             </div>
                         )}
                     </ScrollArea>
