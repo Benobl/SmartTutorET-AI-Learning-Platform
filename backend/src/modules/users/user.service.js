@@ -143,16 +143,17 @@ export class UserService {
         const courses = await Subject.find({ tutor: tid });
         
         const tutorsGrades = Array.from(new Set(courses.filter(c => c.grade).map(c => Number(c.grade))));
-        console.log(`[getTutorStats] Tutor teaches grades: ${tutorsGrades}`);
         
-        const studentsInGrades = await User.find({ 
-            role: "student", 
-            grade: { $in: tutorsGrades },
-            accountStatus: { $ne: "deactivated" }
-        });
+        // Find unique students enrolled across all tutor's subjects
+        const allEnrolledStudents = courses.reduce((acc, course) => {
+            if (course.students && Array.isArray(course.students)) {
+                course.students.forEach(s => acc.add(s.toString()));
+            }
+            return acc;
+        }, new Set());
         
-        const studentCount = studentsInGrades.length;
-        console.log(`[getTutorStats] Found ${studentCount} students in those grades`);
+        const studentCount = allEnrolledStudents.size;
+        console.log(`[getTutorStats] Found ${studentCount} unique enrolled students`);
         
         // Calculate pending submissions
         const Assignment = (await import("../assessments/assignment.model.js")).default;

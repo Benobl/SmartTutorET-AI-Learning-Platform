@@ -14,5 +14,6 @@ router.get("/tutor/earnings", protectRoute, authorizeRoles("tutor"), PaymentCont
 router.get("/admin/earnings", protectRoute, authorizeRoles("admin", "manager"), PaymentController.getAdminEarnings);
 router.get("/admin/pending", protectRoute, authorizeRoles("admin", "manager"), PaymentController.getPendingApprovals);
 router.post("/admin/approve/:paymentId", protectRoute, authorizeRoles("admin", "manager"), PaymentController.approve);
+router.post("/admin/refund/:paymentId", protectRoute, authorizeRoles("admin", "manager"), PaymentController.refund);
 
 export default router;

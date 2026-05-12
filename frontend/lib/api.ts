@@ -188,6 +188,9 @@ export const paymentApi = {
     approvePayment: (paymentId: string) => fetchWithAuth(`/payments/admin/approve/${paymentId}`, {
         method: "POST"
     }),
+    refundPayment: (paymentId: string) => fetchWithAuth(`/payments/admin/refund/${paymentId}`, {
+        method: "POST"
+    }),
 };
 
 export const groupApi = {

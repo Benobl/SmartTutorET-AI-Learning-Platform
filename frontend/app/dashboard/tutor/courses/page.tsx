@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
     Dialog, DialogContent, DialogHeader,
-    DialogTitle, DialogTrigger, DialogFooter
+    DialogTitle, DialogTrigger, DialogFooter, DialogDescription
 } from "@/components/ui/dialog"
 import { uploadToSupabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
@@ -273,14 +273,14 @@ export default function TeacherCourses() {
             formData.append("category", "General")
             formData.append("roadmap", JSON.stringify({
                 semester1: {
-                    chapters: newCourse.roadmap.semester1.chapters.split(',').map((s: string) => s.trim()).filter(Boolean),
-                    midTermDate: newCourse.roadmap.semester1.midTermDate,
-                    finalDate: newCourse.roadmap.semester1.finalDate
+                    chapters: (newCourse.roadmap?.semester1?.chapters || "").split(',').map((s: string) => s.trim()).filter(Boolean),
+                    midTermDate: newCourse.roadmap?.semester1?.midTermDate || "",
+                    finalDate: newCourse.roadmap?.semester1?.finalDate || ""
                 },
                 semester2: {
-                    chapters: newCourse.roadmap.semester2.chapters.split(',').map((s: string) => s.trim()).filter(Boolean),
-                    midTermDate: newCourse.roadmap.semester2.midTermDate,
-                    finalDate: newCourse.roadmap.semester2.finalDate
+                    chapters: (newCourse.roadmap?.semester2?.chapters || "").split(',').map((s: string) => s.trim()).filter(Boolean),
+                    midTermDate: newCourse.roadmap?.semester2?.midTermDate || "",
+                    finalDate: newCourse.roadmap?.semester2?.finalDate || ""
                 }
             }))
             if (syllabusFile) {
@@ -303,7 +303,17 @@ export default function TeacherCourses() {
 
             setIsCreateModalOpen(false)
             setEditingCourseId(null)
-            setNewCourse({ name: "", grade: "9", semester: "1", isPremium: false, price: 0 })
+            setNewCourse({ 
+                name: "", 
+                grade: "9", 
+                semester: "1", 
+                isPremium: false, 
+                price: 0,
+                roadmap: {
+                    semester1: { chapters: "", midTermDate: "", finalDate: "" },
+                    semester2: { chapters: "", midTermDate: "", finalDate: "" }
+                }
+            })
             setSyllabusFile(null)
             loadCourses()
         } catch (error: any) {
@@ -408,12 +418,15 @@ export default function TeacherCourses() {
                                     <Plus className="w-4 h-4" /> Create Framework
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[480px] rounded-[40px] border-slate-100 bg-white p-0 overflow-hidden flex flex-col shadow-2xl">
+                            <DialogContent className="sm:max-w-[480px] h-[90vh] rounded-[40px] border-slate-100 bg-white p-0 overflow-hidden flex flex-col shadow-2xl">
                                 <div className="p-10 border-b border-slate-50 flex-shrink-0">
                                     <DialogHeader>
                                         <DialogTitle className="text-xl font-semibold tracking-tight text-slate-900">
                                             {editingCourseId ? "Modify Framework" : "New Course Framework"}
                                         </DialogTitle>
+                                        <DialogDescription className="sr-only">
+                                            Define the core framework and roadmap for your academic course.
+                                        </DialogDescription>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">National Standards V2.0</p>
                                     </DialogHeader>
                                 </div>
@@ -495,12 +508,12 @@ export default function TeacherCourses() {
                                                     <Input 
                                                         placeholder="Chapter 1, Chapter 2, ..."
                                                         className="h-10 rounded-xl bg-white border-slate-100 text-xs font-medium"
-                                                        value={newCourse.roadmap.semester1.chapters}
+                                                        value={newCourse.roadmap?.semester1?.chapters || ""}
                                                         onChange={(e) => setNewCourse({ 
                                                             ...newCourse, 
                                                             roadmap: { 
-                                                                ...newCourse.roadmap, 
-                                                                semester1: { ...newCourse.roadmap.semester1, chapters: e.target.value } 
+                                                                ...(newCourse.roadmap || {}), 
+                                                                semester1: { ...(newCourse.roadmap?.semester1 || {}), chapters: e.target.value } 
                                                             } 
                                                         })}
                                                     />
@@ -511,12 +524,12 @@ export default function TeacherCourses() {
                                                         <Input 
                                                             type="date"
                                                             className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
-                                                            value={newCourse.roadmap.semester1.midTermDate}
+                                                            value={newCourse.roadmap?.semester1?.midTermDate || ""}
                                                             onChange={(e) => setNewCourse({ 
                                                                 ...newCourse, 
                                                                 roadmap: { 
-                                                                    ...newCourse.roadmap, 
-                                                                    semester1: { ...newCourse.roadmap.semester1, midTermDate: e.target.value } 
+                                                                    ...(newCourse.roadmap || {}), 
+                                                                    semester1: { ...(newCourse.roadmap?.semester1 || {}), midTermDate: e.target.value } 
                                                                 } 
                                                             })}
                                                         />
@@ -526,12 +539,12 @@ export default function TeacherCourses() {
                                                         <Input 
                                                             type="date"
                                                             className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
-                                                            value={newCourse.roadmap.semester1.finalDate}
+                                                            value={newCourse.roadmap?.semester1?.finalDate || ""}
                                                             onChange={(e) => setNewCourse({ 
                                                                 ...newCourse, 
                                                                 roadmap: { 
-                                                                    ...newCourse.roadmap, 
-                                                                    semester1: { ...newCourse.roadmap.semester1, finalDate: e.target.value } 
+                                                                    ...(newCourse.roadmap || {}), 
+                                                                    semester1: { ...(newCourse.roadmap?.semester1 || {}), finalDate: e.target.value } 
                                                                 } 
                                                             })}
                                                         />
@@ -549,12 +562,12 @@ export default function TeacherCourses() {
                                                     <Input 
                                                         placeholder="Chapter 6, Chapter 7, ..."
                                                         className="h-10 rounded-xl bg-white border-slate-100 text-xs font-medium"
-                                                        value={newCourse.roadmap.semester2.chapters}
+                                                        value={newCourse.roadmap?.semester2?.chapters || ""}
                                                         onChange={(e) => setNewCourse({ 
                                                             ...newCourse, 
                                                             roadmap: { 
-                                                                ...newCourse.roadmap, 
-                                                                semester2: { ...newCourse.roadmap.semester2, chapters: e.target.value } 
+                                                                ...(newCourse.roadmap || {}), 
+                                                                semester2: { ...(newCourse.roadmap?.semester2 || {}), chapters: e.target.value } 
                                                             } 
                                                         })}
                                                     />
@@ -565,12 +578,12 @@ export default function TeacherCourses() {
                                                         <Input 
                                                             type="date"
                                                             className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
-                                                            value={newCourse.roadmap.semester2.midTermDate}
+                                                            value={newCourse.roadmap?.semester2?.midTermDate || ""}
                                                             onChange={(e) => setNewCourse({ 
                                                                 ...newCourse, 
                                                                 roadmap: { 
-                                                                    ...newCourse.roadmap, 
-                                                                    semester2: { ...newCourse.roadmap.semester2, midTermDate: e.target.value } 
+                                                                    ...(newCourse.roadmap || {}), 
+                                                                    semester2: { ...(newCourse.roadmap?.semester2 || {}), midTermDate: e.target.value } 
                                                                 } 
                                                             })}
                                                         />
@@ -580,12 +593,12 @@ export default function TeacherCourses() {
                                                         <Input 
                                                             type="date"
                                                             className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
-                                                            value={newCourse.roadmap.semester2.finalDate}
+                                                            value={newCourse.roadmap?.semester2?.finalDate || ""}
                                                             onChange={(e) => setNewCourse({ 
                                                                 ...newCourse, 
                                                                 roadmap: { 
-                                                                    ...newCourse.roadmap, 
-                                                                    semester2: { ...newCourse.roadmap.semester2, finalDate: e.target.value } 
+                                                                    ...(newCourse.roadmap || {}), 
+                                                                    semester2: { ...(newCourse.roadmap?.semester2 || {}), finalDate: e.target.value } 
                                                                 } 
                                                             })}
                                                         />
@@ -782,6 +795,9 @@ export default function TeacherCourses() {
                                 <Library className="w-3.5 h-3.5 text-sky-400" />
                             </div>
                             <DialogTitle className="text-2xl font-black text-slate-900 uppercase italic leading-none">Curriculum <span className="text-sky-600">Structure</span></DialogTitle>
+                            <DialogDescription className="sr-only">
+                                Architect your curriculum by adding modules, videos, and assessments.
+                            </DialogDescription>
                             <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-2">{selectedCourseForModules?.title}</p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -1089,6 +1105,9 @@ export default function TeacherCourses() {
                                 <Activity className="w-4 h-4 text-emerald-500" />
                             </div>
                             <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Revenue <span className="text-emerald-600">Audit</span></DialogTitle>
+                            <DialogDescription className="sr-only">
+                                Detailed breakdown of course enrollments and financial transactions.
+                            </DialogDescription>
                             <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedCourseForAudit?.title}</p>
                         </DialogHeader>
                         <div className="text-right">

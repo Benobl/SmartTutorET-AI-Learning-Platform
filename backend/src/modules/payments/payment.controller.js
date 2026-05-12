@@ -90,4 +90,14 @@ export class PaymentController {
             next(error);
         }
     }
+
+    static async refund(req, res, next) {
+        try {
+            const { paymentId } = req.params;
+            const payment = await PaymentService.refundPayment(paymentId);
+            res.json({ success: true, message: "Payment refunded and student unenrolled", data: payment });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

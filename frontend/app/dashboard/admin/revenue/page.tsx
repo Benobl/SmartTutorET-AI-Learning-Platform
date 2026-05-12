@@ -266,9 +266,36 @@ function RevenueContent() {
                                             <p className="text-[9px] font-black text-sky-500 uppercase tracking-widest">Admin (30%)</p>
                                             <p className="text-sm font-bold text-sky-600">ETB {adminShare.toLocaleString()}</p>
                                         </div>
-                                        <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
-                                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Completed</p>
-                                        </div>
+                                        {tx.status === 'refunded' ? (
+                                            <div className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-100">
+                                                <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Refunded</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Completed</p>
+                                                </div>
+                                                <button 
+                                                    onClick={async () => {
+                                                        if (confirm("Are you sure you want to refund this payment? The student will lose course access.")) {
+                                                            try {
+                                                                const res = await paymentApi.refundPayment(tx._id);
+                                                                if (res.success) {
+                                                                    alert("Payment refunded successfully");
+                                                                    window.location.reload();
+                                                                }
+                                                            } catch (err: any) {
+                                                                alert(err.message || "Refund failed");
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="p-2 rounded-xl bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                                    title="Refund Payment"
+                                                >
+                                                    <CreditCard className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

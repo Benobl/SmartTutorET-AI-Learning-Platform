@@ -341,13 +341,13 @@ export class PaymentService {
     }
 
     static async getSubjectPayments(subjectId) {
-        return await Payment.find({ subject: subjectId, status: "completed" })
+        return await Payment.find({ subject: subjectId, status: { $in: ["approved", "completed"] } })
             .populate("student", "name email profile.avatar")
             .sort({ createdAt: -1 });
     }
 
     static async getTutorEarnings(tutorId) {
-        const payments = await Payment.find({ tutor: tutorId, status: "completed" })
+        const payments = await Payment.find({ tutor: tutorId, status: { $in: ["approved", "completed"] } })
             .populate("student", "name email profile.avatar")
             .populate("subject", "title")
             .sort({ createdAt: -1 });
@@ -363,7 +363,7 @@ export class PaymentService {
     }
 
     static async getAdminEarnings() {
-        const payments = await Payment.find({ status: "completed" })
+        const payments = await Payment.find({ status: { $in: ["approved", "completed"] } })
             .populate("student", "name email")
             .populate("subject", "title")
             .sort({ createdAt: -1 });
@@ -424,5 +424,34 @@ export class PaymentService {
             console.error(`❌ [Payment] Enrollment Check ERROR for ${subjectId}:`, error.message);
             throw new ApiError(500, "Failed to check enrollment status");
         }
+    }
+
+    static async refundPayment(paymentId) {
+        const payment = await Payment.findById(paymentId);
+        if (!payment) throw new ApiError(404, "Payment not found");
+        if (!["approved", "completed"].includes(payment.status)) {
+            throw new ApiError(400, "Only approved or completed payments can be refunded");
+        }
+
+        // Reverse Earnings
+        if (payment.tutor && payment.tutorAmount) {
+            await User.findByIdAndUpdate(payment.tutor, { $inc: { earnings: -payment.tutorAmount } });
+        }
+        if (payment.approvedBy && payment.adminAmount) {
+            await User.findByIdAndUpdate(payment.approvedBy, { $inc: { earnings: -payment.adminAmount } });
+        }
+
+        // Remove student from course
+        const subject = await Subject.findById(payment.subject);
+        if (subject) {
+            subject.students = subject.students.filter(s => s.toString() !== payment.student.toString());
+            await subject.save();
+        }
+
+        payment.status = "refunded";
+        payment.refundedAt = new Date();
+        await payment.save();
+
+        return payment;
     }
 }

@@ -17,7 +17,7 @@ const paymentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "awaiting_approval", "approved", "completed", "failed"],
+        enum: ["pending", "awaiting_approval", "approved", "completed", "failed", "refunded"],
         default: "pending"
     },
     verified: {
@@ -51,6 +51,7 @@ const paymentSchema = new mongoose.Schema({
     verifiedAt: Date,
     approvedAt: Date,
     failedAt: Date,
+    refundedAt: Date,
 }, { timestamps: true });
 
 const Payment = mongoose.model("Payment", paymentSchema);
