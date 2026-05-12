@@ -171,9 +171,11 @@ export default function StudentOverview() {
           <Button onClick={() => setIsAITutorOpen(true)} className="h-12 px-8 rounded-full bg-sky-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm">
             Ask Neural Assistant
           </Button>
-          <Button onClick={() => { setCollabType("create"); setIsStudyHubOpen(true); }} variant="outline" className="h-12 px-8 rounded-full border-slate-100 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest shadow-sm">
-            Open Study Hub
-          </Button>
+          <Link href="/dashboard/student/squad">
+            <Button variant="outline" className="h-12 px-8 rounded-full border-slate-100 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest shadow-sm">
+              Enter Class Squad
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -255,37 +257,42 @@ export default function StudentOverview() {
             </div>
           </div>
 
-          {/* Social Hub */}
-          <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-sm space-y-8">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+          {/* Class Squad Hub */}
+          <div className="p-10 rounded-[48px] bg-slate-900 text-white shadow-2xl space-y-8 relative overflow-hidden group">
+            <div className="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-1000" />
+            
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-12 relative z-10">
                <div className="space-y-6 max-w-xl text-center lg:text-left">
                   <div className="flex items-center gap-4 justify-center lg:justify-start">
-                    <div className="w-1 h-6 bg-slate-900 rounded-full" />
-                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Global Study Hub</h2>
+                    <div className="w-1 h-6 bg-sky-500 rounded-full" />
+                    <h2 className="text-2xl font-black uppercase tracking-tight italic">Grade {user?.grade || "9"} <span className="text-sky-400">Squad Hub</span></h2>
                   </div>
-                  <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                    Collaborate in real-time with peers from across the network. 
-                    Share insights, solve complex modules, and grow together.
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    Access your official academic collective. Solve problems in the real-time Canvas, 
+                    join live peer sessions, and synchronize with your grade-level curriculum.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
-                    <Button
-                      onClick={() => { setCollabType("invite"); setIsStudyHubOpen(true); }}
-                      className="h-11 px-6 rounded-xl bg-sky-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-600/20"
-                    >
-                      <Users className="w-4 h-4 mr-2" /> Locate Peers
-                    </Button>
-                    <Button
-                      onClick={() => { setCollabType("create"); setIsStudyHubOpen(true); }}
-                      variant="outline"
-                      className="h-11 px-6 rounded-xl border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all"
-                    >
-                      <Video className="w-4 h-4 mr-2" /> Quick Video Session
-                    </Button>
+                    <Link href="/dashboard/student/squad">
+                      <Button
+                        className="h-12 px-8 rounded-2xl bg-sky-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-sky-400 transition-all shadow-xl shadow-sky-500/20"
+                      >
+                        <LayoutGrid className="w-4 h-4 mr-2" /> Enter Workspace
+                      </Button>
+                    </Link>
+                    <Link href="/dashboard/student/timetable">
+                      <Button
+                        variant="outline"
+                        className="h-12 px-8 rounded-2xl border-white/10 bg-white/5 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"
+                      >
+                        <Calendar className="w-4 h-4 mr-2 text-sky-400" /> View Schedule
+                      </Button>
+                    </Link>
                   </div>
                </div>
                <div className="hidden lg:block">
-                  <div className="w-32 h-32 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-center relative">
-                     <MessageSquare className="w-10 h-10 text-slate-400" />
+                  <div className="w-40 h-40 rounded-[40px] bg-white/5 border border-white/10 flex items-center justify-center relative shadow-2xl group-hover:rotate-6 transition-transform">
+                     <Users className="w-14 h-14 text-sky-400" />
+                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-900 animate-pulse" />
                   </div>
                </div>
             </div>

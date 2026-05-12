@@ -11,7 +11,7 @@ import {
     useCallStateHooks,
     ParticipantView,
 } from '@stream-io/video-react-sdk'
-import { ArrowLeft, Video, Users, Mic, MicOff, VideoOff, UserPlus, Search, X, Loader2, Monitor, Radio, Circle } from 'lucide-react'
+import { ArrowLeft, Video, Users, Mic, MicOff, VideoOff, UserPlus, Search, X, Loader2, Monitor, Radio, Circle, PenTool } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,8 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { PermissionRecoveryModal } from './PermissionRecoveryModal'
+import { LiveWhiteboard } from './LiveWhiteboard'
+import { initializeSocket } from "@/lib/socket"
 import "@stream-io/video-react-sdk/dist/css/styles.css"
 
 interface LiveClassroomProps {
@@ -66,6 +68,21 @@ const LiveSessionContent = ({
     const [searchQuery, setSearchQuery] = React.useState("")
     const [students, setStudents] = React.useState<any[]>([])
     const [isRecordingLoading, setIsRecordingLoading] = React.useState(false)
+    const [showWhiteboard, setShowWhiteboard] = React.useState(false)
+    const socketRef = React.useRef<any>(null)
+
+    const currentUser = React.useMemo(() => getCurrentUser(), [])
+    const isHost = localParticipant?.userId === call.state.createdBy?.id || currentUser?.role === 'tutor' || currentUser?.role === 'admin'
+
+    // Initialize socket for whiteboard
+    React.useEffect(() => {
+        if (currentUser?._id || currentUser?.id) {
+            socketRef.current = initializeSocket((currentUser._id || currentUser.id) as string)
+            return () => {
+                socketRef.current?.disconnect()
+            }
+        }
+    }, [currentUser])
 
     // Auto-join logic - ONLY runs when IDLE or LEFT
     React.useEffect(() => {
@@ -299,6 +316,15 @@ const LiveSessionContent = ({
                             <span className="text-[8px] font-black uppercase tracking-widest">Recording</span>
                         </div>
                     )}
+                    <Button 
+                        onClick={() => setShowWhiteboard(!showWhiteboard)}
+                        className={cn(
+                            "h-8 px-4 rounded-full text-[9px] font-black uppercase transition-all",
+                            showWhiteboard ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20" : "bg-white/5 hover:bg-white/10 text-white"
+                        )}
+                    >
+                        <PenTool className="w-3 h-3 mr-2" /> {showWhiteboard ? "Close Board" : "Open Board"}
+                    </Button>
                     <div className="w-px h-8 bg-white/10 mx-2" />
 
                     <Button 
@@ -320,8 +346,14 @@ const LiveSessionContent = ({
             <div className="flex-1 flex overflow-hidden">
                 {/* Stage */}
                 <div className="flex-[3] relative bg-black flex items-center justify-center p-4">
-                    <div className="w-full h-full max-w-5xl aspect-video rounded-3xl overflow-hidden bg-slate-900 border border-white/10 relative">
-                        {screenSharingParticipant ? (
+                    <div className="w-full h-full max-w-5xl aspect-video rounded-3xl overflow-hidden bg-slate-900 border border-white/10 relative shadow-2xl">
+                        {showWhiteboard ? (
+                            <LiveWhiteboard 
+                                roomId={call.id} 
+                                socket={socketRef.current} 
+                                isHost={isHost} 
+                            />
+                        ) : screenSharingParticipant ? (
                              <ParticipantView participant={screenSharingParticipant} trackType="screenShareTrack" className="w-full h-full object-contain" />
                         ) : activeSpeaker ? (
                              <ParticipantView participant={activeSpeaker} className="w-full h-full object-cover" />
