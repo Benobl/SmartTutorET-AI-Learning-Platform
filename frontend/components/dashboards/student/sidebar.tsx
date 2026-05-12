@@ -3,11 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SmartTutorBrand } from "@/components/brand-logo"
-import { BookOpen, BarChart3, Users, Zap, Award, Settings, LogOut, Menu, X, Bell, FileText, Calendar, LayoutDashboard, CalendarCheck } from "lucide-react"
+import { BookOpen, BarChart3, Users, Zap, Award, Settings, LogOut, Menu, X, Bell, FileText, Calendar, LayoutDashboard, CalendarCheck, BrainCircuit } from "lucide-react"
 import { useState } from "react"
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/student" },
+  { icon: BrainCircuit, label: "AI Lab", href: "/dashboard/student/ai-lab" },
   { icon: FileText, label: "My Grades", href: "/dashboard/student/grades" },
   { icon: CalendarCheck, label: "Attendance", href: "/dashboard/student/attendance" },
   { icon: Award, label: "Leaderboard", href: "/dashboard/student/leaderboard" },

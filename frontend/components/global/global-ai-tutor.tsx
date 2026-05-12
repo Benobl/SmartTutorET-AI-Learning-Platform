@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, X, Send, BrainCircuit, Maximize2, Minimize2, Mic, Paperclip, Loader2, User, ScanEye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
+import { aiApi } from "@/lib/api"
 
 export function GlobalAITutor() {
     const pathname = usePathname()
@@ -21,7 +22,7 @@ export function GlobalAITutor() {
         if (!pathname) return "Dashboard Overview"
         const segments = pathname.split('/').filter(Boolean)
         if (segments.length <= 2) return "Dashboard Overview"
-        return segments[segments.length - 1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + " Page"
+        return segments[segments.length - 1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
     }
 
     // Auto-scroll to bottom
@@ -29,23 +30,44 @@ export function GlobalAITutor() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages, isThinking])
 
-    const handleSend = () => {
-        if (!inputValue.trim()) return
+    const handleSend = async () => {
+        if (!inputValue.trim() || isThinking) return
 
         // Add user message
-        const newMsgs = [...messages, { role: 'user' as const, content: inputValue }]
+        const userQuery = inputValue
+        const newMsgs = [...messages, { role: 'user' as const, content: userQuery }]
         setMessages(newMsgs)
         setInputValue("")
         setIsThinking(true)
 
-        // Mock AI response (To be integrated by AI developer)
-        setTimeout(() => {
+        try {
+            // Real AI integration
+            const res = await aiApi.getTutorResponse({
+                studentQuery: userQuery,
+                context: `The student is currently viewing the ${getContextName()}.`,
+                modelPreference: "llama", // Use our newly integrated high-performance model
+                conversationHistory: messages.map(m => ({ 
+                    role: m.role === 'ai' ? 'assistant' : 'user', 
+                    content: m.content 
+                }))
+            })
+
+            setIsThinking(false)
+            // Access the nested response property
+            const aiResponse = res.data?.response || res.data || res.response || res
+            
+            setMessages([...newMsgs, { 
+                role: 'ai', 
+                content: typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse)
+            }])
+        } catch (error) {
+            console.error("Global AI Tutor Error:", error)
             setIsThinking(false)
             setMessages([...newMsgs, { 
                 role: 'ai', 
-                content: "That's a great question. I am currently operating in UI Demo mode, but once the backend logic is connected, I will provide highly contextual answers based on the page you are currently viewing!" 
+                content: "I apologize, but my neural link is temporarily offline. Please try again or check your network connection." 
             }])
-        }, 1500)
+        }
     }
 
     return (

@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 import ChatSession from "./chat.model.js";
 import axios from "axios";
+import { AIService } from "./ai.service.js";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -92,14 +93,17 @@ export class TutorService {
 
             messages.push({ role: "user", content: multimodalContent });
 
-            // 5. Call OpenAI
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages,
-                temperature: 0.7,
+            // 5. Call the Neural Core (Llama-3 / Gemini / Mistral)
+            const aiResponse = await AIService.generateTutorResponse({
+                studentQuery: query,
+                performanceData: { 
+                    subject, 
+                    weakTopics: session.memory?.weakTopics,
+                    pdfContext: attachments.filter(a => a.type === "pdf").length > 0 
+                },
+                conversationHistory: recentHistory,
+                modelPreference: "llama" // This triggers our hardened triple-redundant pipeline
             });
-
-            const aiResponse = completion.choices[0].message.content;
 
             // 6. Update Session History
             session.messages.push({ role: "user", content: query });

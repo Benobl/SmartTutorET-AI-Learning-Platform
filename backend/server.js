@@ -180,15 +180,24 @@ process.on("unhandledRejection", (err) => {
   process.exit(1);
 });
 
-// Connect to Database (allow API boot even if DB is temporarily down)
-try {
-  await connectDB();
-} catch (error) {
-  logger.error("Database connection failed during startup", {
-    error: error.message,
-  });
-}
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    server.on("error", (e) => {
+      if (e.code === "EADDRINUSE") {
+        logger.error(`❌ Port ${PORT} is busy. Please run 'fuser -k ${PORT}/tcp' and restart.`);
+        process.exit(1);
+      }
+    });
 
-server.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-});
+    server.listen(PORT, () => {
+      logger.info(`🚀 SmartTutorET Core running on port ${PORT} [v${VERSION}]`);
+    });
+  } catch (error) {
+    logger.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

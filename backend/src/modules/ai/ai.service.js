@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 import axios from "axios";
+import { SMART_TUTOR_KNOWLEDGE } from "./knowledge-base.js";
 import { ETHIOPIAN_CURRICULUM } from "./local-curriculum.js";
 
 dotenv.config();
@@ -13,41 +14,110 @@ const getGenAI = () => {
     return new GoogleGenerativeAI(key);
 };
 
+const getOpenRouterClient = () => {
+    return axios.create({
+        baseURL: "https://openrouter.ai/api/v1",
+        headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://smarttutor.et", // Optional
+            "X-Title": "SmartTutorET AI Lab", // Optional
+        }
+    });
+};
+
 export class AIService {
-    static async generateTutorResponse({ studentQuery, performanceData, conversationHistory }) {
+    static async auditCodeSecurity(codeSnippet) {
+        const vulnUrl = process.env.VULN_DETECTOR_URL;
+        if (!vulnUrl) {
+            console.warn("⚠️ VULN_DETECTOR_URL not set in .env");
+            return null;
+        }
+
+        try {
+            console.log("🛡️ [AI_SERVICE] Auditing code security via BERT...");
+            const response = await axios.post(`${vulnUrl}/classify`, {
+                text: codeSnippet
+            }, { timeout: 10000 });
+
+            return response.data;
+        } catch (error) {
+            console.error("❌ [AI_SERVICE] Security Audit failed:", error.message);
+            return null;
+        }
+    }
+
+    static async generateTutorResponse({ studentQuery, performanceData, conversationHistory, modelPreference = "llama" }) {
         const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+        const openRouterKey = (process.env.OPENROUTER_API_KEY || "").trim();
+        
         const dataContext = performanceData
             ? `Student Performance Data: ${JSON.stringify(performanceData)}`
             : "Student Performance Data: No data available yet (New Student).";
 
-        let conversationContext = "";
-        if (conversationHistory && conversationHistory.length > 0) {
-            conversationContext = "\n\nPrevious Conversation:\n";
-            conversationHistory.forEach((msg) => {
-                conversationContext += `${msg.role === "user" ? "Student" : "AI Tutor"}: ${msg.content}\n`;
-            });
+        const systemPrompt = `You are the "SmartTutorET Neural Agent", an elite, encouraging pedagogical AI for Ethiopian students (Grades 9-12).
+        
+        TUTORING PROTOCOL:
+        1. CONTEXT PRIORITY: If the conversation history is already discussing a specific subject (like Math, Physics, or Biology), STAY ON THAT TOPIC. Do not summarize the dashboard unless explicitly asked.
+        2. TEACH, DON'T TELL: Use the Socratic method. Explain concepts step-by-step with local Ethiopian examples.
+        3. NO BOT TALK: Avoid generic platform summaries if you are in the middle of a lesson.
+        4. MULTILINGUAL: Support Amharic and English seamlessly.
+        5. ACADEMIC RIGOR: Use LaTeX for all mathematical formulas (e.g., $ax^2 + bx + c = 0$).
+
+        STUDENT CONTEXT:
+        Current Subject: ${dataContext.subject || "General Study"}
+        Current Page: ${dataContext.context || "Dashboard"}
+        
+        CRITICAL: ANSWER THE STUDENT'S LAST QUERY BASED ON THE HISTORY BELOW.`;
+
+        // ADVANCED: Use OpenRouter with Multi-Model Redundancy
+        if (modelPreference === "llama" && openRouterKey) {
+            const openRouterModels = [
+                "meta-llama/llama-3.1-8b-instruct",
+                "google/gemini-flash-1.5",
+                "mistralai/mistral-7b-instruct"
+            ];
+
+            for (const orModel of openRouterModels) {
+                try {
+                    console.log(`🚀 [AI_SERVICE] Attempting OpenRouter (${orModel})...`);
+                    
+                    const historyMessages = (conversationHistory || []).map(msg => ({
+                        role: msg.role === "user" ? "user" : "assistant",
+                        content: msg.content
+                    }));
+
+                    const client = getOpenRouterClient();
+                    const response = await client.post("/chat/completions", {
+                        model: orModel,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            ...historyMessages,
+                            { role: "user", content: studentQuery }
+                        ]
+                    });
+
+                    if (response.data?.choices?.[0]?.message?.content) {
+                        console.log(`✅ [AI_SERVICE] OpenRouter Success (${orModel})`);
+                        return response.data.choices[0].message.content;
+                    }
+                } catch (err) {
+                    const errorMsg = err.response?.data?.error?.message || err.message;
+                    console.warn(`⚠️ OpenRouter (${orModel}) failed:`, errorMsg);
+                }
+            }
         }
 
-        const prompt = `You are an expert AI Tutor for Ethiopian high school students (Grades 9-12). You are knowledgeable, patient, encouraging, and adapt your explanations to the student's level.
+        // FALLBACK: Standard Gemini Pipeline
+        console.log("🚀 [AI_SERVICE] Routing to Gemini Pipeline...");
+        
+        // Construct history block for Gemini text-only prompt
+        let historyBlock = "";
+        if (conversationHistory && conversationHistory.length > 0) {
+            historyBlock = "\n\nPrevious Conversation:\n" + conversationHistory.map(m => `${m.role === 'user' ? 'Student' : 'Tutor'}: ${m.content}`).join("\n");
+        }
 
-${dataContext}
-${conversationContext}
-
-Current Student Query: ${studentQuery}
-
-Instructions:
-1. If performance data shows weak areas, tailor your explanation to address those gaps
-2. If no performance data, provide a clear, structured explanation suitable for high school level
-3. Use simple language and provide examples relevant to Ethiopian students
-4. Break down complex concepts into digestible parts
-5. Encourage critical thinking with follow-up questions
-6. If the student seems confused, offer to explain in a different way
-7. Always be supportive and motivating
-8. For math/science, show step-by-step solutions when appropriate
-9. Suggest practice exercises or study tips when relevant
-10. Keep responses concise but comprehensive (aim for 150-300 words)
-
-Format your response in a clear, structured way using markdown formatting when helpful.`;
+        const prompt = `${systemPrompt}${historyBlock}\n\nCurrent Student Query: ${studentQuery}\n\nFormat your response in a clear, structured way using markdown.`;
 
         // Robust retry logic for model availability
         const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];

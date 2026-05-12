@@ -255,6 +255,10 @@ export const aiApi = {
         method: "POST",
         body: JSON.stringify(data)
     }),
+    auditSecurity: (code: string) => fetchWithAuth("/ai/audit-security", {
+        method: "POST",
+        body: JSON.stringify({ code })
+    }),
     getCourseOutline: (subject: string, grade: number) => fetchWithAuth("/ai/course-outline", {
         method: "POST",
         body: JSON.stringify({ subject, grade })
@@ -287,6 +291,8 @@ export const aiApi = {
     getPerformanceInsights: () => fetchWithAuth("/ai/performance-insights", {
         method: "POST"
     }),
+    getPublicTutorResponse: (data: { studentQuery: string; conversationHistory?: any[] }) => 
+        api.post("/ai/public-tutor-response", data),
 };
 
 export const gamificationApi = {

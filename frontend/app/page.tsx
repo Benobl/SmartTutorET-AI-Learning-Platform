@@ -13,6 +13,7 @@ import {
     ArrowUpRight, Send, Bot, Search, CheckCircle2, Lightbulb,
     BadgeCheck, Plus, Minus, BookOpen, Activity, Shield,
 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import {
     NAV_ITEMS,
@@ -24,6 +25,8 @@ import {
     SUBJECTS,
     FOOTER_DATA,
 } from "@/lib/landing-mock-data"
+import { aiApi } from "@/lib/api"
+import { Loader2 } from "lucide-react"
 
 /* ─── Derived Data ─── */
 const N = BASE_TESTIMONIALS.length
@@ -119,50 +122,136 @@ function ContinuousMarquee({ items, dark }: { items: any[]; dark: boolean }) {
 /* ─── AI Chat FAB ─── */
 function AIChatFAB({ dark }: { dark: boolean }) {
     const [isOpen, setIsOpen] = useState(false)
+    const [messages, setMessages] = useState<{ role: 'ai' | 'user', content: string }[]>([
+        { role: 'ai', content: "Hi there! 👋 I'm your SmartTutor assistant. How can I help you excel today?" }
+    ])
+    const [inputValue, setInputValue] = useState("")
+    const [isThinking, setIsThinking] = useState(false)
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+    }, [messages, isThinking])
+
+    const handleSend = async () => {
+        if (!inputValue.trim() || isThinking) return
+
+        const userMsg = inputValue
+        setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+        setInputValue("")
+        setIsThinking(true)
+
+        try {
+            const res = await aiApi.getPublicTutorResponse({
+                studentQuery: userMsg,
+                conversationHistory: messages.map(m => ({
+                    role: m.role === 'ai' ? 'assistant' : 'user',
+                    content: m.content
+                }))
+            })
+
+            const aiResponse = res.data?.response || res.response || res
+            setMessages(prev => [...prev, { role: 'ai', content: typeof aiResponse === 'string' ? aiResponse : "I encountered an error processing that." }])
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I'm having trouble connecting to my neural core right now. Please try again later." }])
+        } finally {
+            setIsThinking(false)
+        }
+    }
 
     return (
         <div className="fixed bottom-8 right-8 z-[200]">
-            {isOpen && (
-                <div className={cn(
-                    "absolute bottom-20 right-0 w-[350px] h-[480px] rounded-[40px] overflow-hidden shadow-2xl border border-white/5 animate-in fade-in slide-in-from-bottom-5 flex flex-col",
-                    dark ? "bg-[#18181b]" : "bg-white"
-                )}>
-                    <div className="bg-blue-500 p-6 flex items-center justify-between text-white shadow-lg">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                                <Bot className="w-6 h-6" />
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        className={cn(
+                            "absolute bottom-20 right-0 w-[350px] h-[550px] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col",
+                            dark ? "bg-[#18181b]/95 backdrop-blur-2xl" : "bg-white/95 backdrop-blur-2xl"
+                        )}
+                    >
+                        <div className="bg-blue-600 p-6 flex items-center justify-between text-white shadow-lg relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent pointer-events-none" />
+                            <div className="flex items-center gap-3 relative z-10">
+                                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
+                                    <Bot className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="font-black tracking-tight text-sm">SmartBot AI</div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/80">Online</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="font-black tracking-tight">SmartBot AI</div>
-                        </div>
-                        <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                    <div className="flex-1 p-6 overflow-y-auto space-y-4">
-                        <div className={cn("inline-block p-4 rounded-3xl rounded-tl-none text-sm font-medium", dark ? "bg-white/5 text-slate-300" : "bg-slate-100 text-slate-600")}>
-                            Hi there! 👋 I'm your SmartTutor assistant. How can I help you excel today?
-                        </div>
-                    </div>
-                    <div className="p-5 border-t border-slate-100 dark:border-white/5">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Ask me anything..."
-                                className={cn("w-full h-14 rounded-2xl px-5 pr-14 text-sm font-bold focus:outline-none", dark ? "bg-white/5 text-white" : "bg-slate-50 text-slate-900")}
-                            />
-                            <button className="absolute right-2 top-2 w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                                <Send className="w-5 h-5" />
+                            <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform relative z-10">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+
+                        <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
+                            {messages.map((m, i) => (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    key={i}
+                                    className={cn(
+                                        "max-w-[85%] p-4 rounded-3xl text-xs font-bold leading-relaxed shadow-sm",
+                                        m.role === 'ai'
+                                            ? (dark ? "bg-white/5 text-slate-300 rounded-tl-none border border-white/5" : "bg-slate-100 text-slate-600 rounded-tl-none border border-slate-200/50")
+                                            : (dark ? "bg-blue-600 text-white ml-auto rounded-tr-none shadow-blue-500/10" : "bg-blue-500 text-white ml-auto rounded-tr-none shadow-blue-500/10")
+                                    )}
+                                >
+                                    {m.content}
+                                </motion.div>
+                            ))}
+                            {isThinking && (
+                                <div className={cn("inline-flex items-center gap-2 p-4 rounded-3xl rounded-tl-none", dark ? "bg-white/5" : "bg-slate-100")}>
+                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Synthesizing...</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-transparent">
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                    placeholder="Ask me anything..."
+                                    className={cn(
+                                        "w-full h-14 rounded-2xl px-5 pr-14 text-sm font-bold focus:outline-none border transition-all",
+                                        dark
+                                            ? "bg-white/5 text-white border-white/5 focus:border-blue-500/50 focus:bg-white/10"
+                                            : "bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500/50 focus:bg-white"
+                                    )}
+                                />
+                                <button
+                                    onClick={handleSend}
+                                    disabled={!inputValue.trim() || isThinking}
+                                    className="absolute right-2 top-2 w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-16 h-16 rounded-[24px] bg-blue-500 hover:bg-blue-400 text-white flex items-center justify-center shadow-2xl shadow-blue-500/40 transition-all hover:scale-110 active:scale-95 group relative overflow-hidden"
             >
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 {isOpen ? <X className="w-7 h-7 relative z-10" /> : <Bot className="w-7 h-7 relative z-10" />}
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-[#09090b] rounded-full animate-pulse" />
             </button>
         </div>
     )
@@ -170,25 +259,49 @@ function AIChatFAB({ dark }: { dark: boolean }) {
 
 /* ─── Neural Console (Advanced AI Interface) ─── */
 function NeuralConsole({ dark }: { dark: boolean }) {
-    const [text, setText] = useState("")
-    const fullText = "I found 12 expert chemistry tutors matching your curriculum. I've also generated a 4-week preparation timeline for your national exams. Would you like to start with a mock test?"
+    const [messages, setMessages] = useState<{ role: 'ai' | 'user', content: string }[]>([
+        { role: 'ai', content: "Initializing neural connection... Systems online. I've analyzed 12 biology curricula and I'm ready to accelerate your learning. What are we studying today?" }
+    ])
+    const [inputValue, setInputValue] = useState("")
+    const [isThinking, setIsThinking] = useState(false)
+    const scrollRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        let i = 0
-        const interval = setInterval(() => {
-            setText(fullText.slice(0, i))
-            i++
-            if (i > fullText.length) clearInterval(interval)
-        }, 40)
-        return () => clearInterval(interval)
-    }, [])
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }, [messages, isThinking])
+
+    const handleSend = async () => {
+        if (!inputValue.trim() || isThinking) return
+
+        const userMsg = inputValue
+        setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+        setInputValue("")
+        setIsThinking(true)
+
+        try {
+            const res = await aiApi.getPublicTutorResponse({
+                studentQuery: userMsg,
+                conversationHistory: messages.map(m => ({
+                    role: m.role === 'ai' ? 'assistant' : 'user',
+                    content: m.content
+                }))
+            })
+
+            const aiResponse = res.data?.response || res.response || res
+            setMessages(prev => [...prev, { role: 'ai', content: typeof aiResponse === 'string' ? aiResponse : "Neural link interrupted." }])
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'ai', content: "Error: Could not reach the neural core. Check your uplink." }])
+        } finally {
+            setIsThinking(false)
+        }
+    }
 
     return (
         <div className={cn(
-            "relative rounded-[48px] overflow-hidden border p-12 lg:p-16 h-[550px] shadow-2xl transition-all duration-700 hover:shadow-violet-500/20",
+            "relative rounded-[48px] overflow-hidden border p-8 lg:p-12 h-[600px] shadow-2xl transition-all duration-700 hover:shadow-violet-500/20 flex flex-col",
             dark ? "bg-[#18181b] border-white/5 shadow-black" : "bg-white border-slate-100 shadow-slate-200"
         )}>
-            {/* Neural Network Background (Animated SVG) */}
+            {/* Neural Network Background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none">
                 <svg width="100%" height="100%" className="animate-pulse">
                     <circle cx="10%" cy="10%" r="2" fill="#8B5CF6" className="animate-bounce" style={{ animationDelay: "0s" }} />
@@ -199,37 +312,56 @@ function NeuralConsole({ dark }: { dark: boolean }) {
                 </svg>
             </div>
 
-            <div className="relative z-10 flex flex-col h-full gap-8">
+            <div className="relative z-10 flex flex-col h-full gap-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-violet-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/40">
-                            <Bot className="w-8 h-8" />
+                        <div className="w-12 h-12 rounded-2xl bg-violet-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/40">
+                            <Bot className="w-6 h-6" />
                         </div>
                         <div>
                             <div className="text-[10px] font-black uppercase text-violet-400 tracking-widest">Neural AI Engaged</div>
-                            <div className="font-black text-lg text-white">SmartBot v2.4</div>
+                            <div className="font-black text-sm text-slate-400">SmartBot v2.4</div>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <div className="text-[10px] font-black uppercase text-emerald-400">Live</div>
+                        <div className="text-[10px] font-black uppercase text-emerald-400">Live Uplink</div>
                     </div>
                 </div>
 
-                <div className={cn("flex-1 p-8 rounded-[32px] font-bold text-lg leading-relaxed shadow-inner", dark ? "bg-black/40 text-slate-200" : "bg-slate-50 text-slate-700")}>
-                    <span className="text-violet-400">assistant: </span> {text}
-                    <span className="inline-block w-2 h-5 ml-1 bg-violet-400 animate-pulse" />
+                <div ref={scrollRef} className={cn("flex-1 p-6 rounded-[32px] font-bold text-sm leading-relaxed shadow-inner overflow-y-auto space-y-4 custom-scrollbar", dark ? "bg-black/40 text-slate-200" : "bg-slate-50 text-slate-700")}>
+                    {messages.map((m, i) => (
+                        <div key={i} className={cn("flex gap-3", m.role === 'user' ? "flex-row-reverse" : "")}>
+                            <div className={cn("px-4 py-3 rounded-2xl max-w-[80%]", m.role === 'ai' ? "bg-violet-500/10 text-violet-200 border border-violet-500/20" : "bg-slate-700 text-white")}>
+                                <span className="text-[10px] font-black uppercase tracking-widest block mb-1 opacity-50">{m.role === 'ai' ? 'assistant' : 'student'}</span>
+                                {m.content}
+                            </div>
+                        </div>
+                    ))}
+                    {isThinking && (
+                        <div className="flex gap-2 items-center text-violet-400">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Neural Processing...</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="relative group">
                     <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-blue-500 rounded-3xl blur opacity-20 group-focus-within:opacity-40 transition-opacity" />
-                    <div className={cn("relative flex items-center h-16 rounded-[24px] px-6 border", dark ? "bg-black/20 border-white/10" : "bg-white border-slate-100")}>
+                    <div className={cn("relative flex items-center h-16 rounded-[24px] px-6 border transition-all", dark ? "bg-black/20 border-white/10" : "bg-white border-slate-100")}>
                         <input
                             type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder="Ask for your personalized exam road map..."
                             className={cn("flex-1 bg-transparent text-sm font-bold focus:outline-none", dark ? "text-white placeholder:text-slate-500" : "text-slate-900 placeholder:text-slate-400")}
                         />
-                        <button className="w-10 h-10 rounded-xl bg-violet-500 hover:bg-violet-400 text-white flex items-center justify-center shadow-lg shadow-violet-500/20 transition-all active:scale-90">
+                        <button
+                            onClick={handleSend}
+                            disabled={!inputValue.trim() || isThinking}
+                            className="w-10 h-10 rounded-xl bg-violet-500 hover:bg-violet-400 text-white flex items-center justify-center shadow-lg shadow-violet-500/20 transition-all active:scale-90 disabled:opacity-50"
+                        >
                             <Send className="w-5 h-5" />
                         </button>
                     </div>
