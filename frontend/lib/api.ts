@@ -47,19 +47,11 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit & { _
             // If already retried, fail fast
             if (options._retry) {
                 forceLogout();
-                throw new Error("Session expired completely.");
+                throw new Error("Session expired");
             }
 
             // Singleton Refresh Logic
             if (!refreshPromise) {
-                // Prevent rapid fire refresh (throttle)
-                const now = Date.now();
-                if (now - lastRefreshTime < 2000) {
-                    forceLogout();
-                    throw new Error("Auth stability failure. Please login again.");
-                }
-                lastRefreshTime = now;
-
                 refreshPromise = fetch(`${cleanBaseUrl}/auth/refresh`, {
                     method: "POST",
                     headers: {
@@ -100,36 +92,23 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit & { _
                     }
                 });
             } else {
-                throw new Error("Session expired.");
+                throw new Error("Invalid credentials");
             }
         }
 
         if (!response.ok) {
             const contentType = response.headers.get("content-type");
-            let errorMessage = `API Error ${response.status}`;
+            let errorMessage = "Unable to process request";
             
             if (contentType && contentType.includes("application/json")) {
                 const errorData = await response.json();
                 errorMessage = errorData.message || errorMessage;
-            } else {
-                const text = await response.text();
-                // If it's an HTML error page, extract the message or just say "Server Error"
-                if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
-                    errorMessage = `Server Error (${response.status}): The requested resource was not found or an internal error occurred.`;
-                } else {
-                    errorMessage = text || errorMessage;
-                }
             }
             throw new Error(errorMessage);
         }
 
         return await response.json();
     } catch (error: any) {
-        if (error.message.includes("Session expired")) {
-            console.warn("[Auth] Redirecting due to session expiry");
-        } else {
-            console.error(`[API Error] ${endpoint}:`, error.message);
-        }
         throw error;
     }
 }
@@ -205,6 +184,10 @@ export const paymentApi = {
     checkEnrollment: (subjectId: string) => fetchWithAuth(`/payments/check-enrollment/${subjectId}`),
     getTutorEarnings: () => fetchWithAuth("/payments/tutor/earnings"),
     getAdminEarnings: () => fetchWithAuth("/payments/admin/earnings"),
+    getPendingApprovals: () => fetchWithAuth("/payments/admin/pending"),
+    approvePayment: (paymentId: string) => fetchWithAuth(`/payments/admin/approve/${paymentId}`, {
+        method: "POST"
+    }),
 };
 
 export const groupApi = {
@@ -436,8 +419,9 @@ export const adminApi = {
     approveSubject: (id: string) => fetchWithAuth(`/admin/approve-subject/${id}`, {
         method: "PATCH"
     }),
-    rejectSubject: (id: string) => fetchWithAuth(`/admin/reject-subject/${id}`, {
-        method: "PATCH"
+    rejectSubject: (id: string, feedback?: string) => fetchWithAuth(`/admin/reject-subject/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ feedback })
     }),
     getAnalytics: (range?: string) => fetchWithAuth(`/admin/analytics${range ? `?range=${range}` : ""}`),
     getSettings: () => fetchWithAuth("/admin/settings"),

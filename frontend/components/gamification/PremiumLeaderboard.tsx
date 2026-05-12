@@ -108,8 +108,8 @@ export function PremiumLeaderboard() {
                                             
                                             <div className="relative">
                                                 <Avatar className="w-16 h-16 border-2 border-white shadow-lg group-hover:scale-105 transition-transform duration-500">
-                                                    <AvatarImage src={entry.user.profile?.avatar} />
-                                                    <AvatarFallback className="bg-slate-100 text-slate-400 font-black">{entry.user.name[0]}</AvatarFallback>
+                                                    <AvatarImage src={entry.user?.profile?.avatar} />
+                                                    <AvatarFallback className="bg-slate-100 text-slate-400 font-black">{entry.user?.name?.[0] || "?"}</AvatarFallback>
                                                 </Avatar>
                                                 <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white shadow-lg">
                                                     {entry.level}
@@ -117,9 +117,9 @@ export function PremiumLeaderboard() {
                                             </div>
 
                                             <div>
-                                                <h4 className="font-bold text-slate-900 text-lg tracking-tight group-hover:text-sky-600 transition-colors">{entry.user.name}</h4>
+                                                <h4 className="font-bold text-slate-900 text-lg tracking-tight group-hover:text-sky-600 transition-colors">{entry.user?.name || "Deleted User"}</h4>
                                                 <div className="flex items-center gap-4 mt-1">
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade {entry.user.grade || "N/A"}</span>
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade {entry.user?.grade || "N/A"}</span>
                                                     {getMovementBadge(entry.movement)}
                                                 </div>
                                             </div>

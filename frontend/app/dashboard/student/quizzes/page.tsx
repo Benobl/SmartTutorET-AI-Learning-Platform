@@ -55,8 +55,8 @@ export default function StudentQuizzesPage() {
         const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                              q.subject?.title?.toLowerCase().includes(searchQuery.toLowerCase())
         
-        if (activeTab === "ai") return matchesSearch && q.title.toLowerCase().includes("ai")
-        if (activeTab === "manual") return matchesSearch && !q.title.toLowerCase().includes("ai")
+        if (activeTab === "ai") return matchesSearch && (q.creationMethod === "ai" || q.title.toLowerCase().includes("ai"))
+        if (activeTab === "manual") return matchesSearch && q.creationMethod !== "ai" && !q.title.toLowerCase().includes("ai")
         return matchesSearch
     })
 
@@ -123,7 +123,7 @@ export default function StudentQuizzesPage() {
             ) : filteredAssessments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
                     {filteredAssessments.map((quiz) => {
-                        const isAI = quiz.title.toLowerCase().includes("ai")
+                        const isAI = quiz.creationMethod === "ai" || quiz.title.toLowerCase().includes("ai")
                         const mySubmission = submissionByAssessment[String(quiz._id)]
                         return (
                             <Link 

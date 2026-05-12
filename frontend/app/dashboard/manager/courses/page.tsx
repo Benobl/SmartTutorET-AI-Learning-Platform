@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter
@@ -149,17 +150,19 @@ export default function CourseManagement() {
     // Form state
     const INITIAL_FORM_STATE = {
         name: "",
+        title: "",
         code: "",
         subject: "",
         grade: "9",
         stream: "Common",
         semester: "Full Year",
         description: "",
+        tutor: "",
         isPremium: false,
         price: 0,
         roadmap: {
-            semester1: { chapters: "", midTerm: "", final: "" },
-            semester2: { chapters: "", midTerm: "", final: "" }
+            semester1: { chapters: "", midTermDate: "", finalDate: "" },
+            semester2: { chapters: "", midTermDate: "", finalDate: "" }
         }
     }
 
@@ -178,7 +181,7 @@ export default function CourseManagement() {
                 adminApi.getPendingSubjects()
             ])
             setCourses(Array.isArray(cData.data) ? cData.data : [])
-            setTutors(Array.isArray(uData.data) ? uData.data.filter((t: any) => t.role === 'tutor' && t.tutorStatus === 'approved') : [])
+            setTutors(Array.isArray(uData.data) ? uData.data.filter((t: any) => t.role === 'tutor') : [])
             setPendingCourses(Array.isArray(pData.data) ? pData.data : [])
         } catch (error) {
             console.error("Failed to refresh data:", error)
@@ -199,27 +202,46 @@ export default function CourseManagement() {
             tutor: formState.tutor || undefined,
             isPremium: Boolean(formState.isPremium),
             price: Number(formState.price),
-            status: "approved"
+            status: "approved",
+            roadmap: {
+                semester1: {
+                    ...formState.roadmap.semester1,
+                    chapters: Array.isArray(formState.roadmap.semester1.chapters) 
+                        ? formState.roadmap.semester1.chapters 
+                        : (formState.roadmap.semester1.chapters as string).split(',').map(s => s.trim()).filter(Boolean)
+                },
+                semester2: {
+                    ...formState.roadmap.semester2,
+                    chapters: Array.isArray(formState.roadmap.semester2.chapters) 
+                        ? formState.roadmap.semester2.chapters 
+                        : (formState.roadmap.semester2.chapters as string).split(',').map(s => s.trim()).filter(Boolean)
+                }
+            }
         }
 
-        if (editingCourse) {
-            await courseApi.update(editingCourse.id, payload)
-            toast.success("Course modified successfully.")
-        } else {
-            await courseApi.create(payload)
-            toast.success("New course archived to curriculum.")
+        try {
+            if (editingCourse) {
+                await courseApi.update(editingCourse.id, payload)
+                toast.success("Course modified successfully.")
+            } else {
+                await courseApi.create(payload)
+                toast.success("New course archived to curriculum.")
+            }
+            setIsCreateModalOpen(false)
+            setEditingCourse(null)
+            setFormState(INITIAL_FORM_STATE)
+            refreshCourses()
+        } catch (error: any) {
+            toast.error(error.message || "Failed to save course changes.")
         }
-        setIsCreateModalOpen(false)
-        setEditingCourse(null)
-        setFormState(INITIAL_FORM_STATE)
-        refreshCourses()
     }
 
     const openEdit = (course: any) => {
         setEditingCourse({ ...course, id: course._id || course.id })
         setFormState({
+            ...INITIAL_FORM_STATE,
             name: course.title || course.name,
-            code: course.code,
+            code: course.code || "",
             subject: course.subject || course.title,
             grade: course.grade?.toString() || "9",
             stream: course.stream || "Common",
@@ -228,9 +250,21 @@ export default function CourseManagement() {
             tutor: course.tutor?._id || course.tutor || "",
             isPremium: course.isPremium || false,
             price: course.price || 0,
-            roadmap: course.roadmap || {
-                semester1: { chapters: "", midTerm: "", final: "" },
-                semester2: { chapters: "", midTerm: "", final: "" }
+            roadmap: {
+                semester1: {
+                    chapters: Array.isArray(course.roadmap?.semester1?.chapters) 
+                        ? course.roadmap.semester1.chapters.join(', ') 
+                        : (course.roadmap?.semester1?.chapters || ""),
+                    midTermDate: course.roadmap?.semester1?.midTermDate || course.roadmap?.semester1?.midTerm || "",
+                    finalDate: course.roadmap?.semester1?.finalDate || course.roadmap?.semester1?.final || ""
+                },
+                semester2: {
+                    chapters: Array.isArray(course.roadmap?.semester2?.chapters) 
+                        ? course.roadmap.semester2.chapters.join(', ') 
+                        : (course.roadmap?.semester2?.chapters || ""),
+                    midTermDate: course.roadmap?.semester2?.midTermDate || course.roadmap?.semester2?.midTerm || "",
+                    finalDate: course.roadmap?.semester2?.finalDate || course.roadmap?.semester2?.final || ""
+                }
             }
         })
         setIsCreateModalOpen(true)
@@ -294,11 +328,33 @@ export default function CourseManagement() {
 
     const handleApprove = async (id: string) => {
         try {
+            // First save any changes made during review
+            if (selectedCourseForReview) {
+                const payload = {
+                    ...selectedCourseForReview,
+                    title: selectedCourseForReview.title || selectedCourseForReview.name,
+                    roadmap: {
+                        semester1: {
+                            ...selectedCourseForReview.roadmap?.semester1,
+                            chapters: typeof selectedCourseForReview.roadmap?.semester1?.chapters === 'string' 
+                                ? selectedCourseForReview.roadmap.semester1.chapters.split(',').map((s: any) => s.trim()).filter(Boolean)
+                                : (selectedCourseForReview.roadmap?.semester1?.chapters || [])
+                        },
+                        semester2: {
+                            ...selectedCourseForReview.roadmap?.semester2,
+                            chapters: typeof selectedCourseForReview.roadmap?.semester2?.chapters === 'string' 
+                                ? selectedCourseForReview.roadmap.semester2.chapters.split(',').map((s: any) => s.trim()).filter(Boolean)
+                                : (selectedCourseForReview.roadmap?.semester2?.chapters || [])
+                        }
+                    }
+                }
+                await courseApi.update(id, payload)
+            }
             await adminApi.approveSubject(id)
             toast.success("Course framework approved and published.")
             refreshCourses()
-        } catch (error) {
-            toast.error("Failed to approve course.")
+        } catch (error: any) {
+            toast.error("Failed to approve course: " + error.message)
         }
     }
 
@@ -341,7 +397,26 @@ export default function CourseManagement() {
     }
 
     const openReview = (course: any) => {
-        setSelectedCourseForReview(course)
+        const formattedCourse = {
+            ...course,
+            roadmap: {
+                semester1: {
+                    ...course.roadmap?.semester1,
+                    chapters: Array.isArray(course.roadmap?.semester1?.chapters) 
+                        ? course.roadmap.semester1.chapters.join(', ') 
+                        : (course.roadmap?.semester1?.chapters || ""),
+                    midTermDate: course.roadmap?.semester1?.midTermDate || course.roadmap?.semester1?.midTerm || ""
+                },
+                semester2: {
+                    ...course.roadmap?.semester2,
+                    chapters: Array.isArray(course.roadmap?.semester2?.chapters) 
+                        ? course.roadmap.semester2.chapters.join(', ') 
+                        : (course.roadmap?.semester2?.chapters || ""),
+                    midTermDate: course.roadmap?.semester2?.midTermDate || course.roadmap?.semester2?.midTerm || ""
+                }
+            }
+        }
+        setSelectedCourseForReview(formattedCourse)
         setIsReviewModalOpen(true)
     }
 
@@ -438,10 +513,47 @@ export default function CourseManagement() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">{course.title || course.name}</h3>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                            <BookOpen className="w-3.5 h-3.5 text-blue-400" /> {course.subject} • Grade {course.grade}
-                                        </p>
+                                        <h3 className="text-2xl font-black text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors uppercase italic">{course.title || course.name}</h3>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                                    <BookOpen className="w-3.5 h-3.5 text-blue-400" /> {course.subject || "Academic Course"} • Grade {course.grade}
+                                                </p>
+                                                <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sem {course.semester}</p>
+                                            </div>
+                                            {course.tutor?.name && (
+                                                <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50/50 w-fit">
+                                                    <User className="w-3 h-3 text-blue-400" />
+                                                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Instructor: {course.tutor.name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Roadmap Preview Section [NEW] */}
+                                <div className="mt-8 p-6 rounded-3xl bg-slate-50 border border-slate-100/50 group-hover:bg-white group-hover:border-blue-100 transition-all duration-500">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <ListPlus className="w-3.5 h-3.5 text-blue-500" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Academic Framework Outline</span>
+                                        </div>
+                                        <Badge className="bg-white text-slate-400 border-slate-100 text-[8px] font-black uppercase tracking-widest px-2">Preview</Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-blue-600 uppercase tracking-tighter">Semester 1 Highlights</p>
+                                            <p className="text-[10px] font-bold text-slate-600 line-clamp-1 italic">
+                                                {Array.isArray(course.roadmap?.semester1?.chapters) ? course.roadmap.semester1.chapters.join(', ') : (course.roadmap?.semester1?.chapters || "Chapters not defined")}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter">Semester 2 Highlights</p>
+                                            <p className="text-[10px] font-bold text-slate-600 line-clamp-1 italic">
+                                                {Array.isArray(course.roadmap?.semester2?.chapters) ? course.roadmap.semester2.chapters.join(', ') : (course.roadmap?.semester2?.chapters || "Chapters not defined")}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -558,105 +670,107 @@ export default function CourseManagement() {
                 setIsCreateModalOpen(open)
                 if (!open) setEditingCourse(null)
             }}>
-                <DialogContent className="sm:max-w-[600px] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl">
-                    <div className="p-10 bg-slate-50/50 border-b border-slate-100">
+                <DialogContent className="sm:max-w-[750px] max-h-[90vh] bg-white rounded-[40px] p-0 overflow-hidden border-0 shadow-3xl fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col">
+                    <div className="p-8 bg-slate-50/50 border-b border-slate-100 flex-shrink-0">
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-black text-slate-800 leading-none">
                                 {editingCourse ? "Governance Audit" : "Curriculum Registry"}
                             </DialogTitle>
-                            <p className="text-slate-400 font-medium text-sm mt-2">
+                            <DialogDescription className="text-slate-400 font-medium text-sm mt-2">
                                 {editingCourse ? "Modify administrative settings and tutor assignments." : "Register a new standardized subject into the system."}
-                            </p>
+                            </DialogDescription>
                         </DialogHeader>
                     </div>
-                    <form onSubmit={handleAction} className="p-10 space-y-8">
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject Designation</Label>
-                                <Input
-                                    placeholder="e.g. Advanced Biology & Genetics"
-                                    className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
-                                    value={formState.name || formState.title}
-                                    onChange={(e) => setFormState({ ...formState, name: e.target.value, title: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-6">
+                    
+                    <form onSubmit={handleAction} className="flex-1 flex flex-col min-h-0">
+                        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+                            <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
-                                    <select
-                                        className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
-                                        value={formState.grade}
-                                        onChange={(e) => setFormState({ ...formState, grade: e.target.value })}
-                                        required
-                                    >
-                                        <option value="9">Grade 9</option>
-                                        <option value="10">Grade 10</option>
-                                        <option value="11">Grade 11</option>
-                                        <option value="12">Grade 12</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Stream</Label>
-                                    <select
-                                        className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
-                                        value={formState.stream}
-                                        onChange={(e) => setFormState({ ...formState, stream: e.target.value })}
-                                    >
-                                        <option value="Common">Common</option>
-                                        <option value="Natural Science">Natural Science</option>
-                                        <option value="Social Science">Social Science</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Syllabus Overview</Label>
-                                <textarea
-                                    className="w-full bg-white border border-slate-200 min-h-[120px] rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold p-4 text-sm"
-                                    placeholder="Describe the learning objectives and scope..."
-                                    value={formState.description}
-                                    onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Instructor (Tutor)</Label>
-                                <select
-                                    className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
-                                    value={formState.tutor}
-                                    onChange={(e) => setFormState({ ...formState, tutor: e.target.value })}
-                                >
-                                    <option value="">No Instructor Assigned</option>
-                                    {tutors.map(t => (
-                                        <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Registry Type</Label>
-                                    <select
-                                        className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
-                                        value={String(formState.isPremium)}
-                                        onChange={(e) => setFormState({ ...formState, isPremium: e.target.value === "true" })}
-                                    >
-                                        <option value="false">Free Access</option>
-                                        <option value="true">Premium Subject</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tuition Fee (ETB)</Label>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject Designation</Label>
                                     <Input
-                                        type="number"
-                                        disabled={!formState.isPremium}
-                                        placeholder="0"
+                                        placeholder="e.g. Advanced Biology & Genetics"
                                         className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
-                                        value={formState.price}
-                                        onChange={(e) => setFormState({ ...formState, price: e.target.value })}
+                                        value={formState.name || formState.title || ""}
+                                        onChange={(e) => setFormState({ ...formState, name: e.target.value, title: e.target.value })}
+                                        required
                                     />
                                 </div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</Label>
+                                        <select
+                                            className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                            value={formState.grade}
+                                            onChange={(e) => setFormState({ ...formState, grade: e.target.value })}
+                                            required
+                                        >
+                                            <option value="9">Grade 9</option>
+                                            <option value="10">Grade 10</option>
+                                            <option value="11">Grade 11</option>
+                                            <option value="12">Grade 12</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Stream</Label>
+                                        <select
+                                            className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                            value={formState.stream}
+                                            onChange={(e) => setFormState({ ...formState, stream: e.target.value })}
+                                        >
+                                            <option value="Common">Common</option>
+                                            <option value="Natural Science">Natural Science</option>
+                                            <option value="Social Science">Social Science</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Syllabus Overview</Label>
+                                    <textarea
+                                        className="w-full bg-white border border-slate-200 min-h-[120px] rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold p-4 text-sm"
+                                        placeholder="Describe the learning objectives and scope..."
+                                        value={formState.description || ""}
+                                        onChange={(e) => setFormState({ ...formState, description: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Academic Instructor (Tutor)</Label>
+                                    <select
+                                        className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                        value={formState.tutor || ""}
+                                        onChange={(e) => setFormState({ ...formState, tutor: e.target.value })}
+                                    >
+                                        <option value="">No Instructor Assigned</option>
+                                        {tutors.map(t => (
+                                            <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Registry Type</Label>
+                                        <select
+                                            className="w-full bg-white border border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold px-4"
+                                            value={String(formState.isPremium)}
+                                            onChange={(e) => setFormState({ ...formState, isPremium: e.target.value === "true" })}
+                                        >
+                                            <option value="false">Free Access</option>
+                                            <option value="true">Premium Subject</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tuition Fee (ETB)</Label>
+                                        <Input
+                                            type="number"
+                                            disabled={!formState.isPremium}
+                                            placeholder="0"
+                                            className="bg-white border-slate-200 h-14 rounded-2xl focus:ring-blue-500/30 text-slate-800 font-bold"
+                                            value={formState.price || 0}
+                                            onChange={(e) => setFormState({ ...formState, price: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
                             <div className="space-y-4">
                                 <Label className="text-xs font-black uppercase tracking-widest text-blue-500 flex items-center gap-2">
@@ -680,15 +794,15 @@ export default function CourseManagement() {
                                                 <div className="space-y-1">
                                                     <Label className="text-[9px] font-bold text-slate-400 uppercase">Mid-term</Label>
                                                     <Input type="date" className="h-10 rounded-xl bg-white border-blue-100 text-[10px]" 
-                                                        value={formState.roadmap.semester1.midTerm}
-                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester1: { ...formState.roadmap.semester1, midTerm: e.target.value } } })}
+                                                        value={formState.roadmap.semester1.midTermDate}
+                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester1: { ...formState.roadmap.semester1, midTermDate: e.target.value } } })}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <Label className="text-[9px] font-bold text-slate-400 uppercase">Final</Label>
                                                     <Input type="date" className="h-10 rounded-xl bg-white border-blue-100 text-[10px]" 
-                                                        value={formState.roadmap.semester1.final}
-                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester1: { ...formState.roadmap.semester1, final: e.target.value } } })}
+                                                        value={formState.roadmap.semester1.finalDate}
+                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester1: { ...formState.roadmap.semester1, finalDate: e.target.value } } })}
                                                     />
                                                 </div>
                                             </div>
@@ -711,15 +825,15 @@ export default function CourseManagement() {
                                                 <div className="space-y-1">
                                                     <Label className="text-[9px] font-bold text-slate-400 uppercase">Mid-term</Label>
                                                     <Input type="date" className="h-10 rounded-xl bg-white border-indigo-100 text-[10px]" 
-                                                        value={formState.roadmap.semester2.midTerm}
-                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester2: { ...formState.roadmap.semester2, midTerm: e.target.value } } })}
+                                                        value={formState.roadmap.semester2.midTermDate}
+                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester2: { ...formState.roadmap.semester2, midTermDate: e.target.value } } })}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <Label className="text-[9px] font-bold text-slate-400 uppercase">Final</Label>
                                                     <Input type="date" className="h-10 rounded-xl bg-white border-indigo-100 text-[10px]" 
-                                                        value={formState.roadmap.semester2.final}
-                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester2: { ...formState.roadmap.semester2, final: e.target.value } } })}
+                                                        value={formState.roadmap.semester2.finalDate}
+                                                        onChange={(e) => setFormState({ ...formState, roadmap: { ...formState.roadmap, semester2: { ...formState.roadmap.semester2, finalDate: e.target.value } } })}
                                                     />
                                                 </div>
                                             </div>
@@ -727,23 +841,24 @@ export default function CourseManagement() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="w-full sm:flex-none sm:w-40 rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] text-slate-400 hover:bg-slate-50 transition-all"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-500/30 transition-all active:scale-95"
-                                >
-                                    {editingCourse ? "Update Standards" : "Finalize Archive"}
-                                </Button>
-                            </div>
+                        <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4 flex-shrink-0">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full sm:flex-none sm:w-40 rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] text-slate-400 hover:bg-slate-50 transition-all"
+                                onClick={() => setIsCreateModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-16 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-500/30 transition-all active:scale-95"
+                            >
+                                {editingCourse ? "Update Standards" : "Finalize Archive"}
+                            </Button>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>
@@ -758,8 +873,15 @@ export default function CourseManagement() {
                         </div>
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-black leading-tight">
-                                {selectedCourseForReview?.title || selectedCourseForReview?.name}
+                                <Input 
+                                    className="bg-transparent border-none text-3xl font-black text-white p-0 h-auto focus-visible:ring-0"
+                                    value={selectedCourseForReview?.title || selectedCourseForReview?.name || ""}
+                                    onChange={(e) => setSelectedCourseForReview({ ...selectedCourseForReview, title: e.target.value, name: e.target.value })}
+                                />
                             </DialogTitle>
+                            <DialogDescription className="text-slate-400 font-medium text-xs mt-2">
+                                Review and modify the academic framework submitted for governance audit.
+                            </DialogDescription>
                             <div className="flex items-center gap-4 mt-4">
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10">
                                     <User className="w-4 h-4 text-blue-400" />
@@ -778,9 +900,14 @@ export default function CourseManagement() {
                         <div className="grid grid-cols-2 gap-6">
                             <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proposed Tuition Fee</Label>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-3xl font-black text-slate-900">{selectedCourseForReview?.price || 0}</span>
-                                    <span className="text-sm font-black text-slate-400 mb-1">ETB</span>
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                        type="number"
+                                        className="text-2xl font-black text-slate-900 bg-transparent border-none p-0 h-auto w-32 focus-visible:ring-0"
+                                        value={selectedCourseForReview?.price || 0}
+                                        onChange={(e) => setSelectedCourseForReview({ ...selectedCourseForReview, price: parseInt(e.target.value) || 0 })}
+                                    />
+                                    <span className="text-sm font-black text-slate-400">ETB</span>
                                 </div>
                                 <div className="pt-2 flex gap-2">
                                     <Button 
@@ -848,20 +975,66 @@ export default function CourseManagement() {
                                 <div className="p-6 rounded-3xl bg-white border border-slate-100 space-y-4">
                                     <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                                         <span className="text-[10px] font-black uppercase text-blue-600">Semester 1</span>
-                                        <Badge className="bg-blue-50 text-blue-600 border-none text-[8px] font-black uppercase">{selectedCourseForReview?.roadmap?.semester1?.midTermDate || "TBD"} Mid-term</Badge>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase">Mid-term:</span>
+                                            <Input 
+                                                type="date"
+                                                className="h-6 w-24 text-[8px] p-1 border-none bg-blue-50 text-blue-600 font-black rounded-lg"
+                                                value={selectedCourseForReview?.roadmap?.semester1?.midTermDate || ""}
+                                                onChange={(e) => setSelectedCourseForReview({
+                                                    ...selectedCourseForReview,
+                                                    roadmap: {
+                                                        ...selectedCourseForReview.roadmap,
+                                                        semester1: { ...selectedCourseForReview.roadmap.semester1, midTermDate: e.target.value }
+                                                    }
+                                                })}
+                                            />
+                                        </div>
                                     </div>
-                                    <p className="text-xs font-bold text-slate-700 leading-relaxed min-h-[60px]">
-                                        {selectedCourseForReview?.roadmap?.semester1?.chapters || "No chapters listed for this semester."}
-                                    </p>
+                                    <textarea 
+                                        className="text-xs font-bold text-slate-700 leading-relaxed w-full min-h-[80px] bg-slate-50/50 border-none rounded-xl p-3 focus:ring-0 resize-none"
+                                        placeholder="Comma separated chapters..."
+                                        value={selectedCourseForReview?.roadmap?.semester1?.chapters || ""}
+                                        onChange={(e) => setSelectedCourseForReview({
+                                            ...selectedCourseForReview,
+                                            roadmap: {
+                                                ...selectedCourseForReview.roadmap,
+                                                semester1: { ...selectedCourseForReview.roadmap.semester1, chapters: e.target.value }
+                                            }
+                                        })}
+                                    />
                                 </div>
                                 <div className="p-6 rounded-3xl bg-white border border-slate-100 space-y-4">
                                     <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                                         <span className="text-[10px] font-black uppercase text-indigo-600">Semester 2</span>
-                                        <Badge className="bg-indigo-50 text-indigo-600 border-none text-[8px] font-black uppercase">{selectedCourseForReview?.roadmap?.semester2?.midTermDate || "TBD"} Mid-term</Badge>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase">Mid-term:</span>
+                                            <Input 
+                                                type="date"
+                                                className="h-6 w-24 text-[8px] p-1 border-none bg-indigo-50 text-indigo-600 font-black rounded-lg"
+                                                value={selectedCourseForReview?.roadmap?.semester2?.midTermDate || ""}
+                                                onChange={(e) => setSelectedCourseForReview({
+                                                    ...selectedCourseForReview,
+                                                    roadmap: {
+                                                        ...selectedCourseForReview.roadmap,
+                                                        semester2: { ...selectedCourseForReview.roadmap.semester2, midTermDate: e.target.value }
+                                                    }
+                                                })}
+                                            />
+                                        </div>
                                     </div>
-                                    <p className="text-xs font-bold text-slate-700 leading-relaxed min-h-[60px]">
-                                        {selectedCourseForReview?.roadmap?.semester2?.chapters || "No chapters listed for this semester."}
-                                    </p>
+                                    <textarea 
+                                        className="text-xs font-bold text-slate-700 leading-relaxed w-full min-h-[80px] bg-slate-50/50 border-none rounded-xl p-3 focus:ring-0 resize-none"
+                                        placeholder="Comma separated chapters..."
+                                        value={selectedCourseForReview?.roadmap?.semester2?.chapters || ""}
+                                        onChange={(e) => setSelectedCourseForReview({
+                                            ...selectedCourseForReview,
+                                            roadmap: {
+                                                ...selectedCourseForReview.roadmap,
+                                                semester2: { ...selectedCourseForReview.roadmap.semester2, chapters: e.target.value }
+                                            }
+                                        })}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -908,9 +1081,9 @@ export default function CourseManagement() {
                             <DialogTitle className="text-3xl font-black leading-none">
                                 Gemini Curriculum <br/>Sync
                             </DialogTitle>
-                            <p className="text-indigo-100 font-medium text-sm mt-4 leading-relaxed">
+                            <DialogDescription className="text-indigo-100 font-medium text-sm mt-4 leading-relaxed">
                                 Automatically generate all official subjects, roadmaps, and chapter breakdowns based on the Ethiopian National Curriculum.
-                            </p>
+                            </DialogDescription>
                         </DialogHeader>
                     </div>
 
@@ -975,7 +1148,9 @@ export default function CourseManagement() {
                 <DialogContent className="sm:max-w-[500px] bg-white rounded-[40px] p-10 border-0 shadow-3xl">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-black text-slate-800">Review Suggestions</DialogTitle>
-                        <p className="text-slate-400 font-medium text-sm mt-2"> Provide constructive feedback to the tutor on how to improve this course framework.</p>
+                        <DialogDescription className="text-slate-400 font-medium text-sm mt-2">
+                            Provide constructive feedback to the tutor on how to improve this course framework.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6 py-8">
                         <div className="flex flex-wrap gap-2">
@@ -1042,13 +1217,15 @@ export default function CourseManagement() {
             </Dialog>
             {/* Registry Settings Modal (Simplified for Manager) */}
             <Dialog open={isModuleManagerOpen} onOpenChange={setIsModuleManagerOpen}>
-                <DialogContent className="sm:max-w-[600px] rounded-[40px] border-none p-10 bg-white shadow-3xl">
+                <DialogContent className="sm:max-w-[600px] rounded-[40px] border-none p-10 bg-white shadow-3xl fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
                     <DialogHeader>
                         <div className="w-16 h-16 rounded-3xl bg-slate-900 text-white flex items-center justify-center mb-6">
                             <Settings2 className="w-8 h-8" />
                         </div>
                         <DialogTitle className="text-3xl font-black text-slate-900 uppercase italic leading-none">Administrative <span className="text-blue-600">Settings</span></DialogTitle>
-                        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">Managing: {selectedCourseForModules?.title}</p>
+                        <DialogDescription className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-2">
+                            Managing governance and instructor assignments for {selectedCourseForModules?.title}.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div className="py-8 space-y-6">
@@ -1056,7 +1233,7 @@ export default function CourseManagement() {
                             <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Assigned Instructor</Label>
                             <select 
                                 className="w-full h-14 rounded-2xl bg-slate-50 border border-slate-100 font-bold text-sm px-4 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all cursor-pointer"
-                                value={formState.tutor}
+                                value={formState.tutor || ""}
                                 onChange={(e) => setFormState({ ...formState, tutor: e.target.value })}
                             >
                                 <option value="">Select Tutor</option>
@@ -1084,7 +1261,7 @@ export default function CourseManagement() {
                                     type="number"
                                     placeholder="ETB"
                                     className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold text-sm"
-                                    value={formState.price}
+                                    value={formState.price || 0}
                                     onChange={(e) => setFormState({ ...formState, price: e.target.value })}
                                 />
                             </div>

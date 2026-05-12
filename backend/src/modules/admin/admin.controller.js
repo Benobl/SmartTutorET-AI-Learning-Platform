@@ -44,7 +44,7 @@ export class AdminController {
 
     static async getStats(req, res, next) {
         try {
-            const stats = await AdminService.getSystemStats();
+            const stats = await AdminService.getSystemStats(req.user._id);
             res.json({ success: true, data: stats });
         } catch (error) {
             next(error);

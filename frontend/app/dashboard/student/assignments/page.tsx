@@ -394,11 +394,49 @@ export default function StudentAssignments() {
 
                                 {(() => {
                                     const sub = submissionByAssignmentId.get(String(assignment._id))
-                                    if (!sub || sub.status !== "evaluated" || !sub.feedback) return null
+                                    if (!sub) return null
                                     return (
-                                        <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 mt-4">
-                                            <p className="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-1">Tutor Feedback</p>
-                                            <p className="text-sm text-indigo-900 font-medium whitespace-pre-wrap">{sub.feedback}</p>
+                                        <div className="mt-6 space-y-4">
+                                            <div className="p-5 rounded-[24px] bg-emerald-50/30 border border-emerald-100/50">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Your Submission</span>
+                                                    </div>
+                                                    <span className="text-[8px] font-medium text-slate-400">
+                                                        {sub.createdAt ? format(new Date(sub.createdAt), "MMM dd, HH:mm") : ""}
+                                                    </span>
+                                                </div>
+                                                
+                                                {sub.content && (
+                                                    <p className="text-xs text-slate-600 font-medium line-clamp-3 mb-3">{sub.content}</p>
+                                                )}
+
+                                                {sub.attachments && sub.attachments.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {sub.attachments.map((url: string, i: number) => (
+                                                            <button 
+                                                                key={i}
+                                                                onClick={() => window.open(url, '_blank')}
+                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                                            >
+                                                                <Paperclip className="w-3 h-3" />
+                                                                <span className="text-[9px] font-bold uppercase tracking-tight">Artifact {i + 1}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {sub.status === "evaluated" && sub.feedback && (
+                                                <div className="p-5 rounded-[24px] border border-sky-100 bg-sky-50/40">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <Award className="w-3.5 h-3.5 text-sky-500" />
+                                                        <p className="text-[9px] font-black text-sky-700 uppercase tracking-widest">Tutor Feedback</p>
+                                                    </div>
+                                                    <p className="text-xs text-sky-900 font-medium whitespace-pre-wrap">{sub.feedback}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })()}

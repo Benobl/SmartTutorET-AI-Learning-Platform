@@ -203,14 +203,17 @@ export default function StudentCourses() {
                 try {
                     await paymentApi.verify(txRef);
                     toast({
-                        title: "Payment Successful",
-                        description: "You have been successfully enrolled in the course.",
+                        title: "Enrollment Successful!",
+                        description: "Your payment was verified and you are now enrolled. Welcome to the course!",
+                        className: "bg-emerald-500 text-white border-none"
                     });
                     // Clear query params
                     if (typeof window !== "undefined") {
                         window.history.replaceState({}, '', window.location.pathname);
                     }
-                    loadData();
+                    await loadData();
+                    // Optionally redirect to the newly enrolled course if we had the ID
+                    // router.push("/dashboard/student/courses");
                 } catch (error: any) {
                     toast({
                         title: "Verification Failed",
@@ -265,46 +268,105 @@ export default function StudentCourses() {
     }
 
     const handleEnroll = async (course: any) => {
+        console.log("🔥 ENROLL BUTTON CLICKED")
+        console.log("Course ID:", course.id)
+        console.log("Price:", course.price)
+        const currentUser = getCurrentUser()
+        console.log("User:", currentUser)
+
         if (course.price !== "Free") {
             try {
+                console.log("📡 Sending initialize request...")
                 setEnrollingId(course.id)
+                
                 // First, verify if already paid/enrolled via the backend
+                console.log(`📡 [Enroll] Checking enrollment for subject: ${course.id}`);
                 const enrollmentCheck = await paymentApi.checkEnrollment(course.id);
-                if (enrollmentCheck.data?.alreadyPaid) {
+                console.log("✅ [Enroll] Enrollment check response:", enrollmentCheck);
+
+                if (enrollmentCheck.success && enrollmentCheck.data?.alreadyPaid) {
+                    console.log("ℹ️ [Enroll] Student already paid/enrolled. Redirecting...");
                     toast({
                         title: "Already Enrolled",
-                        description: "You already have access to this course!",
-                        className: "bg-emerald-500 text-white"
+                        description: "You already have access to this course! Redirecting...",
+                        className: "bg-emerald-500 text-white border-none"
                     });
+                    loadData();
                     router.push(`/dashboard/student/courses/${course.id}`);
                     return;
                 }
 
-                const amountMatch = course.price.match(/\d+/)
-                const amount = amountMatch ? parseFloat(amountMatch[0]) : 0
+                if (enrollmentCheck.success && enrollmentCheck.data?.awaitingApproval) {
+                    console.log("ℹ️ [Enroll] Payment awaiting approval.");
+                    toast({
+                        title: "Awaiting Approval",
+                        description: "Your payment for this course is being reviewed by an admin.",
+                        className: "bg-amber-500 text-white"
+                    });
+                    return;
+                }
+
+                // Parse amount safely
+                let amount = 0;
+                if (typeof course.price === 'number') {
+                    amount = course.price;
+                } else {
+                    const amountMatch = String(course.price).match(/\d+/);
+                    amount = amountMatch ? parseFloat(amountMatch[0]) : 0;
+                }
                 
+                console.log("📡 [Enroll] Sending payment initialize request. Amount:", amount);
                 const response = await paymentApi.initialize({
                     amount,
                     subjectId: course.id,
                     method: "chapa"
-                })
+                });
                 
-                if (response.success && response.data.checkout_url) {
-                    toast({ title: "Redirecting", description: "Opening Chapa payment gateway..." })
-                    window.location.href = response.data.checkout_url
+                console.log("📦 [Enroll] FULL INITIALIZE RESPONSE:", response);
+                console.log("📦 [Enroll] RESPONSE TYPE:", typeof response);
+                console.log("📦 [Enroll] RESPONSE.DATA:", response?.data);
+                
+                // Robust extraction
+                const checkoutUrl = 
+                    response?.checkout_url || 
+                    response?.data?.checkout_url || 
+                    response?.data?.data?.checkout_url;
+
+                console.log("🌍 [Enroll] FINAL CHECKOUT URL:", checkoutUrl);
+                
+                if (checkoutUrl) {
+                    toast({
+                        title: "Redirecting to Chapa",
+                        description: "Opening secure payment gateway...",
+                    });
+                    
+                    // FORCE REDIRECT - IMMEDIATE
+                    console.log("🚀 [Enroll] EXECUTING REDIRECT NOW");
+                    window.location.assign(checkoutUrl);
+                    
+                    // Fallback
+                    setTimeout(() => {
+                        window.location.href = checkoutUrl;
+                    }, 100);
                 } else {
-                    throw new Error("Failed to initialize payment gateway")
+                    console.error("❌ [Enroll] Checkout URL missing from response", response);
+                    toast({
+                        title: "Payment Error",
+                        description: "The payment gateway failed to return a checkout URL. Please try again.",
+                        variant: "destructive"
+                    });
                 }
             } catch (error: any) {
+                console.error("❌ [Enroll] ENROLL FLOW ERROR:", error);
                 toast({
-                    title: "Enrollment Error",
-                    description: error.message || "Could not initialize payment.",
+                    title: "Error",
+                    description: error.message || "Failed to initialize enrollment.",
                     variant: "destructive"
-                })
+                });
             } finally {
-                setEnrollingId(null)
+                setEnrollingId(null);
             }
-            return
+            return;
         }
         setEnrollingId(course.id)
         try {
@@ -654,7 +716,9 @@ function CourseCard({ course, tab, enrollingId, onContinue, onEnroll }: {
                                 ? <><PlayCircle className="w-5 h-5 fill-white/20" /> Continue Learning</>
                                 : <><Clock className="w-5 h-5" /> Waiting for Tutor</>
                         ) : isEnrolled ? (
-                            <>Already Enrolled <ArrowRight className="w-4 h-4" /></>
+                            <>Go to Course <ArrowRight className="w-4 h-4" /></>
+                        ) : course.awaitingApproval ? (
+                            <><Clock className="w-5 h-5" /> Awaiting Admin Approval</>
                         ) : course.price === "Free" ? (
                             <><CheckCircle className="w-5 h-5" /> Enroll for Free</>
                         ) : (

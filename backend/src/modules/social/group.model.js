@@ -34,6 +34,20 @@ const groupSchema = new mongoose.Schema(
                 ref: "User",
             },
         ],
+        grade: {
+            type: Number,
+            enum: [9, 10, 11, 12],
+            required: false,
+        },
+        isGlobal: {
+            type: Boolean,
+            default: false,
+        },
+        type: {
+            type: String,
+            enum: ["academic", "private", "global"],
+            default: "private",
+        },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

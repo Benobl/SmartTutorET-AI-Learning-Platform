@@ -18,10 +18,12 @@ import { authApi } from "@/lib/api"
 import Image from "next/image"
 
 const resetPasswordSchema = z.object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string()
+        .min(8, "Email or password is incorrect")
+        .regex(/^[^\s]+$/, "Email or password is incorrect"), // No spaces
     confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Email or password is incorrect",
     path: ["confirmPassword"],
 })
 
@@ -60,7 +62,7 @@ function ResetPasswordContent() {
 
     const onSubmit = async (data: ResetPasswordFormValues) => {
         if (!token) {
-            setError("Invalid or expired reset token.")
+            setError("Invalid or expired token")
             return
         }
 
@@ -75,7 +77,7 @@ function ResetPasswordContent() {
                 router.push("/login")
             }, 3000)
         } catch (err: any) {
-            setError(err.message || "An error occurred while resetting your password. Please try again.")
+            setError(err.message || "Unable to reset password. Link may be expired.")
         } finally {
             setIsLoading(false)
         }

@@ -117,7 +117,13 @@ const LiveSessionContent = ({
                 await liveApi.end(dbSessionId).catch(e => console.warn("End session log failed:", e))
                 toast({ title: "Session Ended", description: "Class session has been archived." })
             }
-            await call.leave()
+            
+            // Only call leave if we haven't left yet
+            const s = call.state.callingState
+            if (s !== CallingState.LEFT && s !== CallingState.IDLE) {
+                await call.leave()
+            }
+            
             onLeave() 
         } catch (e) {
             console.error("[LiveClassroom] Error during explicit leave:", e)

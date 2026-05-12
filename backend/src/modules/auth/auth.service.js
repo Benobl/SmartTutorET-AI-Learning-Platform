@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import mongoose from "mongoose";
 import User from "../users/user.model.js";
@@ -8,6 +9,9 @@ import { sendEmail, sendPasswordResetEmail } from "../../lib/email.service.js";
 import { ApiError } from "../../middleware/error.middleware.js";
 import logger from "../../config/logger.js";
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_TIME = 30 * 60 * 1000; // 30 minutes
+
 export class AuthService {
     static async signup(userData) {
         const { email, password, name, role } = userData;
@@ -15,37 +19,44 @@ export class AuthService {
 
         const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
-            throw new ApiError(400, "Email already registered");
+            // High security masking
+            throw new ApiError(401, "Invalid credentials");
         }
 
         const validRoles = ["student", "tutor", "manager", "admin"];
         const userRole = (role && validRoles.includes(role)) ? role : "student";
-        const verificationToken = crypto.randomBytes(32).toString("hex");
+        
+        // Generate secure verification token
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
         const idx = Math.floor(Math.random() * 100) + 1;
         const defaultAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
-        const newUser = await User.create({
+        const newUser = new User({
             ...userData,
             email: normalizedEmail,
             role: userRole,
-            isApproved: userRole !== "tutor", // Tutor is false, others are true
-            isVerified: userRole !== "tutor", // Auto-verify non-tutors for now to ease login
+            isApproved: userRole !== "tutor",
+            isVerified: userRole !== "tutor",
             profile: {
                 avatar: userData.avatar || defaultAvatar,
                 bio: userData.bio || "",
                 expertise: userData.expertise || [],
                 education: userData.education || "",
             },
-            verificationToken,
+            verificationToken: hashedToken,
             tutorStatus: userRole === "tutor" ? "pending" : "none"
         });
 
-        const { accessToken, refreshToken } = this.generateTokens(newUser._id);
-        newUser.refreshTokens.push(refreshToken);
+        newUser.password = password;
         await newUser.save();
 
-        // Stream & Email integration (async)
+        const { accessToken, refreshToken } = this.generateTokens(newUser._id);
+        newUser.refreshTokens = [refreshToken];
+        await newUser.save();
+
+        // Stream sync (async)
         upsertStreamUser({
             id: newUser._id.toString(),
             name: newUser.name,
@@ -53,46 +64,49 @@ export class AuthService {
         }).catch(err => logger.error("Stream sync error:", err));
 
         if (userRole === "tutor") {
-            sendEmail(newUser.email, verificationToken).catch(err => logger.error("Email send error:", err));
+            // Send email with RAW token
+            sendEmail(newUser.email, rawToken).catch(err => logger.error("Email send error:", err));
         }
 
         return { user: newUser, accessToken, refreshToken };
     }
 
     static async login(email, password) {
-        if (mongoose.connection.readyState !== 1) {
-            throw new ApiError(503, "Database is temporarily unavailable. Please try again shortly.");
-        }
         const normalizedEmail = email.trim().toLowerCase();
-        console.log(`[AUTH-DEBUG] Attempting login for normalized email: "${normalizedEmail}"`);
+        logger.info(`[Auth-Debug] Login attempt for: ${normalizedEmail}`);
         
-        const user = await User.findOne({ email: normalizedEmail }).select("+password");
+        const user = await User.findOne({ email: normalizedEmail }).select("+password +loginAttempts +lockUntil");
+
         if (!user) {
-            console.log(`[AUTH-DEBUG] User NOT FOUND in database for: "${normalizedEmail}"`);
-            throw new ApiError(401, "Invalid email or password (Code: U-404)");
+            logger.warn(`[Auth-Debug] User not found: ${normalizedEmail}`);
+            throw new ApiError(401, "Invalid credentials");
         }
 
-        if (!user.password) {
-            console.log(`[AUTH-DEBUG] User has NO password field (Google Auth?): "${normalizedEmail}"`);
-            throw new ApiError(401, "Invalid email or password (Code: P-MIS)");
+        logger.info(`[Auth-Debug] User found. Attempts: ${user.loginAttempts}, Locked: ${user.lockUntil ? new Date(user.lockUntil).toISOString() : 'no'}`);
+
+        // Check if account is locked
+        if (user.lockUntil && user.lockUntil > Date.now()) {
+            logger.error(`[Auth-Debug] Account LOCKED for: ${normalizedEmail}`);
+            throw new ApiError(401, "Account temporarily locked. Please try again later.");
         }
 
         const isMatch = await user.matchPassword(password);
-        console.log(`[AUTH-DEBUG] Match Result: ${isMatch} | Input Length: ${password?.length} | Hash Prefix: ${user.password.substring(0, 7)}`);
-        
+        logger.info(`[Auth-Debug] Password match result: ${isMatch}`);
+
         if (!isMatch) {
-            console.warn(`[AuthService] Password mismatch for ${normalizedEmail}`);
-            throw new ApiError(401, "Invalid email or password (Code: P-MIS)");
+            user.loginAttempts += 1;
+            if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                user.lockUntil = Date.now() + LOCK_TIME;
+                logger.error(`[Auth-Debug] LOCKING account now: ${normalizedEmail}`);
+            }
+            await user.save();
+            throw new ApiError(401, "Invalid credentials");
         }
 
-        // Check approval status
-        if (!user.isApproved) {
-            console.log(`[AUTH-DEBUG] Account NOT APPROVED for: "${normalizedEmail}"`);
-            throw new ApiError(403, "Invalid email or password (Code: A-REQ)");
-        }
-
-        logger.info(`[AuthService] Login successful for ${email}`);
-
+        // Reset attempts on successful login
+        user.loginAttempts = 0;
+        user.lockUntil = undefined;
+        
         // Sync with Stream (async)
         upsertStreamUser({
             id: user._id.toString(),
@@ -115,18 +129,29 @@ export class AuthService {
             const user = await User.findById(decoded.userId);
 
             if (!user || !user.refreshTokens.includes(token)) {
-                throw new ApiError(401, "Invalid refresh token");
+                // Potential reuse attack - invalidate all sessions for safety
+                if (user) {
+                    logger.warn(`[Auth] Refresh token reuse detected for user ${user._id}. Invalidating all sessions.`);
+                    user.refreshTokens = [];
+                    await user.save();
+                }
+                throw new ApiError(401, "Invalid session");
             }
 
             return user;
         } catch (error) {
-            throw new ApiError(401, "Invalid refresh token");
+            throw new ApiError(401, "Invalid session");
         }
     }
 
-    static async verifyEmail(token) {
-        const user = await User.findOne({ verificationToken: token });
-        if (!user) throw new ApiError(400, "Invalid or expired token");
+    static async verifyEmail(rawToken) {
+        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const user = await User.findOne({ verificationToken: hashedToken });
+        
+        if (!user) {
+            logger.warn(`[Auth] Invalid email verification attempt with token: ${rawToken}`);
+            throw new ApiError(400, "Invalid or expired verification link");
+        }
 
         user.isVerified = true;
         user.verificationToken = undefined;
@@ -135,45 +160,62 @@ export class AuthService {
     }
 
     static async forgotPassword(email) {
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) throw new ApiError(404, "User not found");
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        
+        // Always return success to prevent enumeration
+        if (!user) return true;
 
-        const token = crypto.randomBytes(32).toString("hex");
-        user.resetPasswordToken = token;
-        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+        user.resetPasswordToken = hashedToken;
+        user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 Hour
         await user.save();
 
-        sendPasswordResetEmail(user.email, token).catch(err => console.error("Reset email error:", err));
-        return token;
+        // Send RAW token to user
+        sendPasswordResetEmail(user.email, rawToken).catch(err => logger.error("Reset email error:", err));
+        return true;
     }
 
-    static async resetPassword(token, newPassword) {
+    static async resetPassword(rawToken, newPassword) {
+        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+        
         const user = await User.findOne({
-            resetPasswordToken: token,
+            resetPasswordToken: hashedToken,
             resetPasswordExpire: { $gt: Date.now() }
         });
 
-        if (!user) throw new ApiError(400, "Invalid or expired token");
+        if (!user) {
+            logger.warn(`[Auth] Invalid or expired password reset attempt.`);
+            throw new ApiError(400, "Invalid or expired reset link");
+        }
 
+        // Set new password (will be hashed by pre-save hook)
         user.password = newPassword;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
+        user.loginAttempts = 0;
+        user.lockUntil = undefined;
+        
+        logger.info(`[Auth] Password reset SUCCESS for: ${user.email}`);
+        console.log(`[Auth-Debug] Password reset SUCCESS for: ${user.email}`);
+        
+        // Invalidate all existing sessions on password change
+        user.refreshTokens = [];
+        
         await user.save();
         return user;
     }
 
     static async googleLogin(credential) {
-        logger.info("[AuthService] Starting Google Login verification");
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
         try {
-            logger.info("[AuthService] Verifying token with Google...");
             const ticket = await client.verifyIdToken({
                 idToken: credential,
                 audience: process.env.GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
             const { email, given_name, family_name, picture, sub } = payload;
-            logger.info(`[AuthService] Google token verified for ${email}`);
 
             let user = await User.findOne({ email: email.toLowerCase() });
 
@@ -181,17 +223,19 @@ export class AuthService {
                 user = await User.create({
                     email: email.toLowerCase(),
                     name: `${given_name} ${family_name}`,
-                    role: "student", // Default role for Google signup
-                    profile: {
-                        avatar: picture,
-                    },
-                    isVerified: true, // Google accounts are pre-verified
+                    role: "student",
+                    profile: { avatar: picture },
+                    isVerified: true,
                     googleId: sub,
                     tutorStatus: "none"
                 });
+            } else if (!user.googleId) {
+                // Link Google account to existing email if it wasn't already
+                user.googleId = sub;
+                user.isVerified = true;
+                await user.save();
             }
 
-            // Sync with Stream (async) for both new and existing users
             upsertStreamUser({
                 id: user._id.toString(),
                 name: user.name,
@@ -200,9 +244,33 @@ export class AuthService {
 
             return user;
         } catch (error) {
-            const msg = error?.message || "Unknown error";
-            console.error("[Google Auth Error]", msg);
-            throw new ApiError(401, `Google authentication failed: ${msg}`);
+            logger.error(`[Auth] Google Login verification failure: ${error.message}`);
+            throw new ApiError(401, "Google authentication failed");
         }
+    }
+
+    static async changePassword(userId, oldPassword, newPassword) {
+        const user = await User.findById(userId).select("+password");
+        if (!user) throw new ApiError(401, "Invalid request");
+
+        const isMatch = await user.matchPassword(oldPassword);
+        if (!isMatch) throw new ApiError(401, "Old password is incorrect");
+
+        user.password = newPassword;
+        user.refreshTokens = []; // Logout other sessions
+        await user.save();
+        return true;
+    }
+
+    static async adminResetPassword(userId, newPassword) {
+        const user = await User.findById(userId);
+        if (!user) throw new ApiError(404, "User not found");
+
+        user.password = newPassword;
+        user.loginAttempts = 0;
+        user.lockUntil = undefined;
+        user.refreshTokens = []; // Logout sessions
+        await user.save();
+        return true;
     }
 }

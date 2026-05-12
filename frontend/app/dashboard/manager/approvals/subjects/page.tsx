@@ -21,6 +21,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogFooter 
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { getPendingSubjects, approveSubject, rejectSubject } from "@/lib/manager-utils"
 import Link from "next/link"
@@ -31,6 +39,8 @@ export default function SubjectApprovals() {
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedSubject, setSelectedSubject] = useState<any>(null)
     const [processingId, setProcessingId] = useState<string | null>(null)
+    const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+    const [rejectionFeedback, setRejectionFeedback] = useState("")
 
     const fetchData = async () => {
         setLoading(true)
@@ -56,13 +66,16 @@ export default function SubjectApprovals() {
         setProcessingId(null)
     }
 
-    const handleReject = async (id: string) => {
-        setProcessingId(id)
-        const success = await rejectSubject(id)
+    const handleReject = async () => {
+        if (!selectedSubject) return
+        setProcessingId(selectedSubject._id)
+        const success = await rejectSubject(selectedSubject._id, rejectionFeedback)
         if (success) {
             toast.error("Subject application rejected.")
             fetchData()
             setSelectedSubject(null)
+            setIsRejectDialogOpen(false)
+            setRejectionFeedback("")
         } else {
             toast.error("Failed to reject subject.")
         }
@@ -225,6 +238,51 @@ export default function SubjectApprovals() {
                                         </div>
                                     </div>
 
+                                    {/* Roadmap / Outline */}
+                                    {selectedSubject.roadmap && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Course Outline (Roadmap)</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                                                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                                        Semester 1
+                                                    </p>
+                                                    <ul className="space-y-2">
+                                                        {selectedSubject.roadmap.semester1?.chapters?.length > 0 ? (
+                                                            selectedSubject.roadmap.semester1.chapters.map((ch: string, i: number) => (
+                                                                <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
+                                                                    <span className="text-slate-300 mt-0.5">0{i+1}</span>
+                                                                    <span>{ch}</span>
+                                                                </li>
+                                                            ))
+                                                        ) : (
+                                                            <li className="text-xs text-slate-400 italic">No chapters defined</li>
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                                <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                                        Semester 2
+                                                    </p>
+                                                    <ul className="space-y-2">
+                                                        {selectedSubject.roadmap.semester2?.chapters?.length > 0 ? (
+                                                            selectedSubject.roadmap.semester2.chapters.map((ch: string, i: number) => (
+                                                                <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
+                                                                    <span className="text-slate-300 mt-0.5">0{i+1}</span>
+                                                                    <span>{ch}</span>
+                                                                </li>
+                                                            ))
+                                                        ) : (
+                                                            <li className="text-xs text-slate-400 italic">No chapters defined</li>
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Vetting Actions</p>
                                         <div className="flex flex-col sm:flex-row gap-4">
@@ -245,7 +303,7 @@ export default function SubjectApprovals() {
                                             <Button 
                                                 variant="outline"
                                                 disabled={processingId === selectedSubject._id}
-                                                onClick={() => handleReject(selectedSubject._id)}
+                                                onClick={() => setIsRejectDialogOpen(true)}
                                                 className="flex-1 h-16 rounded-2xl border-2 border-rose-100 hover:bg-rose-50 text-rose-500 font-black uppercase tracking-widest text-xs group"
                                             >
                                                 <XCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
@@ -259,6 +317,49 @@ export default function SubjectApprovals() {
                     </div>
                 )}
             </div>
+
+            {/* Rejection Dialog */}
+            <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+                <DialogContent className="sm:max-w-[500px] rounded-[40px] border-slate-100 bg-white p-0 overflow-hidden shadow-2xl">
+                    <div className="p-10 border-b border-slate-50">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-black text-slate-900 uppercase italic">Reject <span className="text-rose-500">Framework</span></DialogTitle>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Provide feedback for the tutor</p>
+                        </DialogHeader>
+                    </div>
+                    <div className="p-10 space-y-6">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Improvement Feedback</label>
+                            <Textarea 
+                                placeholder="Explain why this course framework was rejected and what needs to be improved..."
+                                className="min-h-[150px] rounded-3xl bg-slate-50 border-transparent focus:bg-white focus:border-rose-100 transition-all font-medium text-sm p-6"
+                                value={rejectionFeedback}
+                                onChange={(e) => setRejectionFeedback(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="p-10 pt-4 flex gap-4">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setIsRejectDialogOpen(false)}
+                            className="flex-1 h-14 rounded-2xl border-slate-200 font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            disabled={!rejectionFeedback.trim() || processingId === selectedSubject?._id}
+                            onClick={handleReject}
+                            className="flex-1 h-14 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-rose-500/20"
+                        >
+                            {processingId === selectedSubject?._id ? (
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                "Confirm Rejection"
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

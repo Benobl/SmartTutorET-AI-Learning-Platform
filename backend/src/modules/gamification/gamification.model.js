@@ -51,38 +51,10 @@ const gamificationSchema = new mongoose.Schema({
         icon: String,
         unlockedAt: { type: Date, default: Date.now }
     }],
-    dailyMissions: [
-        {
-            id: {
-                type: String,
-                required: true
-            },
-            title: {
-                type: String,
-                required: true
-            },
-            type: {
-                type: String,
-                required: true
-            },
-            target: {
-                type: Number,
-                default: 1
-            },
-            progress: { 
-                type: Number, 
-                default: 0 
-            },
-            isCompleted: { 
-                type: Boolean, 
-                default: false 
-            },
-            xpReward: {
-                type: Number,
-                default: 0
-            }
-        }
-    ],
+    dailyMissions: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     lastMissionRefresh: {
         type: Date,
         default: Date.now

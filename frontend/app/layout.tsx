@@ -1,12 +1,11 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import type React from "react";
 import { Toaster } from "sonner";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], display: "swap" });
-const geistMono = Geist_Mono({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "SmartTutorET - AI-Powered Learning Platform",

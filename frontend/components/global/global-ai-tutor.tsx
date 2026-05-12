@@ -64,7 +64,7 @@ export function GlobalAITutor() {
                     >
                         {/* Animated Gradient Background */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-sky-600 via-indigo-600 to-purple-600 opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
-                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                        <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-black/5" />
                         
                         <Sparkles className="w-7 h-7 text-white relative z-10 animate-pulse" />
                         

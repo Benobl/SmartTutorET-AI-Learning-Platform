@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function ManagerDashboard() {
     const [loading, setLoading] = useState(true)
-    const [stats, setStats] = useState({ students: 0, tutors: 0, courses: 0, pendingTutors: 0, pendingSubjects: 0, jobs: 0 })
+    const [stats, setStats] = useState({ students: 0, tutors: 0, courses: 0, pendingTutors: 0, pendingSubjects: 0, jobs: 0, personalEarnings: 0 })
     const [pendingTutors, setPendingTutors] = useState<any[]>([])
     const [selectedTutor, setSelectedTutor] = useState<any>(null)
     const [isProcessing, setIsProcessing] = useState(false)
@@ -52,6 +52,7 @@ export default function ManagerDashboard() {
                 pendingTutors: pendingList.length,
                 pendingSubjects: subjectsList.length,
                 jobs: jobsList.length,
+                personalEarnings: statsData.personalEarnings || 0,
             })
             setPendingTutors(pendingList)
         } catch (e) {
@@ -89,6 +90,7 @@ export default function ManagerDashboard() {
         { label: "Total Students", value: stats.students, icon: Users, color: "sky" },
         { label: "Active Tutors", value: stats.tutors, icon: GraduationCap, color: "emerald" },
         { label: "Active Courses", value: stats.courses, icon: BookOpen, color: "indigo" },
+        { label: "Personal Earnings", value: `${(stats as any).personalEarnings || 0} ETB`, icon: ShieldCheck, color: "emerald" },
         { label: "Pending Tutors", value: stats.pendingTutors, icon: Clock, color: "amber" },
     ]
 

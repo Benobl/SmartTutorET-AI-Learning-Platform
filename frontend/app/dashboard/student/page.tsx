@@ -99,13 +99,25 @@ export default function StudentOverview() {
               })
             }
           })
+
+          s.on("grade-updated", (data: any) => {
+            console.log("[Socket] Grade updated, refreshing dashboard stats")
+            fetchData()
+            toast.success("New Grade Available", {
+              description: "An assignment has been graded. Your statistics have been updated.",
+              icon: <GraduationCap className="w-4 h-4 text-emerald-500" />
+            })
+          })
         }
       }
     }
 
     return () => {
       const s = getSocket()
-      if (s) s.off("new-announcement")
+      if (s) {
+        s.off("new-announcement")
+        s.off("grade-updated")
+      }
     }
   }, [fetchData, user])
 

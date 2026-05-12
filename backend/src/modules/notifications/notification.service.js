@@ -48,7 +48,7 @@ export class NotificationService {
             staffUsers.forEach(staff => {
                 notificationsToCreate.push({
                     user: staff._id,
-                    message: `💰 New payment: ${studentName} paid ${amount} ETB for "${courseTitle}".`,
+                    message: `💰 New payment from ${studentName} (${amount} ETB) for "${courseTitle}" is AWAITING YOUR APPROVAL.`,
                     type: "payment_received"
                 });
             });
@@ -61,6 +61,35 @@ export class NotificationService {
             return { success: true };
         } catch (error) {
             console.error("❌ Payment Notification Error:", error);
+        }
+    }
+
+    static async notifyEnrollmentApproved(payment) {
+        try {
+            const studentId = payment.student?._id || payment.student;
+            const tutorId = payment.subject?.tutor;
+            const courseTitle = payment.subject?.title || "your course";
+
+            const notifications = [
+                {
+                    user: studentId,
+                    message: `🎉 Great news! Your enrollment for "${courseTitle}" has been approved. You can now access the course content.`,
+                    type: "enrollment_approved"
+                }
+            ];
+
+            if (tutorId) {
+                notifications.push({
+                    user: tutorId,
+                    message: `💰 Payment approved: A new student is now enrolled in "${courseTitle}". Your 70% share (${payment.tutorAmount} ETB) has been credited to your balance.`,
+                    type: "payment_approved"
+                });
+            }
+
+            await Notification.insertMany(notifications);
+            return { success: true };
+        } catch (error) {
+            console.error("❌ Enrollment Approval Notification Error:", error);
         }
     }
 

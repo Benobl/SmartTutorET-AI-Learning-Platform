@@ -4,6 +4,9 @@ import { ApiError } from "../../middleware/error.middleware.js";
 import Subject from "../courses/subject.model.js";
 import { NotificationService } from "../notifications/notification.service.js";
 import { awardXP } from "../gamification/gamification.controller.js";
+import { ProgressService } from "../progress/progress.service.js";
+import Enrollment from "../learning/enrollment.model.js";
+import { io, getReceiverSocketId } from "../../lib/socket.js";
 
 const toNumberGrade = (value) => {
     const parsed = Number.parseInt(String(value ?? ""), 10);
@@ -270,9 +273,21 @@ export class AssignmentController {
             }
 
             const submissions = await AssignmentSubmission.find({ assignment: assignmentId })
-                .populate("student", "name email grade profile.avatar")
+                .populate({
+                    path: "student",
+                    select: "name email grade profile.avatar"
+                })
                 .populate("assignment", "title maxMarks")
                 .sort({ createdAt: -1 });
+
+            // Filter out submissions with deleted/missing students if needed, 
+            // or just ensure frontend doesn't crash. 
+            // We'll keep them but log a warning if student is missing.
+            submissions.forEach(s => {
+                if (!s.student) {
+                    console.warn(`[Assignment] Submission ${s._id} has a missing student reference.`);
+                }
+            });
 
             const { rankBySubmissionId, totalsByAssignmentId } = await buildRankMapsForAssignments([
                 assignmentId,
@@ -292,7 +307,14 @@ export class AssignmentController {
             const { submissionId } = req.params;
             const { marksObtained, feedback = "" } = req.body;
 
-            const submission = await AssignmentSubmission.findById(submissionId).populate("assignment");
+            console.log(`[Grading] Tutor ${req.user.email} is grading submission ${submissionId} with marks ${marksObtained}`);
+
+            const submission = await AssignmentSubmission.findById(submissionId)
+                .populate({
+                    path: "assignment",
+                    populate: { path: "subject" }
+                });
+
             if (!submission) throw new ApiError(404, "Submission not found");
 
             if (
@@ -313,6 +335,30 @@ export class AssignmentController {
             submission.feedback = String(feedback || "").trim();
             submission.status = "evaluated";
             await submission.save();
+
+            // Update Progress Model
+            try {
+                await ProgressService.updateProgressFromAssignment(
+                    submission.student,
+                    submission.assignment.subject._id,
+                    submission.assignment._id
+                );
+                console.log(`[Grading] Successfully synced progress for student ${submission.student} in subject ${submission.assignment.subject.title}`);
+                
+                // Emit socket event for real-time refresh
+                const studentSocketId = getReceiverSocketId(String(submission.student));
+                if (studentSocketId) {
+                    io.to(studentSocketId).emit("grade-updated", {
+                        subjectId: submission.assignment.subject._id,
+                        assignmentId: submission.assignment._id,
+                        marks: parsedMarks
+                    });
+                    console.log(`[Grading] Emitted real-time update to student socket ${studentSocketId}`);
+                }
+            } catch (progError) {
+                console.error("[Grading] Failed to update progress model or emit socket:", progError);
+                // We don't throw here to avoid failing the whole request if progress sync fails
+            }
 
             const { rankBySubmissionId, totalsByAssignmentId } = await buildRankMapsForAssignments([
                 submission.assignment._id,
@@ -483,33 +529,143 @@ export class AssignmentController {
 
     static async getStudentGrades(req, res, next) {
         try {
+            const studentId = req.user._id;
+            const studentGrade = req.user.grade;
+
+            console.log(`[Grades] Fetching report for Student: ${studentId}, Grade: ${studentGrade}`);
+
+            // 1. Identify all target subjects (Enrollments, Array, Free)
+            const enrollments = await Enrollment.find({ studentId }).select("courseId");
+            const enrolledCourseIds = enrollments.map(e => e.courseId.toString());
+            
+            const subjectsByArray = await Subject.find({ students: studentId }).select("_id");
+            const arraySubjectIds = subjectsByArray.map(s => s._id.toString());
+
+            const freeSubjectQuery = {
+                isPremium: false,
+                $or: [{ status: "approved" }, { status: { $exists: false } }]
+            };
+            if (studentGrade) freeSubjectQuery.grade = studentGrade;
+            const freeSubjects = await Subject.find(freeSubjectQuery).select("_id");
+            const freeSubjectIds = freeSubjects.map(s => s._id.toString());
+
+            const allTargetSubjectIds = [...new Set([
+                ...enrolledCourseIds,
+                ...arraySubjectIds,
+                ...freeSubjectIds
+            ])];
+
+            console.log(`[Grades] Target Subjects Count: ${allTargetSubjectIds.length}`);
+
+            // 2. Fetch all relevant subjects and assignments
+            const enrolledSubjects = await Subject.find({ _id: { $in: allTargetSubjectIds } });
+            const allAssignments = await Assignment.find({ 
+                subject: { $in: allTargetSubjectIds } 
+            }).populate("subject", "title");
+
+            // 3. Fetch student submissions
             const submissions = await AssignmentSubmission.find({ 
-                student: req.user._id, 
-                marksObtained: { $ne: null } 
+                student: studentId 
             }).populate({
                 path: "assignment",
                 populate: { path: "subject", select: "title" }
             });
 
-            const report = {};
-            submissions.forEach(sub => {
-                if (!sub.assignment || !sub.assignment.subject) return;
-                const subjectTitle = sub.assignment.subject.title;
-                const type = sub.assignment.type || "assignment";
+            // 4. Initialize report using Subject IDs as primary keys
+            // We use an object keyed by ID, then convert to array for frontend
+            const reportMap = {};
 
-                if (!report[subjectTitle]) {
-                    report[subjectTitle] = {
-                        total: 0,
-                        breakdown: { assignment: 0, quiz: 0, mid_exam: 0, final_exam: 0 }
+            enrolledSubjects.forEach(sub => {
+                reportMap[sub._id.toString()] = {
+                    subjectId: sub._id,
+                    subject: sub.title,
+                    totalObtained: 0,
+                    totalPossible: 0,
+                    breakdown: {
+                        assignment: { obtained: 0, max: 0, count: 0, pending: 0 },
+                        quiz: { obtained: 0, max: 0, count: 0, pending: 0 },
+                        mid_exam: { obtained: 0, max: 0, count: 0, pending: 0 },
+                        final_exam: { obtained: 0, max: 0, count: 0, pending: 0 }
+                    },
+                    status: "in_progress",
+                    recentFeedback: []
+                };
+            });
+
+            // 5. Add all assignments to the report (even if not submitted)
+            allAssignments.forEach(asm => {
+                if (!asm.subject) return;
+                const subId = asm.subject._id.toString();
+                const type = asm.type || "assignment";
+
+                if (reportMap[subId]) {
+                    if (reportMap[subId].breakdown[type]) {
+                        reportMap[subId].breakdown[type].max += asm.maxMarks;
+                        reportMap[subId].breakdown[type].count += 1;
+                        reportMap[subId].totalPossible += asm.maxMarks;
+                    }
+                }
+            });
+
+            // 6. Map submissions to the report
+            submissions.forEach(sub => {
+                if (!sub.assignment || !sub.assignment.subject) {
+                    console.warn(`[Grades] Submission ${sub._id} has missing assignment/subject reference`);
+                    return;
+                }
+
+                const subId = sub.assignment.subject._id.toString();
+                let type = sub.assignment.type || "assignment";
+                if (!["assignment", "quiz", "mid_exam", "final_exam"].includes(type)) {
+                    type = "assignment";
+                }
+
+                if (!reportMap[subId]) {
+                    // This happens if a student submitted for a course they are no longer "enrolled" in
+                    // We add it to the report anyway so grades aren't lost
+                    reportMap[subId] = {
+                        subjectId: sub.assignment.subject._id,
+                        subject: sub.assignment.subject.title,
+                        totalObtained: 0,
+                        totalPossible: 0,
+                        breakdown: {
+                            assignment: { obtained: 0, max: 0, count: 0, pending: 0 },
+                            quiz: { obtained: 0, max: 0, count: 0, pending: 0 },
+                            mid_exam: { obtained: 0, max: 0, count: 0, pending: 0 },
+                            final_exam: { obtained: 0, max: 0, count: 0, pending: 0 }
+                        },
+                        status: "in_progress",
+                        recentFeedback: []
                     };
                 }
 
-                report[subjectTitle].breakdown[type] = (report[subjectTitle].breakdown[type] || 0) + sub.marksObtained;
-                report[subjectTitle].total += sub.marksObtained;
+                const record = reportMap[subId];
+                if (sub.status === "evaluated" && sub.marksObtained !== undefined && sub.marksObtained !== null) {
+                    record.breakdown[type].obtained += sub.marksObtained;
+                    record.totalObtained += sub.marksObtained;
+                    
+                    if (sub.feedback) {
+                        record.recentFeedback.push({
+                            task: sub.assignment.title,
+                            comment: sub.feedback,
+                            marks: sub.marksObtained,
+                            max: sub.assignment.maxMarks
+                        });
+                    }
+                } else if (sub.status === "submitted") {
+                    record.breakdown[type].pending += 1;
+                }
             });
 
-            res.json({ success: true, data: report });
+            res.json({ 
+                success: true, 
+                data: Object.keys(report).map(title => ({
+                    subject: title,
+                    ...report[title]
+                }))
+            });
         } catch (error) {
+            console.error("[Grades] fetch error:", error);
             next(error);
         }
     }

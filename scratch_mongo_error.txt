@@ -1,0 +1,6 @@
+MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+    at _handleConnectionErrors (/home/nebil/SmartTutorET-AI-Learning-Platform/backend/node_modules/mongoose/lib/connection.js:1169:11)
+    at NativeConnection.openUri (/home/nebil/SmartTutorET-AI-Learning-Platform/backend/node_modules/mongoose/lib/connection.js:1100:11)
+    at async connectDB (file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/src/lib/db.js:10:21)
+    at async testAuth (file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/scratch/debug_auth.js:8:5)

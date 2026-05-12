@@ -82,8 +82,8 @@ export function PremiumPodium({ topThree, type }: PremiumPodiumProps) {
                                 transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
                             >
                                 <Avatar className={`w-16 h-16 md:w-24 md:h-24 border-4 ${isFirst ? "border-yellow-400 shadow-yellow-400/20" : "border-white"} shadow-2xl relative z-10`}>
-                                    <AvatarImage src={entry.user.profile?.avatar} />
-                                    <AvatarFallback className="bg-slate-100 text-slate-400 font-bold">{entry.user.name[0]}</AvatarFallback>
+                                    <AvatarImage src={entry.user?.profile?.avatar} />
+                                    <AvatarFallback className="bg-slate-100 text-slate-400 font-bold">{entry.user?.name?.[0] || "?"}</AvatarFallback>
                                 </Avatar>
                             </motion.div>
                             
@@ -105,7 +105,7 @@ export function PremiumPodium({ topThree, type }: PremiumPodiumProps) {
                         {/* Name and Level */}
                         <div className="text-center mb-6">
                             <h4 className="font-bold text-slate-900 text-sm md:text-base truncate w-full group-hover:text-sky-600 transition-colors">
-                                {entry.user.name}
+                                {entry.user?.name || "Deleted User"}
                             </h4>
                             <div className="flex items-center justify-center gap-1 mt-1">
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Level {entry.level}</span>

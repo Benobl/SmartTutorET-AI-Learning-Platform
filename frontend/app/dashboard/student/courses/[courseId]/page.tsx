@@ -98,6 +98,15 @@ export default function CourseDetailPage() {
                     (s._id && s._id === currentUser?._id)
                 ) || false
 
+                // Check detailed enrollment/payment status
+                let isPendingApproval = false;
+                try {
+                    const statusRes = await paymentApi.checkEnrollment(courseId);
+                    isPendingApproval = statusRes.data?.pending || statusRes.data?.status === "awaiting_approval";
+                } catch (e) {
+                    console.warn("Status check failed", e);
+                }
+
                 setCourse({
                     id: data._id || data.id,
                     name: data.title || data.name || "Untitled Course",
@@ -111,7 +120,8 @@ export default function CourseDetailPage() {
                     lessonsCount: data.lessons?.length || 0,
                     completed: 0,
                     priceValue: data.price || 0,
-                    enrolled: isEnrolled
+                    enrolled: isEnrolled,
+                    isPendingApproval
                 })
                 // Load unified content from MongoDB
                 try {
@@ -179,9 +189,26 @@ export default function CourseDetailPage() {
         if (!currentUser) return router.push("/auth/login")
         setEnrolling(true)
         try {
-            await paymentApi.enrollFree(course.id)
-            setCourse((prev: any) => ({ ...prev, enrolled: true }))
-            toast({ title: "Enrolled Successfully!", description: "Welcome to the course community." })
+            if (course.priceValue > 0) {
+                // Premium flow via Chapa
+                const res = await paymentApi.initialize({ 
+                    subjectId: course.id, 
+                    amount: course.priceValue, 
+                    method: "chapa" 
+                })
+                if (res.data?.checkout_url) {
+                    window.location.href = res.data.checkout_url
+                    return
+                } else {
+                    console.error("❌ [Payment] Checkout URL missing in response:", res);
+                    throw new Error("Payment gateway did not return a valid checkout URL. Please contact support.");
+                }
+            } else {
+                // Free flow
+                await courseApi.enroll(course.id)
+                setCourse((prev: any) => ({ ...prev, enrolled: true }))
+                toast({ title: "Enrolled Successfully!", description: "Welcome to the course community." })
+            }
         } catch (error: any) {
             toast({ title: "Enrollment Failed", description: error.message, variant: "destructive" })
         } finally {
@@ -237,14 +264,26 @@ export default function CourseDetailPage() {
                                     <span key={i} className={i % 2 === 1 ? "text-sky-600" : ""}>{word} </span>
                                 ))}
                             </h1>
-                            <Button 
-                                onClick={handleEnroll} 
-                                disabled={enrolling}
-                                className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-sky-600 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4 mx-auto"
-                            >
-                                {enrolling ? "Synchronizing..." : `Initialize Learning for ${course.priceValue} ETB`}
-                                <ArrowRight className="w-6 h-6" />
-                            </Button>
+                            {course.isPendingApproval ? (
+                                <div className="space-y-6">
+                                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 mb-4 animate-pulse">
+                                        <Clock className="w-5 h-5" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Awaiting Manager Approval</span>
+                                    </div>
+                                    <p className="text-slate-500 font-medium text-sm max-w-lg mx-auto">
+                                        We've received your payment! An administrator is currently verifying your transaction. Access will be granted shortly.
+                                    </p>
+                                </div>
+                            ) : (
+                                <Button 
+                                    onClick={handleEnroll} 
+                                    disabled={enrolling}
+                                    className="h-20 px-16 rounded-[32px] bg-slate-900 hover:bg-sky-600 text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center gap-4 mx-auto"
+                                >
+                                    {enrolling ? "Synchronizing..." : `Initialize Learning for ${course.priceValue} ETB`}
+                                    <ArrowRight className="w-6 h-6" />
+                                </Button>
+                            )}
                         </div>
                     </div>
                 ) : (

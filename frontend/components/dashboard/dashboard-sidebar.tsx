@@ -278,6 +278,13 @@ const adminNavItems: NavItem[] = [
         activeColor: "blue",
     },
     {
+        title: "Approvals",
+        url: "/dashboard/admin/approvals",
+        icon: Shield,
+        activeColor: "rose",
+        badge: 0,
+    },
+    {
         title: "All Users",
         url: "/dashboard/admin/users",
         icon: User,
@@ -333,14 +340,14 @@ function CollapseToggle({ className }: { className?: string }) {
 }
 
 import { useEffect } from "react"
-import { adminApi } from "@/lib/api"
+import { adminApi, paymentApi } from "@/lib/api"
 
 export function DashboardSidebar() {
     const pathname = usePathname()
     const { state, setOpenMobile, isMobile } = useSidebar()
     const isCollapsed = state === "collapsed"
     const [expandedItem, setExpandedItem] = useState<string | null>(null)
-    const [notifications, setNotifications] = useState({ tutors: 0 })
+    const [notifications, setNotifications] = useState({ tutors: 0, approvals: 0 })
 
     const isTeacher = pathname.startsWith("/dashboard/teacher") || pathname.startsWith("/dashboard/tutor")
     const isManager = pathname.startsWith("/dashboard/manager")
@@ -350,9 +357,17 @@ export function DashboardSidebar() {
         if (isAdmin) {
             const fetchNotifications = async () => {
                 try {
-                    const res = await adminApi.getStats()
+                    const [statsRes, pendingRes] = await Promise.allSettled([
+                        adminApi.getStats(),
+                        paymentApi.getPendingApprovals()
+                    ])
+                    
+                    const tutorsCount = statsRes.status === "fulfilled" ? statsRes.value.data.pendingTutors || 0 : 0
+                    const approvalsCount = pendingRes.status === "fulfilled" ? pendingRes.value.data.length || 0 : 0
+
                     setNotifications({
-                        tutors: res.data.pendingTutors || 0
+                        tutors: tutorsCount,
+                        approvals: approvalsCount
                     })
                 } catch (error) {
                     console.error("Failed to fetch sidebar notifications", error)
@@ -367,6 +382,7 @@ export function DashboardSidebar() {
 
     const navigationItems = isAdmin ? adminNavItems.map(item => {
         if (item.title === "Tutors") return { ...item, badge: notifications.tutors }
+        if (item.title === "Approvals") return { ...item, badge: notifications.approvals }
         return item
     }) : (isManager ? managerNavItems : (isTeacher ? teacherNavItems : studentNavItems))
     

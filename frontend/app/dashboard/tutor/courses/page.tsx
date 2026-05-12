@@ -243,7 +243,11 @@ export default function TeacherCourses() {
         grade: "9",
         semester: "1",
         isPremium: false,
-        price: 0
+        price: 0,
+        roadmap: {
+            semester1: { chapters: "", midTermDate: "", finalDate: "" },
+            semester2: { chapters: "", midTermDate: "", finalDate: "" }
+        }
     })
     const [editingCourseId, setEditingCourseId] = useState<string | null>(null)
 
@@ -267,6 +271,18 @@ export default function TeacherCourses() {
             formData.append("isPremium", String(newCourse.isPremium))
             formData.append("price", String(newCourse.price))
             formData.append("category", "General")
+            formData.append("roadmap", JSON.stringify({
+                semester1: {
+                    chapters: newCourse.roadmap.semester1.chapters.split(',').map((s: string) => s.trim()).filter(Boolean),
+                    midTermDate: newCourse.roadmap.semester1.midTermDate,
+                    finalDate: newCourse.roadmap.semester1.finalDate
+                },
+                semester2: {
+                    chapters: newCourse.roadmap.semester2.chapters.split(',').map((s: string) => s.trim()).filter(Boolean),
+                    midTermDate: newCourse.roadmap.semester2.midTermDate,
+                    finalDate: newCourse.roadmap.semester2.finalDate
+                }
+            }))
             if (syllabusFile) {
                 formData.append("syllabus", syllabusFile)
             }
@@ -308,7 +324,23 @@ export default function TeacherCourses() {
             grade: String(course.grade),
             semester: String(course.semester),
             isPremium: course.isPremium || false,
-            price: course.price || 0
+            price: course.price || 0,
+            roadmap: {
+                semester1: {
+                    chapters: Array.isArray(course.roadmap?.semester1?.chapters) 
+                        ? course.roadmap.semester1.chapters.join(', ') 
+                        : (course.roadmap?.semester1?.chapters || ""),
+                    midTermDate: course.roadmap?.semester1?.midTermDate || course.roadmap?.semester1?.midTerm || "",
+                    finalDate: course.roadmap?.semester1?.finalDate || course.roadmap?.semester1?.final || ""
+                },
+                semester2: {
+                    chapters: Array.isArray(course.roadmap?.semester2?.chapters) 
+                        ? course.roadmap.semester2.chapters.join(', ') 
+                        : (course.roadmap?.semester2?.chapters || ""),
+                    midTermDate: course.roadmap?.semester2?.midTermDate || course.roadmap?.semester2?.midTerm || "",
+                    finalDate: course.roadmap?.semester2?.finalDate || course.roadmap?.semester2?.final || ""
+                }
+            }
         })
         setIsCreateModalOpen(true)
     }
@@ -447,6 +479,121 @@ export default function TeacherCourses() {
                                             />
                                         </div>
                                     )}
+
+                                    {/* Roadmap Fields */}
+                                    <div className="space-y-6 pt-4 border-t border-slate-50">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-sky-500 ml-1 flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4" /> Curriculum Roadmap
+                                        </Label>
+                                        
+                                        {/* Semester 1 */}
+                                        <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Semester 1 Breakdown</p>
+                                            <div className="space-y-3">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[9px] font-bold text-slate-500 uppercase">Chapters (comma separated)</Label>
+                                                    <Input 
+                                                        placeholder="Chapter 1, Chapter 2, ..."
+                                                        className="h-10 rounded-xl bg-white border-slate-100 text-xs font-medium"
+                                                        value={newCourse.roadmap.semester1.chapters}
+                                                        onChange={(e) => setNewCourse({ 
+                                                            ...newCourse, 
+                                                            roadmap: { 
+                                                                ...newCourse.roadmap, 
+                                                                semester1: { ...newCourse.roadmap.semester1, chapters: e.target.value } 
+                                                            } 
+                                                        })}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[9px] font-bold text-slate-500 uppercase">Mid-term Date</Label>
+                                                        <Input 
+                                                            type="date"
+                                                            className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
+                                                            value={newCourse.roadmap.semester1.midTermDate}
+                                                            onChange={(e) => setNewCourse({ 
+                                                                ...newCourse, 
+                                                                roadmap: { 
+                                                                    ...newCourse.roadmap, 
+                                                                    semester1: { ...newCourse.roadmap.semester1, midTermDate: e.target.value } 
+                                                                } 
+                                                            })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[9px] font-bold text-slate-500 uppercase">Final Date</Label>
+                                                        <Input 
+                                                            type="date"
+                                                            className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
+                                                            value={newCourse.roadmap.semester1.finalDate}
+                                                            onChange={(e) => setNewCourse({ 
+                                                                ...newCourse, 
+                                                                roadmap: { 
+                                                                    ...newCourse.roadmap, 
+                                                                    semester1: { ...newCourse.roadmap.semester1, finalDate: e.target.value } 
+                                                                } 
+                                                            })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Semester 2 */}
+                                        <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Semester 2 Breakdown</p>
+                                            <div className="space-y-3">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[9px] font-bold text-slate-500 uppercase">Chapters (comma separated)</Label>
+                                                    <Input 
+                                                        placeholder="Chapter 6, Chapter 7, ..."
+                                                        className="h-10 rounded-xl bg-white border-slate-100 text-xs font-medium"
+                                                        value={newCourse.roadmap.semester2.chapters}
+                                                        onChange={(e) => setNewCourse({ 
+                                                            ...newCourse, 
+                                                            roadmap: { 
+                                                                ...newCourse.roadmap, 
+                                                                semester2: { ...newCourse.roadmap.semester2, chapters: e.target.value } 
+                                                            } 
+                                                        })}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[9px] font-bold text-slate-500 uppercase">Mid-term Date</Label>
+                                                        <Input 
+                                                            type="date"
+                                                            className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
+                                                            value={newCourse.roadmap.semester2.midTermDate}
+                                                            onChange={(e) => setNewCourse({ 
+                                                                ...newCourse, 
+                                                                roadmap: { 
+                                                                    ...newCourse.roadmap, 
+                                                                    semester2: { ...newCourse.roadmap.semester2, midTermDate: e.target.value } 
+                                                                } 
+                                                            })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[9px] font-bold text-slate-500 uppercase">Final Date</Label>
+                                                        <Input 
+                                                            type="date"
+                                                            className="h-10 rounded-xl bg-white border-slate-100 text-[10px]"
+                                                            value={newCourse.roadmap.semester2.finalDate}
+                                                            onChange={(e) => setNewCourse({ 
+                                                                ...newCourse, 
+                                                                roadmap: { 
+                                                                    ...newCourse.roadmap, 
+                                                                    semester2: { ...newCourse.roadmap.semester2, finalDate: e.target.value } 
+                                                                } 
+                                                            })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="p-10 pt-4 flex-shrink-0">
                                     <Button 
@@ -533,10 +680,32 @@ export default function TeacherCourses() {
                                         <h3 className="text-xl font-black text-slate-900 leading-tight uppercase italic group-hover:text-sky-600 transition-colors line-clamp-2">{course.title || course.name}</h3>
                                         <div className="flex items-center gap-3 mt-1.5">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                <Users className="w-3.5 h-3.5" /> {course.students?.length || 0}
+                                                <Users className="w-3.5 h-3.5" /> {course.students?.length || 0} Students
                                             </p>
                                             <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sem {course.semester}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semester {course.semester}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Roadmap Preview Section [NEW] */}
+                                <div className="p-6 rounded-[32px] bg-slate-50/50 border border-slate-100/50 group-hover:bg-white group-hover:border-sky-100 transition-all duration-500">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Clock className="w-3.5 h-3.5 text-sky-500" />
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Curriculum Roadmap</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-sky-600 uppercase tracking-tighter">Semester 1</p>
+                                            <p className="text-[10px] font-bold text-slate-600 truncate italic">
+                                                {Array.isArray(course.roadmap?.semester1?.chapters) ? course.roadmap.semester1.chapters.join(', ') : (course.roadmap?.semester1?.chapters || "Outline not defined")}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter">Semester 2</p>
+                                            <p className="text-[10px] font-bold text-slate-600 truncate italic">
+                                                {Array.isArray(course.roadmap?.semester2?.chapters) ? course.roadmap.semester2.chapters.join(', ') : (course.roadmap?.semester2?.chapters || "Outline not defined")}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

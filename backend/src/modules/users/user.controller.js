@@ -94,8 +94,10 @@ export class UserController {
 
     static async changePassword(req, res, next) {
         try {
-            const { currentPassword, newPassword } = req.body;
-            await UserService.changePassword(req.user._id, currentPassword, newPassword);
+            const { currentPassword, oldPassword, newPassword } = req.body;
+            const passwordToVerify = currentPassword || oldPassword;
+            const { AuthService } = await import("../auth/auth.service.js");
+            await AuthService.changePassword(req.user._id, passwordToVerify, newPassword);
             res.json({ success: true, message: "Password updated successfully" });
         } catch (error) {
             next(error);
@@ -105,7 +107,8 @@ export class UserController {
     static async adminResetPassword(req, res, next) {
         try {
             const { userId, newPassword } = req.body;
-            await UserService.adminResetPassword(userId, newPassword);
+            const { AuthService } = await import("../auth/auth.service.js");
+            await AuthService.adminResetPassword(userId, newPassword);
             res.json({ success: true, message: "User password reset successfully" });
         } catch (error) {
             next(error);

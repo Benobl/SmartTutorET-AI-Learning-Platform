@@ -17,12 +17,15 @@ export class AuthController {
         try {
             const { user, accessToken, refreshToken } = await AuthService.signup(req.body);
 
+            const isProduction = process.env.NODE_ENV === "production";
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production" ? true : false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                secure: isProduction,
+                sameSite: isProduction ? "none" : "lax",
                 path: "/",
             };
+
+            console.log(`[Auth Controller] Setting cookies with options:`, { ...cookieOptions, maxAge: "various" });
 
             res.cookie("jwt", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
             res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
@@ -51,15 +54,19 @@ export class AuthController {
 
             const { accessToken, refreshToken } = AuthService.generateTokens(user._id);
 
+            if (!user.refreshTokens) user.refreshTokens = [];
             user.refreshTokens.push(refreshToken);
             await user.save();
 
+            const isProduction = process.env.NODE_ENV === "production";
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production" ? true : false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                secure: isProduction,
+                sameSite: isProduction ? "none" : "lax",
                 path: "/",
             };
+
+            console.log(`[Auth Controller] Setting cookies on login for: ${user._id}`);
 
             res.cookie("jwt", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
             res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
@@ -74,14 +81,28 @@ export class AuthController {
     static async refresh(req, res, next) {
         try {
             console.log("[Auth Controller] Refresh Token Request Initiated");
-            console.log("[Auth Controller] Cookies received:", req.cookies);
-            const token = req.cookies.refreshToken;
+            console.log("[Auth Controller] Raw Cookie Header:", req.headers.cookie);
+            console.log("[Auth Controller] Parsed Cookies:", req.cookies);
+            
+            let token = req.cookies.refreshToken;
             
             if (!token) {
-                console.warn("[Auth Controller] Refresh token missing from cookies");
+                console.warn("[Auth Controller] Refresh token missing from cookies. Checking body...");
+                token = req.body.refreshToken;
+            }
+            
+            if (!token) {
                 throw new ApiError(401, "Refresh token missing");
             }
 
+            return this.verifyAndIssueNewTokens(token, res, next);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async verifyAndIssueNewTokens(token, res, next) {
+        try {
             const user = await AuthService.verifyRefreshToken(token);
 
             // Remove old token and issue new ones (rotation)
@@ -91,10 +112,11 @@ export class AuthController {
             user.refreshTokens.push(newRefreshToken);
             await user.save();
 
+            const isProduction = process.env.NODE_ENV === "production";
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production" ? true : false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                secure: isProduction,
+                sameSite: isProduction ? "none" : "lax",
                 path: "/",
             };
 
@@ -124,10 +146,11 @@ export class AuthController {
             user.refreshTokens.push(refreshToken);
             await user.save();
 
+            const isProduction = process.env.NODE_ENV === "production";
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production" ? true : false,
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                secure: isProduction,
+                sameSite: isProduction ? "none" : "lax",
                 path: "/",
             };
 
@@ -142,10 +165,11 @@ export class AuthController {
     }
 
     static logout(req, res) {
+        const isProduction = process.env.NODE_ENV === "production";
         const cookieOptions = {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production" ? true : false,
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax",
             path: "/",
         };
         res.clearCookie("jwt", cookieOptions);

@@ -1,45 +1,54 @@
 import { z } from "zod";
 
+// Strict regex for emails: letters, numbers, and standard symbols only. No emojis/scripts.
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+// Strict regex for names: letters, spaces, and standard punctuation only. No emojis/scripts.
+const nameRegex = /^[a-zA-Z\s.'-]+$/;
+// Strict password regex: Uppercase, Lowercase, Number, Special Character, No spaces.
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
 export const signupSchema = z.object({
     body: z.object({
-        name: z.string().min(2, "Full name must be at least 2 characters"),
-        email: z.string().email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        name: z.string()
+            .min(2, "Invalid name format")
+            .max(50, "Name too long")
+            .regex(nameRegex, "Names cannot contain special characters or emojis"),
+        email: z.string()
+            .email("Invalid email format")
+            .regex(emailRegex, "Emails cannot contain special characters or emojis")
+            .transform(val => val.toLowerCase().trim()),
+        password: z.string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(passwordRegex, "Password must include uppercase, lowercase, number, and special character"),
         role: z.enum(["student", "tutor", "manager"]).optional(),
         grade: z.string().optional(),
-        phone: z.string().optional(),
-        degree: z.string().optional(),
-        experience: z.union([z.number(), z.string()]).optional(),
-        subject: z.string().optional(),
-        subjects: z.array(z.string()).optional(),
-        skills: z.string().optional(),
-        availability: z.array(z.string()).optional(),
-        documents: z.object({
-            cv: z.string().optional(),
-            degree: z.string().optional(),
-            certifications: z.string().optional(),
-        }).optional(),
     }),
 });
 
 export const loginSchema = z.object({
     body: z.object({
-        email: z.string().email("Invalid email address"),
-        password: z.string().min(1, "Password is required"),
+        email: z.string()
+            .email("Invalid credentials")
+            .transform(val => val.toLowerCase().trim()),
+        password: z.string().min(1, "Invalid credentials"),
     }),
 });
 
 export const forgotPasswordSchema = z.object({
     body: z.object({
-        email: z.string().email("Invalid email address"),
+        email: z.string()
+            .email("Invalid request")
+            .transform(val => val.toLowerCase().trim()),
     }),
 });
 
 export const resetPasswordSchema = z.object({
     params: z.object({
-        token: z.string().min(1, "Reset token is required"),
+        token: z.string().min(1, "Invalid or expired token"),
     }),
     body: z.object({
-        password: z.string().min(8, "New password must be at least 8 characters"),
+        password: z.string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(passwordRegex, "Password must include uppercase, lowercase, number, and special character"),
     }),
 });

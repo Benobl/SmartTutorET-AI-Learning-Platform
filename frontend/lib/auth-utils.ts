@@ -30,8 +30,6 @@ export interface User {
 export const setAuthCookies = (token: string, role: string) => {
     if (typeof window === 'undefined') return;
     
-    console.log("[AuthUtils] Setting cookies for middleware:", { role });
-    
     // Set cookie for 7 days
     const expires = new Date();
     expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000));
@@ -45,9 +43,8 @@ export const setAuthCookies = (token: string, role: string) => {
     try {
         document.cookie = `jwt=${token}${cookieSuffix}`;
         document.cookie = `user_role=${role}${cookieSuffix}`;
-        console.log("[AuthUtils] Cookies set successfully");
     } catch (e) {
-        console.error("[AuthUtils] Failed to set cookies:", e);
+        // Silent failure
     }
 };
 
@@ -65,19 +62,9 @@ export const clearAuthCookies = () => {
  */
 export const loginUser = async (email: string, password: string): Promise<User | { error: string }> => {
     try {
-        console.log("[AuthUtils] Attempting login for:", email);
         const response = await authApi.login({ email, password });
-        console.log("[AuthUtils] API Response:", response);
         if (response.success && response.data) {
             const user = response.data;
-
-            // Block pending/rejected tutors if the API doesn't handle it already
-            if (user.role === 'tutor' && user.tutorStatus === 'pending') {
-                return { error: 'Your application is currently being reviewed by our institutional board. We will notify you via email once approved.' };
-            }
-            if (user.role === 'tutor' && user.tutorStatus === 'rejected') {
-                return { error: 'Your application was not approved at this time. Please contact support for details.' };
-            }
 
             // Normalize name fields for frontend components that expect firstName and lastName
             if (user.name && !user.firstName) {
@@ -98,11 +85,9 @@ export const loginUser = async (email: string, password: string): Promise<User |
             }
             return user;
         }
-        console.log("[AuthUtils] Login failed with response:", response);
-        return { error: response.message || "Invalid email or password" };
+        return { error: "Email or password is incorrect" };
     } catch (error: any) {
-        console.warn("[AuthUtils] Login exception:", error);
-        return { error: error.message || "An error occurred during login." };
+        return { error: "Email or password is incorrect" };
     }
 };
 
@@ -220,7 +205,7 @@ export const logoutUser = async () => {
     try {
         await authApi.logout();
     } catch (error) {
-        console.error("Logout error:", error);
+        // Silent
     } finally {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('smarttutor_user');

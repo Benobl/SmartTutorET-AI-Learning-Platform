@@ -19,11 +19,29 @@ export class SubjectController {
                 syllabusUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', 'application/pdf');
             }
 
+            const status = (req.user.role === "admin" || req.user.role === "manager") 
+                ? "approved" 
+                : "pending";
+
             const subjectData = {
                 ...req.body,
-                status: req.user.tutorStatus === "approved" ? "approved" : "pending",
+                status,
                 syllabusUrl
             };
+
+            // Parse stringified JSON fields if they come from FormData
+            console.log("[SubjectController] createSubject body:", req.body);
+            if (typeof req.body.roadmap === 'string') {
+                try { 
+                    subjectData.roadmap = JSON.parse(req.body.roadmap); 
+                    console.log("[SubjectController] Parsed roadmap:", subjectData.roadmap);
+                } catch (e) {
+                    console.error("[SubjectController] Failed to parse roadmap:", e.message);
+                }
+            }
+            if (typeof req.body.lessons === 'string') {
+                try { subjectData.lessons = JSON.parse(req.body.lessons); } catch (e) {}
+            }
 
             const subject = await SubjectService.createSubject(req.user._id, subjectData);
             res.status(201).json({ success: true, data: subject });
@@ -39,8 +57,28 @@ export class SubjectController {
                 const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
                 const filename = `syllabus-${uniqueSuffix}.pdf`;
                 updateData.syllabusUrl = await uploadToSupabase(req.file.buffer, filename, 'pedagogical-content', 'application/pdf');
-                updateData.status = "pending";
             }
+            
+            // Always set back to pending on update if it's a tutor resubmitting
+            if (req.user.role === "tutor") {
+                updateData.status = "pending";
+                // Clear old feedback on resubmission
+                updateData.managerFeedback = "";
+            }
+            // Parse stringified JSON fields if they come from FormData
+            console.log("[SubjectController] update body keys:", Object.keys(updateData));
+            if (typeof updateData.roadmap === 'string') {
+                try { 
+                    updateData.roadmap = JSON.parse(updateData.roadmap); 
+                    console.log("[SubjectController] Parsed update roadmap:", updateData.roadmap);
+                } catch (e) {
+                    console.error("[SubjectController] Failed to parse update roadmap:", e.message);
+                }
+            }
+            if (typeof updateData.lessons === 'string') {
+                try { updateData.lessons = JSON.parse(updateData.lessons); } catch (e) {}
+            }
+
             const subject = await SubjectService.updateSubject(req.params.subjectId, updateData);
             res.json({ success: true, message: "Subject framework updated and resubmitted", data: subject });
         } catch (error) {
@@ -99,7 +137,7 @@ export class SubjectController {
                 ];
             }
 
-            const subjects = await SubjectService.getAllSubjects(filter);
+            const subjects = await SubjectService.getAllSubjects(filter, req.user?._id);
             res.json({ success: true, data: subjects });
         } catch (error) {
             next(error);
@@ -205,7 +243,7 @@ export class SubjectController {
 
     static async getLessons(req, res, next) {
         try {
-            const subject = await SubjectService.getSubjectDetails(req.params.subjectId);
+            const subject = await SubjectService.getSubjectDetails(req.params.subjectId, req.user._id);
             if (!subject) throw new ApiError(404, "Subject not found");
             res.json({ success: true, data: subject.lessons });
         } catch (error) {

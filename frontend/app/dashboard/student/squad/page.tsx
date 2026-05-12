@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { groupApi, inviteApi, userApi } from "@/lib/api"
-import { X, Video, UserPlus, Search, Loader2, Mic, MicOff, VideoOff, Monitor, Radio, Plus, Users, Check, Crown, MessageSquare, BookOpen, PenTool, HelpCircle, Bell, ArrowLeft, Clock, Play, PhoneCall } from 'lucide-react'
+import { X, Video, UserPlus, Search, Loader2, Mic, MicOff, VideoOff, Monitor, Radio, Plus, Users, Check, Crown, MessageSquare, BookOpen, PenTool, HelpCircle, Bell, ArrowLeft, Clock, Play, PhoneCall, Info, Layout } from 'lucide-react'
 import { initializeSocket } from "@/lib/socket"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -34,12 +34,12 @@ const AVATARS = ["🧬", "⚗️", "🔭", "🧪", "📡", "🛸", "⚡", "🌌"
 function Avatar({ name, size = "md", color = "sky" }: { name?: string; size?: "sm" | "md" | "lg"; color?: string }) {
     const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-base" }
     const colors: Record<string, string> = {
-        sky: "bg-sky-100 text-sky-600",
-        indigo: "bg-indigo-100 text-indigo-600",
-        amber: "bg-amber-100 text-amber-600",
-        emerald: "bg-emerald-100 text-emerald-600",
-        rose: "bg-rose-100 text-rose-600",
-        purple: "bg-purple-100 text-purple-600",
+        sky: "bg-sky-50 text-sky-600 border border-sky-100",
+        indigo: "bg-indigo-50 text-indigo-600 border border-indigo-100",
+        amber: "bg-amber-50 text-amber-600 border border-amber-100",
+        emerald: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+        rose: "bg-rose-50 text-rose-600 border border-rose-100",
+        purple: "bg-purple-50 text-purple-600 border border-purple-100",
     }
     return (
         <div className={cn("rounded-2xl flex items-center justify-center font-black uppercase shrink-0", sizes[size], colors[color] || colors.sky)}>
@@ -60,63 +60,60 @@ function SquadCard({ squad, onOpen, onInvite, currentUserId }: {
     return (
         <div
             className={cn(
-                "group relative bg-white border rounded-3xl p-5 hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col gap-4 shadow-sm",
-                isLive ? "border-rose-200 bg-rose-50/30" : "border-slate-100"
+                "group relative bg-white border rounded-[32px] p-6 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1.5 transition-all duration-500 cursor-pointer flex flex-col gap-6 shadow-sm",
+                isLive ? "border-rose-200 bg-rose-50/20" : "border-slate-100"
             )}
             onClick={() => onOpen(squad)}
         >
             {/* Top row */}
             <div className="flex items-start justify-between">
                 <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg transition-transform group-hover:scale-110",
-                    isLive ? "bg-gradient-to-br from-rose-500 to-orange-500" : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                    "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110",
+                    isLive ? "bg-rose-500 text-white" : "bg-slate-50 border border-slate-100 text-slate-900"
                 )}>
                     {squad.avatar || "🧬"}
                 </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-2">
                     {isLive && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-100 text-rose-600 rounded-full animate-pulse border border-rose-200">
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-500 rounded-full animate-pulse border border-rose-100">
                             <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Live Now</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">Live</span>
                         </div>
                     )}
                     {isOwner && (
-                        <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-full">
-                            <Crown className="w-2.5 h-2.5" /> Owner
+                        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] bg-slate-900 text-white px-3 py-1 rounded-full">
+                            <Crown className="w-2.5 h-2.5" /> Lead
                         </span>
                     )}
                 </div>
             </div>
             {/* Info */}
-            <div className="flex-1">
-                <h3 className="font-black text-slate-900 text-base leading-tight group-hover:text-sky-600 transition-colors">{squad.name}</h3>
-                <p className="text-[10px] font-semibold text-slate-400 mt-0.5 uppercase tracking-wider truncate">{squad.topic || "General Collaboration"}</p>
+            <div className="flex-1 space-y-1">
+                <h3 className="font-bold text-slate-900 text-lg leading-tight group-hover:text-sky-600 transition-colors">{squad.name}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{squad.topic || "Collaboration"}</p>
             </div>
             {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="font-bold">{memberCount}</span>
-                    <span>members</span>
+            <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                <div className="flex items-center gap-1.5">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] font-black text-slate-400">
+                                {i}
+                            </div>
+                        ))}
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 ml-2">+{memberCount} members</span>
                 </div>
                 <div className="flex gap-2">
                     <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={e => { e.stopPropagation(); onInvite(squad) }}
-                        className="h-8 px-3 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                    >
-                        <UserPlus className="w-3 h-3 mr-1" /> Invite
-                    </Button>
-                    <Button
-                        size="sm"
                         onClick={e => { e.stopPropagation(); onOpen(squad) }}
                         className={cn(
-                            "h-8 px-3 rounded-xl text-[10px] font-black uppercase shadow-lg transition-all",
-                            isLive ? "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-200" : "bg-slate-900 text-white hover:bg-slate-700"
+                            "h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                            isLive ? "bg-rose-600 text-white hover:bg-rose-700 shadow-xl shadow-rose-200" : "bg-slate-900 text-white hover:bg-slate-700 shadow-xl shadow-slate-200"
                         )}
                     >
-                        {isLive ? "Join Live" : "Open"}
+                        {isLive ? "Join" : "Enter"}
                     </Button>
                 </div>
             </div>
@@ -129,12 +126,12 @@ function SquadCard({ squad, onOpen, onInvite, currentUserId }: {
 function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: () => void; onDecline: () => void }) {
     const [loading, setLoading] = useState(false)
     return (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-amber-100 shadow-sm">
-            <Avatar name={invite.inviter?.fullName} color="amber" />
+        <div className="flex items-center gap-4 p-5 rounded-3xl bg-white/50 backdrop-blur-md border border-white/50 shadow-sm">
+            <Avatar name={invite.inviter?.fullName} color="sky" />
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-slate-900 truncate">{invite.inviter?.fullName || "Someone"}</p>
-                <p className="text-[10px] text-slate-500 font-semibold truncate">
-                    To <span className="text-slate-700 font-black">{invite.targetId?.name || "a squad"}</span>
+                <p className="text-sm font-bold text-slate-900 truncate">{invite.inviter?.fullName || "A peer"}</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                    Invite to <span className="text-sky-600">{invite.targetId?.name || "Squad"}</span>
                 </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -142,18 +139,18 @@ function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: ()
                     size="sm"
                     disabled={loading}
                     onClick={async () => { setLoading(true); await onAccept(); setLoading(false) }}
-                    className="h-8 w-8 p-0 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="h-9 w-9 p-0 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200"
                 >
-                    {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-4 h-4" />}
                 </Button>
                 <Button
                     size="sm"
                     variant="ghost"
                     disabled={loading}
                     onClick={async () => { setLoading(true); await onDecline(); setLoading(false) }}
-                    className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                    className="h-9 w-9 p-0 rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500"
                 >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                 </Button>
             </div>
         </div>
@@ -164,41 +161,34 @@ function InviteCard({ invite, onAccept, onDecline }: { invite: any; onAccept: ()
 
 function LiveAlert({ alert, onJoin, onDismiss }: { alert: any, onJoin: () => void, onDismiss: () => void }) {
     return (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-[420px] bg-white/90 backdrop-blur-3xl p-6 rounded-[3rem] border border-white shadow-[0_40px_100px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in duration-500 ring-4 ring-rose-500/10">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-[420px] bg-white/80 backdrop-blur-3xl p-6 rounded-[40px] border border-white shadow-[0_40px_100px_rgba(0,0,0,0.1)] animate-in fade-in zoom-in duration-500 ring-1 ring-slate-100">
             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-rose-500 via-rose-600 to-orange-500 flex items-center justify-center text-white shadow-2xl relative overflow-hidden shrink-0 group">
+                <div className="w-16 h-16 rounded-[2rem] bg-rose-500 flex items-center justify-center text-white shadow-2xl relative overflow-hidden shrink-0 group">
                     <Video className="w-8 h-8 relative z-10 group-hover:scale-110 transition-transform" />
                     <div className="absolute inset-0 bg-white/20 animate-pulse" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                        <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">Live Classroom</h4>
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
+                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">Live Class</h4>
                     </div>
-                    <p className="text-[16px] text-slate-900 font-black leading-tight">
+                    <p className="text-[16px] text-slate-900 font-bold leading-tight">
                         {alert.hostName} <span className="text-slate-400 font-medium">is teaching in</span>
                     </p>
-                    <p className="text-[12px] text-sky-600 font-black uppercase tracking-wider mt-0.5">
+                    <p className="text-[12px] text-sky-600 font-black uppercase tracking-widest mt-1">
                         {alert.squadName}
                     </p>
                 </div>
-                <button onClick={onDismiss} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all">
+                <button onClick={onDismiss} className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all">
                     <X className="w-5 h-5" />
                 </button>
             </div>
             <div className="mt-6 flex gap-3">
                 <Button
-                    variant="outline"
-                    onClick={onDismiss}
-                    className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-slate-200"
-                >
-                    Dismiss
-                </Button>
-                <Button
                     onClick={onJoin}
-                    className="flex-1 h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/20 active:scale-95 transition-all"
+                    className="flex-1 h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-200 active:scale-95 transition-all"
                 >
-                    <Play className="w-3.5 h-3.5 mr-2 fill-current" /> Join Class Now
+                    <Play className="w-3.5 h-3.5 mr-2 fill-current" /> Join Class
                 </Button>
             </div>
         </div>
@@ -230,14 +220,12 @@ function ClassSquadContent() {
     const socketRef = useRef<any>(null)
     const { videoClient, isReady: isStreamReady, initError: streamError, retryInit } = useStream()
     
-    // Safety: Move currentUser to state to prevent hydration mismatch
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [currentUserId, setCurrentUserId] = useState<string>("")
 
     const searchParams = useSearchParams()
     const externalCallId = searchParams ? searchParams.get('joinCall') : null
 
-    // Initialize User & Sync
     useEffect(() => {
         const user = getCurrentUser()
         if (user) {
@@ -246,7 +234,6 @@ function ClassSquadContent() {
         }
     }, [])
 
-    // Handle Deep Link Joins
     useEffect(() => {
         if (externalCallId && isStreamReady && videoClient && currentUser) {
             const handleAutoJoin = async () => {
@@ -254,7 +241,7 @@ function ClassSquadContent() {
                 try {
                     await call.getOrCreate()
                     setActiveCall(call)
-                    setActiveSquad({ name: "Study Hub Session", avatar: "⚡", members: [] })
+                    setActiveSquad({ name: "Live Session", avatar: "⚡", members: [] })
                 } catch (e) {
                     console.error("Deep link join failed", e)
                 }
@@ -269,7 +256,6 @@ function ClassSquadContent() {
             const squadsArr = Array.isArray(squadRes) ? squadRes : (squadRes?.data || [])
             setSquads(squadsArr)
             
-            // Auto-join socket rooms for all squads to receive live alerts
             if (socketRef.current) {
                 squadsArr.forEach((s: any) => {
                     socketRef.current.emit("join-squad", s._id);
@@ -278,7 +264,7 @@ function ClassSquadContent() {
 
             const liveSquad = squadsArr.find((s: any) => s.isLive)
             if (liveSquad && liveSquad.sessionData?.callId) {
-                setLiveAlert({ callId: liveSquad.sessionData.callId, squadName: liveSquad.name, squadId: liveSquad._id, hostName: "A squad member" })
+                setLiveAlert({ callId: liveSquad.sessionData.callId, squadName: liveSquad.name, squadId: liveSquad._id, hostName: "Squad Host" })
             }
         } catch (e) { console.warn("[Squad] Failed squads:", e) }
         try {
@@ -303,38 +289,21 @@ function ClassSquadContent() {
 
         socket.on("new-invite", (data: any) => {
             setReceivedInvites(prev => [data, ...prev])
-            toast({ title: "🏆 New Squad Invite!" })
+            toast({ title: "New Invite!" })
         })
 
         socket.on("squad-live-started", (data: any) => {
             const { callId, squadName, hostName, squadId, hostId } = data
             if (hostId === currentUserId) return
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: true, sessionData: { callId } } : s))
-            
-            // Also update activeSquad if the user is currently looking at it
-            setActiveSquad(prev => {
-                if (prev?._id === squadId) {
-                    return { ...prev, isLive: true, sessionData: { callId } }
-                }
-                return prev
-            })
-
+            setActiveSquad(prev => prev?._id === squadId ? { ...prev, isLive: true, sessionData: { callId } } : prev)
             setLiveAlert({ callId, squadName, hostName, squadId })
-            toast({ title: "Live Now!", description: `${hostName} is teaching in ${squadName}` })
         })
 
         socket.on("squad-live-ended", (data: any) => {
             const { squadId } = data
             setSquads(prev => prev.map(s => s._id === squadId ? { ...s, isLive: false, sessionData: null } : s))
-            
-            // Also update activeSquad if the user is currently looking at it
-            setActiveSquad(prev => {
-                if (prev?._id === squadId) {
-                    return { ...prev, isLive: false, sessionData: null }
-                }
-                return prev
-            })
-
+            setActiveSquad(prev => prev?._id === squadId ? { ...prev, isLive: false, sessionData: null } : prev)
             setLiveAlert(prev => prev?.squadId === squadId ? null : prev)
         })
 
@@ -350,7 +319,7 @@ function ClassSquadContent() {
         try {
             await inviteApi.respond(inviteId, status)
             setReceivedInvites(prev => prev.filter(inv => inv._id !== inviteId))
-            if (status === "accepted") { await fetchAll(); toast({ title: "✅ Squad Joined!" }) }
+            if (status === "accepted") { await fetchAll(); toast({ title: "Joined!" }) }
         } catch (e) { toast({ title: "Error", variant: "destructive" }) }
     }
 
@@ -359,14 +328,12 @@ function ClassSquadContent() {
         setCreating(true)
         try {
             const res = await groupApi.create({ name: newSquad.name, topic: newSquad.topic || "General", avatar: newSquad.avatar })
-            // API may return { success: true, data: squadObj } or the squad directly
             const squad = res?.data || res
-            if (!squad || !squad._id) throw new Error("Invalid response from server")
             setSquads(prev => [squad, ...prev])
             setIsCreateOpen(false)
             setNewSquad({ name: "", topic: "", avatar: "🧬" })
-            toast({ title: "✅ Squad Created!", description: `"${squad.name}" is ready.` })
-        } catch (e: any) { toast({ title: "Failed to Create Squad", description: e.message, variant: "destructive" }) } finally { setCreating(false) }
+            toast({ title: "Squad Created!" })
+        } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setCreating(false) }
     }
 
     const handleSendInvite = async (student: any) => {
@@ -380,107 +347,51 @@ function ClassSquadContent() {
         } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) } finally { setInvitingSids(prev => { const s = new Set(prev); s.delete(sid); return s }) }
     }
 
-    const initializeLaboratoryRoom = async (squad: any, existingCallId?: string) => {
-        // Fallback: If state isn't synced, try getting directly from storage
-        const user = currentUser || getCurrentUser()
-        if (!user) {
-            toast({ title: "Session Error", description: "Please log in again to start a live session.", variant: "destructive" })
-            return
-        }
-
-        if (!videoClient) {
-            if (streamError) {
-                toast({ title: "Stream Error", description: streamError, variant: "destructive" })
-            } else {
-                toast({ title: "Connecting...", description: "Video service is initializing. Please wait 2 seconds.", variant: "destructive" })
-            }
-            return
-        }
-
-        const userId = user._id || user.id
-        setIsJoining(true)
-        
-        // Final deterministic ID fix
+    const handleJoinLive = async (squad: any, callId?: string) => { 
+        if (!videoClient) return
         const { getCallId } = await import("@/lib/utils")
-        const callId = existingCallId || getCallId('squad', squad._id)
-        
-        const call = videoClient.call('default', callId)
-        
+        const cid = callId || getCallId('squad', squad._id)
+        const call = videoClient.call('default', cid)
         try {
-            console.log("[Laboratory-v2] Initializing call:", callId)
-            
-            await call.getOrCreate({ 
-                data: { 
-                    members: (squad.members?.map((m: any) => m._id || m) || []).map((id: string) => ({ user_id: id, role: 'admin' })),
-                    custom: { 
-                        squadName: squad.name, 
-                        squadId: squad._id 
-                    } 
-                } 
-            })
-            
-            if (!existingCallId && !squad.isLive && socketRef.current) {
-                await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId } })
-                socketRef.current.emit("squad-live-start", { 
-                    callId, 
+            await call.getOrCreate()
+            if (!callId && !squad.isLive) {
+                await groupApi.toggleLive(squad._id, { isLive: true, sessionData: { callId: cid } })
+                socketRef.current?.emit("squad-live-start", { 
+                    callId: cid, 
                     squadId: squad._id, 
                     squadName: squad.name, 
-                    hostId: userId, 
-                    hostName: user.fullName || "A Squad Member", 
-                    memberIds: squad.members?.map((m: any) => m._id || m).filter((id: string) => id !== userId) || [] 
+                    hostId: currentUserId,
+                    hostName: currentUser?.fullName || "A peer"
                 })
             }
-
             setActiveCall(call)
             setActiveSquad(squad)
-            toast({ title: "Success", description: "Classroom initialized." })
-        } catch (e: any) { 
-            console.error("[Lab Failed]", e)
-            toast({ title: "Initialization Failed", description: e.message || "Could not connect to video server.", variant: "destructive" })
-        } finally { 
-            setIsJoining(false) 
-        }
-    }
-
-    const handleJoinLive = async (squad: any, callId?: string) => { 
-        await initializeLaboratoryRoom(squad, callId) 
+        } catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }) }
     }
 
     const handleLeaveLive = async () => {
-        if (!activeCall || !activeSquad) {
-            setIsJoining(false)
-            return
+        if (!activeCall) return
+        
+        // 1. Backend cleanup if host
+        const isHost = activeCall.state.createdBy?.id === currentUserId
+        if (isHost && activeSquad) {
+            await groupApi.toggleLive(activeSquad._id, { isLive: false }).catch(console.error)
+            socketRef.current?.emit("squad-live-stop", { squadId: activeSquad._id })
         }
-        const callToLeave = activeCall; const squadToLeave = activeSquad
 
-        // 1. Immediate UI Reset
+        // 2. Safely leave the call if not already left
+        const s = activeCall.state.callingState
+        if (s !== "left" && s !== "idle") {
+            try {
+                await activeCall.leave()
+            } catch (e) {
+                console.warn("Error leaving call:", e)
+            }
+        }
+
+        // 3. Reset UI state
         setActiveCall(null)
         setActiveSquad(null)
-        setIsJoining(false)
-
-        try {
-            const s = callToLeave.state.callingState
-            if (s !== CallingState.LEFT && s !== CallingState.UNKNOWN) {
-                await callToLeave.leave().catch(e => console.warn("Error leaving call:", e))
-            }
-
-            const isHost = callToLeave.state.createdBy?.id === (currentUser?._id || currentUser?.id)
-            if (isHost) {
-                try {
-                    await groupApi.toggleLive(squadToLeave._id, { isLive: false })
-                    if (socketRef.current) {
-                        socketRef.current.emit("squad-live-stop", {
-                            squadId: squadToLeave._id,
-                            memberIds: squadToLeave.members?.map((m: any) => m._id || m).filter((id: string) => id !== (currentUser?._id || currentUser?.id)) || []
-                        })
-                    }
-                } catch (signalingErr) {
-                    console.error("Signaling friction (Non-critical):", signalingErr)
-                }
-            }
-        } catch (e) {
-            console.error("General error in handleLeaveLive:", e)
-        }
     }
 
     const handleJoinFromAlert = async () => {
@@ -493,7 +404,6 @@ function ClassSquadContent() {
         return (
             <div className="fixed inset-0 z-50 bg-slate-950">
                 <LiveClassroom call={activeCall!} squadName={activeSquad.name} squadId={activeSquad._id} socket={socketRef.current} onLeave={handleLeaveLive} />
-                <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
             </div>
         )
     }
@@ -501,7 +411,7 @@ function ClassSquadContent() {
     if (activeSquad) {
         return (
             <>
-                <SquadWorkspace squad={activeSquad} onBack={() => setActiveSquad(null)} onStartLive={() => handleJoinLive(activeSquad)} onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }} isStreamReady={isStreamReady} streamError={streamError} retryInit={retryInit} socket={socketRef.current} isPermissionModalOpen={isPermissionModalOpen} setIsPermissionModalOpen={setIsPermissionModalOpen} />
+                <SquadWorkspace squad={activeSquad} onBack={() => setActiveSquad(null)} onStartLive={() => handleJoinLive(activeSquad)} onInvite={() => { setInviteTarget(activeSquad); setIsInviteOpen(true) }} isStreamReady={isStreamReady} socket={socketRef.current} />
                 {liveAlert && <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />}
             </>
         )
@@ -510,71 +420,149 @@ function ClassSquadContent() {
     const filteredSquads = squads.filter(s => s.name?.toLowerCase().includes(squadSearch.toLowerCase()))
 
     return (
-        <>
+        <div className="min-h-screen bg-white pb-32 animate-in fade-in duration-700">
             {liveAlert && <LiveAlert alert={liveAlert} onJoin={handleJoinFromAlert} onDismiss={() => setLiveAlert(null)} />}
-            <div className="min-h-screen bg-slate-50 pb-10">
-                <div className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4">
-                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                                Squad Hub <span className="text-sky-500">⚡</span>
-                                <span className="ml-2 text-[8px] text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-widest">v2.0-STABLE</span>
-                            </h1>
-                            <p className="text-xs text-slate-400 font-semibold mt-0.5">Your collaborative learning network</p>
+            
+            {/* CLEAN HEADER */}
+            <div className="max-w-7xl mx-auto px-6 pt-12 space-y-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-slate-900" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Collaboration Hub</span>
                         </div>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1 sm:flex-none sm:w-56">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <Input value={squadSearch} onChange={e => setSquadSearch(e.target.value)} placeholder="Search squads..." className="pl-9 h-10 rounded-xl bg-slate-50 border-slate-200 text-sm" />
-                            </div>
-                            <Button onClick={() => setIsCreateOpen(true)} className="h-10 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shrink-0 shadow-md">
-                                <Plus className="w-4 h-4 mr-1.5" /> New Squad
-                            </Button>
+                        <h1 className="text-5xl font-light text-slate-800 tracking-tight leading-none">
+                            Class <span className="font-semibold text-slate-900">Squads</span>
+                        </h1>
+                        <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
+                            Join your classmates in private study groups, share resources, and start live sessions.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="relative w-full md:w-64 group">
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-sky-600 transition-colors" />
+                            <input
+                                value={squadSearch}
+                                onChange={(e) => setSquadSearch(e.target.value)}
+                                placeholder="Search squads..."
+                                className="w-full h-14 pl-12 pr-6 rounded-2xl border border-slate-100 bg-white text-xs font-medium outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-300 transition-all shadow-sm"
+                            />
                         </div>
+                        <Button onClick={() => setIsCreateOpen(true)} className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 shadow-xl shadow-slate-100">
+                            <Plus className="w-4 h-4 mr-2" /> New Squad
+                        </Button>
                     </div>
                 </div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
-                    {receivedInvites.length > 0 && (
-                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white shadow-xl">
-                            <h2 className="font-black text-base uppercase tracking-tight flex items-center gap-2 mb-4"><Bell className="w-5 h-5" /> {receivedInvites.length} Pending Invites</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {receivedInvites.map(invite => <InviteCard key={invite._id} invite={invite} onAccept={() => handleRespond(invite._id, "accepted")} onDecline={() => handleRespond(invite._id, "declined")} />)}
-                            </div>
+
+                {/* INVITES SECTION */}
+                {receivedInvites.length > 0 && (
+                    <div className="space-y-6 bg-slate-50 p-8 rounded-[40px] border border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <Bell className="text-sky-500" size={20} />
+                            <h2 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Pending Invitations ({receivedInvites.length})</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {receivedInvites.map(invite => <InviteCard key={invite._id} invite={invite} onAccept={() => handleRespond(invite._id, "accepted")} onDecline={() => handleRespond(invite._id, "declined")} />)}
+                        </div>
+                    </div>
+                )}
+
+                {/* SQUADS GRID */}
+                <div className="space-y-8 pt-8">
+                    <div className="flex items-center gap-4">
+                        <Layout className="text-slate-900" size={20} />
+                        <h2 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">My Active Squads</h2>
+                    </div>
+                    
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-slate-50 rounded-[40px] border border-slate-100 animate-pulse" />)}
+                        </div>
+                    ) : filteredSquads.length === 0 ? (
+                        <div className="py-32 text-center bg-slate-50 rounded-[48px] border border-dashed border-slate-200">
+                            <Info size={48} className="mx-auto text-slate-200 mb-6" />
+                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">No squads found</h4>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {filteredSquads.map(s => <SquadCard key={s._id} squad={s} currentUserId={currentUserId} onOpen={setActiveSquad} onInvite={s => { setInviteTarget(s); setIsInviteOpen(true) }} />)}
                         </div>
                     )}
-                    <div>
-                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">My Squads ({filteredSquads.length})</h2>
-                        {loading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[1, 2, 3].map(i => <div key={i} className="h-52 bg-white rounded-3xl border animate-pulse" />)}</div> :
-                            filteredSquads.length === 0 ? <div className="flex flex-col items-center justify-center py-24 gap-4"><div className="text-3xl">🧬</div><p className="font-black text-slate-700 text-lg">No Squads Yet</p><Button onClick={() => setIsCreateOpen(true)} className="bg-sky-600 text-white">Create Squad</Button></div> :
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredSquads.map(s => <SquadCard key={s._id} squad={s} currentUserId={currentUserId} onOpen={setActiveSquad} onInvite={s => { setInviteTarget(s); setIsInviteOpen(true) }} />)}</div>}
-                    </div>
                 </div>
             </div>
+
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="max-w-md rounded-3xl p-8"><DialogHeader><DialogTitle>Create a Squad</DialogTitle></DialogHeader>
-                    <div className="space-y-4 py-4"><div className="flex gap-2">{AVATARS.map(a => <button key={a} onClick={() => setNewSquad(p => ({ ...p, avatar: a }))} className={cn("w-10 h-10 rounded-xl border-2", newSquad.avatar === a ? "border-sky-500 bg-sky-50" : "border-slate-100")}>{a}</button>)}</div>
-                        <Input value={newSquad.name} onChange={e => setNewSquad(p => ({ ...p, name: e.target.value }))} placeholder="Squad name..." /><Input value={newSquad.topic} onChange={e => setNewSquad(p => ({ ...p, topic: e.target.value }))} placeholder="Topic..." /></div>
-                    <DialogFooter><Button onClick={handleCreateSquad} disabled={!newSquad.name.trim() || creating}>{creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}</Button></DialogFooter></DialogContent>
-            </Dialog>
-            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                <DialogContent className="max-w-md rounded-3xl p-8"><DialogHeader><DialogTitle>Invite to {inviteTarget?.name}</DialogTitle></DialogHeader>
-                    <div className="py-2 space-y-3"><Input value={inviteSearch} onChange={e => setInviteSearch(e.target.value)} placeholder="Search..." /><div className="space-y-2 max-h-72 overflow-y-auto">
-                        {allStudents.filter(s => (s._id || s.id) !== currentUserId && !inviteTarget?.members?.some((m: any) => (m._id || m)?.toString() === (s._id || s.id)?.toString()) && (s.fullName || "").toLowerCase().includes(inviteSearch.toLowerCase())).map(student => (
-                            <div key={student._id || student.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border"><span>{student.fullName}</span><Button size="sm" onClick={() => handleSendInvite(student)}>{invitingSids.has(student._id || student.id) ? "..." : "Invite"}</Button></div>
-                        ))}</div></div>
-                    <DialogFooter><Button variant="ghost" onClick={() => setIsInviteOpen(false)} className="rounded-xl">Done</Button></DialogFooter>
+                <DialogContent className="max-w-md rounded-[40px] p-10 border-none shadow-2xl">
+                    <DialogHeader className="space-y-4">
+                        <DialogTitle className="text-2xl font-bold tracking-tight">Create a New Squad</DialogTitle>
+                        <p className="text-slate-400 text-sm">Choose an avatar and name for your study group.</p>
+                    </DialogHeader>
+                    <div className="space-y-8 py-8">
+                        <div className="flex flex-wrap gap-2 justify-center">
+                            {AVATARS.map(a => (
+                                <button 
+                                    key={a} 
+                                    onClick={() => setNewSquad(p => ({ ...p, avatar: a }))} 
+                                    className={cn(
+                                        "w-12 h-12 rounded-2xl border-2 transition-all text-xl flex items-center justify-center", 
+                                        newSquad.avatar === a ? "border-slate-900 bg-slate-50 scale-110 shadow-lg" : "border-slate-100 hover:border-slate-200"
+                                    )}
+                                >
+                                    {a}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="space-y-4">
+                            <Input value={newSquad.name} onChange={e => setNewSquad(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Bio Squad Grade 11" className="h-14 rounded-2xl bg-slate-50 border-slate-100 px-6" />
+                            <Input value={newSquad.topic} onChange={e => setNewSquad(p => ({ ...p, topic: e.target.value }))} placeholder="e.g. Mitosis Exam Prep" className="h-14 rounded-2xl bg-slate-50 border-slate-100 px-6" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleCreateSquad} disabled={!newSquad.name.trim() || creating} className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px]">
+                            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Initialize Squad"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </>
+
+            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                <DialogContent className="max-w-md rounded-[40px] p-10 border-none shadow-2xl">
+                    <DialogHeader className="space-y-4">
+                        <DialogTitle className="text-2xl font-bold tracking-tight">Invite Classmates</DialogTitle>
+                        <p className="text-slate-400 text-sm">Search for students to join <span className="text-slate-900 font-bold">{inviteTarget?.name}</span></p>
+                    </DialogHeader>
+                    <div className="py-6 space-y-6">
+                        <div className="relative group">
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input value={inviteSearch} onChange={e => setInviteSearch(e.target.value)} placeholder="Search by name..." className="h-12 pl-12 pr-6 rounded-2xl bg-slate-50 border-slate-100" />
+                        </div>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                            {allStudents.filter(s => (s._id || s.id) !== currentUserId && !inviteTarget?.members?.some((m: any) => (m._id || m)?.toString() === (s._id || s.id)?.toString()) && (s.fullName || "").toLowerCase().includes(inviteSearch.toLowerCase())).map(student => (
+                                <div key={student._id || student.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-sky-200 transition-colors group">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar name={student.fullName} size="sm" />
+                                        <span className="text-sm font-bold text-slate-900">{student.fullName}</span>
+                                    </div>
+                                    <Button size="sm" onClick={() => handleSendInvite(student)} className="h-9 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">
+                                        {invitingSids.has(student._id || student.id) ? <Loader2 className="w-3 h-3 animate-spin" /> : "Invite"}
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
     )
 }
 
 export default function ClassSquad() {
     return (
         <Suspense fallback={
-            <div className="flex flex-col h-screen items-center justify-center bg-slate-50">
+            <div className="flex flex-col h-screen items-center justify-center bg-white">
                 <Loader2 className="w-12 h-12 text-sky-500 animate-spin" />
-                <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Squad Hub...</p>
+                <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 tracking-widest">Entering Hub...</p>
             </div>
         }>
             <ClassSquadContent />
@@ -582,141 +570,96 @@ export default function ClassSquad() {
     )
 }
 
-// ─────────── Squad Workspace ───────────
+// ─────────── Squad Workspace Redesign ───────────
 
 const TABS = [
-    { id: "chat", label: "Chat", Icon: MessageSquare },
-    { id: "forum", label: "Forum", Icon: BookOpen },
-    { id: "students", label: "Students", Icon: Users },
-    { id: "whiteboard", label: "Board", Icon: PenTool },
-    { id: "qa", label: "Q&A", Icon: HelpCircle },
+    { id: "chat", label: "Chat Feed", Icon: MessageSquare },
+    { id: "forum", label: "Resources", Icon: BookOpen },
+    { id: "students", label: "Members", Icon: Users },
+    { id: "whiteboard", label: "Canvas", Icon: PenTool },
+    { id: "qa", label: "Q&A Hub", Icon: HelpCircle },
 ]
 
-function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, streamError, retryInit, socket, isPermissionModalOpen, setIsPermissionModalOpen }: {
+function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, socket }: {
     squad: any;
     onBack: () => void;
     onStartLive: () => void;
     onInvite: () => void;
     isStreamReady: boolean;
-    streamError: string | null;
-    retryInit: () => void;
     socket: any;
-    isPermissionModalOpen: boolean;
-    setIsPermissionModalOpen: (open: boolean) => void;
 }) {
     const [activeTab, setActiveTab] = useState("chat")
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] bg-white">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-white shrink-0 shadow-sm">
+        <div className="flex flex-col h-screen bg-white animate-in slide-in-from-right duration-500">
+            {/* CLEAN WORKSPACE HEADER */}
+            <div className="flex items-center gap-6 px-8 py-6 border-b border-slate-100 bg-white shrink-0">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onBack}
-                    className="rounded-xl h-9 w-9 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                    className="rounded-2xl h-12 w-12 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
                 >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-base shadow-md shrink-0">
-                    {squad.avatar || "🧬"}
+                
+                <div className="flex items-center gap-4 flex-1">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl shadow-sm">
+                        {squad.avatar || "🧬"}
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-slate-900 text-xl tracking-tight">{squad.name}</h2>
+                        <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[10px] font-black text-sky-600 uppercase tracking-[0.2em]">{squad.members?.length || 0} Members Online</span>
+                            <div className="w-1 h-1 rounded-full bg-slate-200" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{squad.topic || "Research"}</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                    <h2 className="font-black text-slate-900 text-sm leading-tight truncate">{squad.name}</h2>
-                    <p className="text-[10px] text-slate-400 font-semibold">{squad.members?.length || 0} members</p>
-                </div>
-                <div className="flex gap-2 shrink-0">
+
+                <div className="flex gap-3">
                     <Button
-                        size="sm"
                         variant="outline"
                         onClick={onInvite}
-                        className="h-9 px-3 rounded-xl border-slate-200 text-xs font-bold hidden sm:flex items-center gap-1.5"
+                        className="h-12 px-6 rounded-2xl border-slate-100 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <UserPlus className="w-3.5 h-3.5 text-indigo-500" /> Invite
+                        <UserPlus className="w-4 h-4 mr-2 text-sky-600" /> Invite
                     </Button>
-                    {streamError ? (
-                        <Button
-                            size="sm"
-                            onClick={retryInit}
-                            className="h-10 px-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg"
-                        >
-                            <Radio className="w-4 h-4" />
-                            <span className="hidden sm:inline">Retry Stream</span>
-                        </Button>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                onClick={onStartLive}
-                                disabled={!isStreamReady}
-                                className={cn(
-                                    "h-10 px-5 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl transition-all active:scale-95 group overflow-hidden relative",
-                                    isStreamReady
-                                        ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 ring-2 ring-rose-500/20"
-                                        : "bg-slate-300 cursor-wait"
-                                )}
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                                <div className="relative flex items-center gap-2">
-                                    {isStreamReady ? (
-                                        <>
-                                            <div className={cn("w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]", squad.isLive ? "bg-emerald-400 animate-ping" : "animate-pulse")} />
-                                            <Video className="w-4 h-4" />
-                                            <span className="hidden sm:inline">
-                                                {squad.isLive ? "Join Live Class" : "Initialize Live"}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span className="hidden sm:inline">Connecting...</span>
-                                        </>
-                                    )}
-                                </div>
-                            </Button>
-
-                            {squad.isLive && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (confirm("Force end this session? This will clear the live status for everyone.")) {
-                                            await groupApi.toggleLive(squad._id, { isLive: false, sessionData: null });
-                                            window.location.reload();
-                                        }
-                                    }}
-                                    className="h-10 px-4 rounded-2xl text-rose-500 hover:bg-rose-50 font-black text-[10px] uppercase tracking-widest"
-                                >
-                                    Force End
-                                </Button>
-                            )}
-                        </div>
-                    )}
+                    <Button
+                        onClick={onStartLive}
+                        disabled={!isStreamReady}
+                        className={cn(
+                            "h-12 px-8 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl transition-all active:scale-95",
+                            squad.isLive ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : "bg-rose-600 hover:bg-rose-700 shadow-rose-100"
+                        )}
+                    >
+                        {squad.isLive ? <Radio className="w-4 h-4 animate-pulse" /> : <Video className="w-4 h-4" />}
+                        {squad.isLive ? "Join Live Now" : "Go Live"}
+                    </Button>
                 </div>
             </div>
 
-            {/* Tab Bar */}
-            <div className="flex gap-0 border-b border-slate-100 bg-white px-2 shrink-0">
+            {/* TAB BAR */}
+            <div className="flex justify-center gap-2 border-b border-slate-100 bg-white/50 backdrop-blur-md px-8 py-2 shrink-0 sticky top-0 z-10">
                 {TABS.map(({ id, label, Icon }) => (
                     <button
                         key={id}
                         onClick={() => setActiveTab(id)}
                         className={cn(
-                            "flex items-center gap-1.5 px-3 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all",
+                            "flex items-center gap-2.5 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
                             activeTab === id
-                                ? "border-sky-500 text-sky-600"
-                                : "border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-200"
+                                ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
+                                : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"
                         )}
                     >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="hidden sm:inline">{label}</span>
+                        <Icon className="w-4 h-4" />
+                        <span>{label}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            {/* CONTENT AREA */}
+            <div className="flex-1 min-h-0 bg-slate-50/30 overflow-hidden">
                 <div className={cn("h-full", activeTab !== "chat" && "hidden")}>
                     <GroupChatTab squadId={squad._id} members={squad.members} />
                 </div>
@@ -733,7 +676,6 @@ function SquadWorkspace({ squad, onBack, onStartLive, onInvite, isStreamReady, s
                     <GroupQandATab squadId={squad._id} />
                 </div>
             </div>
-            <PermissionRecoveryModal open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen} />
         </div>
     )
 }

@@ -215,7 +215,16 @@ export class AssessmentService {
         if (!attempt) {
             attempt = new Attempt({ user: userId, assessment: assessmentId });
         } else if (attempt.gradedAt) {
-            throw new ApiError(400, "You have already submitted this assessment");
+            // If already submitted, just return the existing attempt instead of erroring.
+            // This handles accidental double-clicks or retries after progress sync failures.
+            
+            // Still try to sync progress in case it failed previously
+            if (assessment.isOfficial) {
+                await ProgressService.markAssessmentComplete(userId, assessment.subject, assessmentId).catch(err => {
+                    console.error("[Assessment] Retry progress sync failed:", err);
+                });
+            }
+            return attempt;
         }
 
         // Timer Logic for Exams
@@ -268,7 +277,12 @@ export class AssessmentService {
 
         // Update student progress automatically ONLY IF it's an official assessment
         if (assessment.isOfficial) {
-            await ProgressService.markAssessmentComplete(userId, assessment.subject, assessmentId);
+            try {
+                await ProgressService.markAssessmentComplete(userId, assessment.subject, assessmentId);
+            } catch (progressError) {
+                console.error(`[Assessment Submission] Progress sync failed for user ${userId}:`, progressError);
+                // We don't throw here because the quiz itself was saved successfully.
+            }
         }
 
         return attempt;

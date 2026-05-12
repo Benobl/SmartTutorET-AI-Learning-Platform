@@ -15,6 +15,13 @@ export const validate = (schema) => (req, res, next) => {
         schema.parse(data);
         next();
     } catch (error) {
+        // High-Security Masking for Auth Routes
+        const isAuthRoute = req.path.includes("/auth/") || req.path.includes("/login") || req.path.includes("/signup");
+        
+        if (isAuthRoute) {
+            return next(new ApiError(401, "Invalid request"));
+        }
+
         const formattedErrors = error.errors.map((err) => ({
             path: err.path.join("."),
             message: err.message,

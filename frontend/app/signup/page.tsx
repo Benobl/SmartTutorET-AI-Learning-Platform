@@ -26,74 +26,72 @@ import * as z from "zod"
 import { registerUser } from "@/lib/auth-utils"
 import { cn } from "@/lib/utils"
 
-// Regex for letters only
-const lettersOnly = /^[A-Za-z]+$/
+// Strict regex for emails: letters, numbers, and standard symbols only. No emojis/scripts.
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+// Strict regex for names: letters, spaces, and standard punctuation.
+const nameRegex = /^[a-zA-Z\s.'-]+$/;
+// Strict password regex: Uppercase, Lowercase, Number, Special Character, No spaces.
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const signupSchema = z.object({
-  role: z.enum(["student", "tutor"]),
-  firstName: z.string().min(2, "First name is too short").regex(lettersOnly, "Only letters are allowed"),
-  lastName: z.string().min(2, "Last name is too short").regex(lettersOnly, "Only letters are allowed"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+    role: z.enum(["student", "tutor"]),
+    firstName: z.string().min(2, "Invalid first name").regex(nameRegex, "No special characters or emojis allowed"),
+    lastName: z.string().min(2, "Invalid last name").regex(nameRegex, "No special characters or emojis allowed"),
+    email: z.string().email("Invalid email format").regex(emailRegex, "No special characters or emojis allowed"),
+    password: z.string()
+        .min(8, "Minimum 8 characters required")
+        .regex(passwordRegex, "Must include uppercase, lowercase, number, and special character"),
 
-  grade: z.string().optional(),
-  stream: z.string().optional(),
+    grade: z.string().optional(),
+    stream: z.string().optional(),
 
-  // Tutor fields
-  degree: z.string().optional(),
-  experience: z.coerce.number().min(0, "Experience must be 0 or more").max(50, "Experience cannot exceed 50 years").optional(),
-  subject: z.string().optional(),
-  availability: z.array(z.string()).optional(),
-  degreeFile: z.any().optional(),
-  cvFile: z.any().optional(),
+    // Tutor fields
+    degree: z.string().optional(),
+    experience: z.coerce.number().min(0, "Invalid experience").max(50, "Max 50 years").optional(),
+    subject: z.string().optional(),
+    availability: z.array(z.string()).optional(),
+    degreeFile: z.any().optional(),
+    cvFile: z.any().optional(),
 }).refine((data) => {
-  if (data.role === "student") {
-    return !!data.grade
-  }
-  return true
+    if (data.role === "student") {
+        return !!data.grade
+    }
+    return true
 }, {
-  message: "Class is required",
-  path: ["grade"]
+    message: "Grade is required",
+    path: ["grade"]
 }).refine((data) => {
-  if (data.role === "student" && ["11", "12"].includes(data.grade || "")) {
-    return !!data.stream
-  }
-  return true
+    if (data.role === "student" && ["11", "12"].includes(data.grade || "")) {
+        return !!data.stream
+    }
+    return true
 }, {
-  message: "Stream is required for Grade 11 & 12",
-  path: ["stream"]
+    message: "Stream is required",
+    path: ["stream"]
 }).refine((data) => {
-  if (data.role === "tutor") {
-    return (!!data.degree || !!data.degreeFile) && data.experience !== undefined && !!data.subject && (data.availability?.length || 0) > 0
-  }
-  return true
+    if (data.role === "tutor") {
+        return (!!data.degree || !!data.degreeFile)
+    }
+    return true
 }, {
-  message: "Degree certificate is required",
-  path: ["degree"]
+    message: "Degree is required",
+    path: ["degree"]
 }).refine((data) => {
-  if (data.role === "tutor") {
-    return data.experience !== undefined
-  }
-  return true
+    if (data.role === "tutor") {
+        return !!data.subject
+    }
+    return true
 }, {
-  message: "Experience is required",
-  path: ["experience"]
+    message: "Subject is required",
+    path: ["subject"]
 }).refine((data) => {
-  if (data.role === "tutor") {
-    return !!data.subject
-  }
-  return true
+    if (data.role === "tutor") {
+        return (data.availability?.length || 0) > 0
+    }
+    return true
 }, {
-  message: "Subject is required",
-  path: ["subject"]
-}).refine((data) => {
-  if (data.role === "tutor") {
-    return (data.availability?.length || 0) > 0
-  }
-  return true
-}, {
-  message: "Select at least one day",
-  path: ["availability"]
+    message: "Select availability",
+    path: ["availability"]
 })
 
 type SignupFormValues = z.infer<typeof signupSchema>
@@ -222,7 +220,6 @@ export default function SignupPage() {
     setSuccess(null)
 
     try {
-      console.log("Submitting:", data)
       const user = await registerUser(data)
 
       if (user && !('error' in user)) {
@@ -235,13 +232,11 @@ export default function SignupPage() {
           setSuccess(`Application submitted! We have received your documents, ${user.fullName}. Our institutional board will review your credentials and notify you via email when your account is activated.`)
           setStep(totalSteps + 1)
         }
-      } else if (user && 'error' in user) {
-        setError(user.error)
       } else {
-        setError("An error occurred during signup. Please try again.")
+        setError("Email or password is incorrect")
       }
     } catch (err) {
-      setError("An error occurred during signup. Please try again.")
+      setError("Email or password is incorrect")
     } finally {
       setIsLoading(false)
     }

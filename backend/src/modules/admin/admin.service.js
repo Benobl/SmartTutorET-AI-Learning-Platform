@@ -56,14 +56,15 @@ export class AdminService {
         return await TutorApplication.find().populate("userId", "name email").populate("jobId", "title");
     }
 
-    static async getSystemStats() {
+    static async getSystemStats(adminId) {
         const [
             totalStudents,
             totalTutors,
             activeSubjects,
             totalRevenueData,
             pendingTutors,
-            lastMonthStudents
+            lastMonthStudents,
+            adminUser
         ] = await Promise.all([
             User.countDocuments({ role: "student" }),
             User.countDocuments({ role: "tutor", tutorStatus: "approved" }),
@@ -76,7 +77,8 @@ export class AdminService {
             User.countDocuments({ 
                 role: "student", 
                 createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } 
-            })
+            }),
+            User.findById(adminId).select("earnings")
         ]);
 
         const totalRevenue = totalRevenueData.length > 0 ? totalRevenueData[0].total : 0;
@@ -96,7 +98,9 @@ export class AdminService {
             avgSessionTime: "42m",
             revenueGrowth: "+18.2%",
             activeSessions: Math.floor(Math.random() * 50) + 10,
-            successRate: 98.5
+            successRate: 98.5,
+            totalRevenue,
+            personalEarnings: adminUser?.earnings || 0
         };
     }
 

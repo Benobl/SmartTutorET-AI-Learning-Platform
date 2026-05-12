@@ -17,9 +17,14 @@ import { cn } from "@/lib/utils"
 import { loginUser, setAuthCookies } from "@/lib/auth-utils"
 import { authApi } from "@/lib/api"
 
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
 const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Invalid email format"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string()
+    .min(1, "Email or password is incorrect")
+    .email("Email or password is incorrect")
+    .regex(emailRegex, "Email or password is incorrect"),
+  password: z.string().min(1, "Email or password is incorrect"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -56,110 +61,94 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true)
-    setError(null)
-    setSuccess(null)
+    const onSubmit = async (data: LoginFormValues) => {
+        setIsLoading(true)
+        setError(null)
+        setSuccess(null)
 
-    try {
-      console.log(`[LoginPage] Attempting login for ${data.email}...`);
-      const user = await loginUser(data.email, data.password);
-      console.log(`[LoginPage] Login result:`, user);
+        try {
+            const user = await loginUser(data.email, data.password);
 
-      if (user && !('error' in user)) {
-        console.log(`[LoginPage] Success! Found user:`, user.fullName);
-        setSuccess(`Welcome back! Redirecting...`)
-        
-        const callbackUrl = searchParams.get('callbackUrl')
-        
-        const redirectPath = callbackUrl || (
-          user.role === "admin" ? "/dashboard/admin" :
-          user.role === "tutor" ? "/dashboard/tutor" :
-          user.role === "manager" ? "/dashboard/manager" :
-          "/dashboard/student"
-        );
-
-        console.log(`[LoginPage] Success! Redirecting to ${redirectPath}`);
-        
-        setTimeout(() => {
-          window.location.href = redirectPath;
-        }, 800);
-      } else {
-        console.warn(`[LoginPage] Login failed`);
-        setError("Invalid email or password. Please try again.")
-      }
-    } catch (err: any) {
-      console.warn("[Login Error]", err);
-      if (err.message === "Failed to fetch") {
-        setError("Network error: Unable to reach the server. This may be a CORS issue or the backend might be starting up. Please wait 1 minute and try again.");
-      } else {
-        setError(err.message || "An error occurred during login. Please try again.");
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Initialize Google OAuth
-      // Note: We need window.google to be defined. Script is loaded in layout.
-      if (typeof window !== "undefined" && (window as any).google) {
-        (window as any).google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-          context: 'signin',
-          ux_mode: 'popup',
-          callback: async (response: any) => {
-            try {
-              const res = await authApi.googleLogin(response.credential);
-              if (res.success && res.data) {
-                const user = res.data;
-                localStorage.setItem("smarttutor_user", JSON.stringify(user));
-                if (res.token) {
-                  localStorage.setItem("token", res.token);
-                  // Set cookies for middleware
-                  setAuthCookies(res.token, user.role);
-                }
-                setSuccess(`Welcome, ${user.fullName}! Redirecting...`);
-
-                const callbackUrl = searchParams.get('callbackUrl');
+            if (user && !('error' in user)) {
+                setSuccess(`Welcome back! Redirecting...`)
+                
+                const callbackUrl = searchParams.get('callbackUrl')
                 
                 const redirectPath = callbackUrl || (
-                  user.role === "admin" ? "/dashboard/admin" :
-                  user.role === "tutor" ? "/dashboard/tutor" :
-                  user.role === "manager" ? "/dashboard/manager" :
-                  "/dashboard/student"
+                    user.role === "admin" ? "/dashboard/admin" :
+                    user.role === "tutor" ? "/dashboard/tutor" :
+                    user.role === "manager" ? "/dashboard/manager" :
+                    "/dashboard/student"
                 );
-
-                console.log(`[Google Login] Success! Redirecting to ${redirectPath}`);
                 
                 setTimeout(() => {
-                  window.location.href = redirectPath;
+                    window.location.href = redirectPath;
                 }, 800);
-              } else {
-                setError(res.message || "Google authentication failed");
-              }
-            } catch (err: any) {
-              setError(err.message || "Google authentication failed");
-            } finally {
-              setIsLoading(false);
+            } else {
+                setError("Invalid email or password")
             }
-          }
-        });
-
-        (window as any).google.accounts.id.prompt(); // Display the One Tap prompt
-      } else {
-        setError("Google Login is currently unavailable. Please try again later.");
-        setIsLoading(false);
-      }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-      setIsLoading(false);
+        } catch (err: any) {
+            setError(err.message || "Invalid email or password")
+        } finally {
+            setIsLoading(false)
+        }
     }
-  }
+
+    const handleGoogleLogin = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            if (typeof window !== "undefined" && (window as any).google) {
+                (window as any).google.accounts.id.initialize({
+                    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+                    context: 'signin',
+                    ux_mode: 'popup',
+                    callback: async (response: any) => {
+                        try {
+                            const res = await authApi.googleLogin(response.credential);
+                            if (res.success && res.data) {
+                                const user = res.data;
+                                localStorage.setItem("smarttutor_user", JSON.stringify(user));
+                                if (res.token) {
+                                    localStorage.setItem("token", res.token);
+                                    setAuthCookies(res.token, user.role);
+                                }
+                                setSuccess(`Welcome back! Redirecting...`);
+
+                                const callbackUrl = searchParams.get('callbackUrl');
+                                
+                                const redirectPath = callbackUrl || (
+                                    user.role === "admin" ? "/dashboard/admin" :
+                                    user.role === "tutor" ? "/dashboard/tutor" :
+                                    user.role === "manager" ? "/dashboard/manager" :
+                                    "/dashboard/student"
+                                );
+                                
+                                setTimeout(() => {
+                                    window.location.href = redirectPath;
+                                }, 800);
+                            } else {
+                                setError("Invalid credentials");
+                            }
+                        } catch (err: any) {
+                            setError(err.message || "Google authentication failed");
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }
+                });
+
+                (window as any).google.accounts.id.prompt();
+            } else {
+                setError("Google Sign-In is temporarily unavailable");
+                setIsLoading(false);
+            }
+        } catch (err) {
+            setError("Authentication failed");
+            setIsLoading(false);
+        }
+    }
 
   return (
     <AuthBackground imageSrc="/auth/premium-library-bg.png">

@@ -292,8 +292,8 @@ export default function StudentQuizView() {
                                     <div className="flex items-center gap-4 relative z-10">
                                         <div className={cn(
                                             "w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all",
-                                            isRevealed && isCorrect ? "bg-emerald-500 text-white" :
-                                            isRevealed && isSelected && !isCorrect ? "bg-rose-500 text-white" :
+                                            isRevealed && option === currentQuestion.correctAnswer ? "bg-emerald-500 text-white" :
+                                            isRevealed && isSelected && option !== currentQuestion.correctAnswer ? "bg-rose-500 text-white" :
                                             isSelected ? "bg-sky-600 text-white" : "bg-white text-slate-400"
                                         )}>
                                             {String.fromCharCode(65 + i)}

@@ -7,6 +7,7 @@ import morgan from "morgan";
 import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
+import hpp from "hpp";
 import { connectDB } from "./src/lib/db.js";
 import { app, server } from "./src/lib/socket.js";
 import logger from "./src/config/logger.js";
@@ -47,24 +48,11 @@ initCronJobs();
 
 const PORT = process.env.PORT || 5001;
 
-// --- CORS MUST BE FIRST ---
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-  }
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin,X-ST-CSRF,X-CSRF-Token");
-    res.setHeader("Access-Control-Max-Age", "86400");
-    return res.status(204).end();
-  }
-  next();
-});
+app.use(cookieParser());
 
+// --- CORS MUST BE FIRST ---
 const corsOptions = {
-  origin: true,
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-ST-CSRF", "X-CSRF-Token"],
@@ -80,10 +68,13 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(mongoSanitize());
+app.use(hpp());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(cookieParser());
-app.use(morgan("dev"));
+// Morgan only in non-production
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
 app.use(requestLogger);
 app.use(csrfProtection);
 
@@ -117,10 +108,25 @@ app.use("/uploads/videos", (req, res, next) => {
 // Global Rate Limiter
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
-  message: "Too many requests from this IP, please try again after 15 minutes"
+  max: 500,
+  message: { success: false, message: "Too many requests. Please try again later." }
 });
+
+// Stricter Auth Rate Limiter
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // 20 attempts per 15 mins
+  message: { success: false, message: "Invalid credentials" }, // Masked message
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use("/api", globalLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/signup", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
+app.use("/api/auth/verify-email", authLimiter);
 
 // Module Routes
 app.use("/api/auth", authRoutes);

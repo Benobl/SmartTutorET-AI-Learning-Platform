@@ -233,7 +233,10 @@ export const getWeeklyLeaderboard = async (req, res, next) => {
             .limit(50)
             .populate("user", "name profile grade");
             
-        const leaderboard = topUsers.map((entry, index) => {
+        // Filter out entries with null users (orphaned records)
+        const validUsers = topUsers.filter(entry => entry.user);
+
+        const leaderboard = validUsers.map((entry, index) => {
             const currentRank = index + 1;
             const previousRank = entry.previousWeeklyRank || currentRank;
             let movement = 'steady';
@@ -258,9 +261,10 @@ export const getSemesterLeaderboard = async (req, res, next) => {
         const topUsers = await Gamification.find()
             .sort({ semesterXP: -1 })
             .limit(20)
-            .populate("user", "name profile grade");
+        // Filter out entries with null users (orphaned records)
+        const validUsers = topUsers.filter(entry => entry.user);
             
-        res.json({ success: true, data: topUsers });
+        res.json({ success: true, data: validUsers });
     } catch (error) {
         next(error);
     }
@@ -271,9 +275,10 @@ export const getAllTimeLeaderboard = async (req, res, next) => {
         const topUsers = await Gamification.find()
             .sort({ xp: -1 })
             .limit(20)
-            .populate("user", "name profile grade");
+        // Filter out entries with null users (orphaned records)
+        const validUsers = topUsers.filter(entry => entry.user);
             
-        res.json({ success: true, data: topUsers });
+        res.json({ success: true, data: validUsers });
     } catch (error) {
         next(error);
     }

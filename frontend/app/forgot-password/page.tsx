@@ -14,8 +14,12 @@ import { cn } from "@/lib/utils"
 import { authApi } from "@/lib/api"
 import Image from "next/image"
 
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const forgotPasswordSchema = z.object({
-    email: z.string().email("Please enter a valid email address"),
+    email: z.string()
+        .email("Email or password is incorrect")
+        .regex(emailRegex, "Email or password is incorrect"),
 })
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>
@@ -39,9 +43,11 @@ export default function ForgotPasswordPage() {
 
         try {
             await authApi.forgotPassword(data.email)
+            // Always show success to prevent enumeration
             setSuccess(true)
         } catch (err: any) {
-            setError(err.message || "We couldn't connect to the server. Please try again.")
+            // Mask errors
+            setSuccess(true)
         } finally {
             setIsLoading(false)
         }
@@ -132,8 +138,9 @@ export default function ForgotPasswordPage() {
                                 <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-4">Check Your Mailbox</h1>
-                            <p className="text-white/60 mb-10 leading-relaxed text-lg">
-                                We've sent a secure reset link to your email. It will arrive in the next minute.
+                            <p className="text-white/60 mb-10 leading-relaxed">
+                                We've sent a secure reset link to your email. 
+                                <span className="block mt-4 text-emerald-400/80 text-sm">Please check your spam folder if you don't see it.</span>
                             </p>
                             <Button
                                 asChild

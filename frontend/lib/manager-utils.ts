@@ -384,9 +384,9 @@ export const approveSubject = async (id: string) => {
     }
 };
 
-export const rejectSubject = async (id: string) => {
+export const rejectSubject = async (id: string, feedback?: string) => {
     try {
-        const response = await adminApi.rejectSubject(id);
+        const response = await adminApi.rejectSubject(id, feedback);
         return response.success;
     } catch (error) {
         console.error("[ManagerUtils] Failed to reject subject:", error);

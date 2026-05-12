@@ -33,6 +33,10 @@ export class SubjectService {
             throw new ApiError(400, "Student already enrolled in this subject");
         }
 
+        if (subject.isPremium || (subject.price && subject.price > 0)) {
+            throw new ApiError(402, "This is a premium subject. Please complete the payment to enroll.");
+        }
+
         subject.students.push(studentId);
         await subject.save();
 
@@ -59,9 +63,22 @@ export class SubjectService {
             const user = await User.findById(userId);
             
             const isEnrolled = subject.students.some(s => s._id.toString() === userId.toString());
-            const isGradeMatch = user && String(user.grade) === String(subject.grade);
-            
-            data.isEnrolled = isEnrolled || (subject.isFree && isGradeMatch);
+            const isTutor = subject.tutor._id.toString() === userId.toString();
+            // ── SECURITY: Strictly require explicit enrollment or tutor status ──
+            const isAuthorized = isEnrolled || isTutor;
+
+            data.isEnrolled = isAuthorized;
+
+            // ── SECURITY: Block access to premium content if not authorized ──
+            if (!isAuthorized) {
+                data.lessons = []; // Clear lessons/curriculum
+                data.isLocked = true;
+                if (subject.isPremium || (subject.price && subject.price > 0)) {
+                    data.statusMessage = "Premium Course Locked: Payment Required";
+                } else if (!isGradeMatch) {
+                    data.statusMessage = "Grade Mismatch: Enroll in your current grade first";
+                }
+            }
         }
 
         return data;
@@ -73,9 +90,20 @@ export class SubjectService {
             subject
         });
     }
-    static async getAllSubjects(query = {}) {
-        const finalQuery = { status: "approved", ...query };
-        return await Subject.find(finalQuery).populate("tutor", "name profile.avatar");
+    static async getAllSubjects(query = {}, userId = null) {
+        let subjects = await Subject.find(query).populate("tutor", "name profile.avatar");
+        
+        if (userId) {
+            subjects = subjects.map(s => {
+                const isEnrolled = s.students.some(id => id.toString() === userId.toString());
+                return {
+                    ...s.toObject(),
+                    isEnrolled
+                };
+            });
+        }
+        
+        return subjects;
     }
 
     static async updateSubject(subjectId, updates) {
@@ -125,31 +153,8 @@ export class SubjectService {
 
     static async getMySubjects(userId, role) {
         if (role === "student") {
-            const User = (await import("../users/user.model.js")).default;
-            const student = await User.findById(userId);
-            const studentGrade = student?.grade;
-
-            // Get explicitly enrolled subjects
-            const enrolledSubjects = await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
-
-            // Get free common subjects for this grade
-            let freeCommonSubjects = [];
-            const freeCommonFilter = {
-                isPremium: false,
-                status: { $in: ["approved", "pending"] },
-                students: { $ne: userId }, // Don't duplicate if already enrolled
-            };
-            if (studentGrade) {
-                freeCommonFilter.grade = parseInt(studentGrade);
-            }
-            freeCommonSubjects = await Subject.find(freeCommonFilter).populate("tutor", "name profile.avatar");
-
-            // De-duplicate by subject id
-            const subjectMap = new Map();
-            [...enrolledSubjects, ...freeCommonSubjects].forEach((subject) => {
-                subjectMap.set(String(subject._id), subject);
-            });
-            return Array.from(subjectMap.values());
+            // Get ONLY explicitly enrolled subjects where student is in the students array
+            return await Subject.find({ students: userId }).populate("tutor", "name profile.avatar");
         } else if (role === "tutor" || role === "manager" || role === "admin") {
             const query = role === "tutor" ? { tutor: userId } : {};
             return await Subject.find(query).populate("tutor", "name profile.avatar").populate("students", "name profile.avatar");
@@ -533,6 +538,7 @@ export class SubjectService {
             };
             subject.lessons.push(legacyLesson);
             await subject.save();
+            return courseContent;
         }
 
         return courseContent;
@@ -545,11 +551,13 @@ export class SubjectService {
             if (!subject) throw new ApiError(404, "Subject not found");
             
             const isEnrolled = subject.students.some(s => s.toString() === userId.toString());
-            if (!isEnrolled && !subject.isFree) {
-                // Return only free content if not enrolled
-                return await CourseContent.find({ course: courseId, isFree: true })
-                    .populate("contentId")
-                    .sort({ order: 1, createdAt: 1 });
+            const isTutor = subject.tutor.toString() === userId.toString();
+            const isPremium = subject.isPremium || (subject.price && subject.price > 0);
+            
+            if (!isEnrolled && !isTutor && isPremium) {
+                // For now, if not enrolled in a premium subject, return nothing
+                // In the future, we could add an isFree flag to CourseContent to allow previews
+                return [];
             }
         }
 

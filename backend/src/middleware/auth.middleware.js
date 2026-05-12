@@ -10,30 +10,26 @@ export const verifyToken = async (req, res, next) => {
         }
 
         if (!token) {
-            return next(new ApiError(401, "Authentication required: No token provided"));
+            throw new Error("NO_TOKEN");
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
         if (!decoded) {
-            return next(new ApiError(401, "Authentication failed: Invalid token"));
+            throw new Error("INVALID_DECODED_TOKEN");
         }
 
         const user = await User.findById(decoded.userId).select("-password");
         if (!user) {
-            return next(new ApiError(401, "User no longer exists in database"));
+            throw new Error("USER_NOT_FOUND");
         }
 
         req.user = user;
         next();
     } catch (error) {
-        console.error("Error in verifyToken middleware:", error.name, error.message);
-        if (error.name === "TokenExpiredError") {
-            return next(new ApiError(401, "Authentication failed: Token expired"));
-        }
-        if (error.name === "JsonWebTokenError") {
-            return next(new ApiError(401, "Authentication failed: Malformed token"));
-        }
-        next(error);
+        // Detailed log only for server
+        console.error("[Auth Middleware] Token verification failed:", error.message);
+        // Generic error for client
+        next(new ApiError(401, "Email or password is incorrect"));
     }
 }
 

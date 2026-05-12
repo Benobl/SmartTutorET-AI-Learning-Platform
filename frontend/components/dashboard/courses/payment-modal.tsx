@@ -36,22 +36,55 @@ export function PaymentModal({ isOpen, onClose, courseName, price, courseId, onS
 
     const handleChapaPayment = async (e: React.FormEvent) => {
         e.preventDefault()
+        console.log("🔥 ENROLL BUTTON CLICKED")
+        console.log("Course ID:", courseId)
+        console.log("Price:", price)
+
         setIsProcessing(true)
         try {
+            console.log("📡 Sending initialize request...")
             const res = await paymentApi.initialize({
                 amount: price,
                 subjectId: courseId,
                 method: "chapa"
             })
-            
-            if (res.data?.checkout_url) {
-                toast({ title: "Redirecting to Chapa", description: "Completing secure payment gateway connection..." })
-                window.location.href = res.data.checkout_url
+
+            console.log("✅ Initialize response:", res)
+
+            const checkoutUrl = res?.data?.checkout_url
+            if (checkoutUrl) {
+                console.log("🌍 Redirecting to:", checkoutUrl)
+                toast({
+                    title: "Redirecting to Chapa",
+                    description: "Opening secure payment gateway..."
+                })
+                // Primary redirect — works in all browsers
+                window.location.href = checkoutUrl
+                // Fallback if location.href is blocked for any reason
+                setTimeout(() => {
+                    if (document.hasFocus()) {
+                        window.open(checkoutUrl, "_self")
+                    }
+                }, 500)
             } else {
-                throw new Error("Failed to get checkout URL")
+                console.error("❌ No checkout_url in response", res)
+                // Do NOT throw — just show toast and stay logged in
+                toast({
+                    title: "Payment initialization failed",
+                    description: "No checkout URL received from the payment gateway. Please try again.",
+                    variant: "destructive"
+                })
             }
         } catch (error: any) {
-            toast({ title: "Payment Failed", description: error.message, variant: "destructive" })
+            // CRITICAL: Do NOT re-throw. Do NOT call forceLogout. Just show a toast.
+            console.error("❌ Payment Initialization Error:", error)
+            const msg = error?.message || "Payment initialization failed. Please try again."
+            toast({
+                title: "Payment Failed",
+                description: msg,
+                variant: "destructive"
+            })
+            // User stays logged in — session is NOT cleared
         } finally {
             setIsProcessing(false)
         }

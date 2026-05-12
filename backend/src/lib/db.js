@@ -17,28 +17,19 @@ export const connectDB = async () => {
         const User = (await import("../modules/users/user.model.js")).default;
         const adminEmail = "admin@smarttutor.com";
         const adminExists = await User.findOne({ email: adminEmail });
-        
         const defaultAdminPass = "adminpassword";
-        const hashedPassword = bcrypt.hashSync(defaultAdminPass, 10);
 
         if (!adminExists) {
             console.log("🚀 Seeding initial admin account...");
             await User.create({
                 name: "System Admin",
                 email: adminEmail,
-                password: hashedPassword,
+                password: defaultAdminPass, // Pre-save hook will hash this
                 role: "admin",
                 isApproved: true,
                 isVerified: true
             });
             console.log(`✅ Admin account created: ${adminEmail} / ${defaultAdminPass}`);
-        } else {
-            // Use updateOne to skip pre-save hooks and prevent double-hashing
-            await User.updateOne(
-                { _id: adminExists._id },
-                { $set: { password: hashedPassword } }
-            );
-            console.log("ℹ️ Admin password synchronized.");
         }
 
         // --- Mock Students Seeding ---

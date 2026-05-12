@@ -2,6 +2,7 @@ import Progress from "./progress.model.js";
 import Subject from "../courses/subject.model.js";
 import Lesson from "../courses/lesson.model.js";
 import Assessment from "../assessments/assessment.model.js";
+import Assignment from "../assessments/assignment.model.js";
 
 export class ProgressService {
     static async getProgress(studentId, subjectId = null) {
@@ -29,6 +30,10 @@ export class ProgressService {
         return await progress.save();
     }
 
+    static async updateProgressFromAssignment(studentId, subjectId, assignmentId) {
+        return await this.markAssessmentComplete(studentId, subjectId, assignmentId);
+    }
+
     static async markAssessmentComplete(studentId, subjectId, assessmentId) {
         let progress = await Progress.findOne({ student: studentId, subject: subjectId });
         
@@ -46,17 +51,32 @@ export class ProgressService {
     }
 
     static async calculateOverallProgress(progress) {
+        // Count lessons
         const totalLessons = await Lesson.countDocuments({ subject: progress.subject });
-        const totalAssessments = await Assessment.countDocuments({ subject: progress.subject, isPublished: true });
+        
+        // Count assessments (automated quizzes)
+        const totalAssessments = await Assessment.countDocuments({ 
+            subject: progress.subject, 
+            isPublished: true 
+        });
 
-        const totalItems = totalLessons + totalAssessments;
+        // Count assignments (manual tasks)
+        const totalAssignments = await Assignment.countDocuments({
+            subject: progress.subject
+        });
+
+        const totalItems = totalLessons + totalAssessments + totalAssignments;
+        
         if (totalItems === 0) {
             progress.totalProgress = 0;
             return;
         }
 
+        // Note: progress.completedAssessments currently stores both Assessment and Assignment IDs
         const completedItems = progress.completedLessons.length + progress.completedAssessments.length;
-        progress.totalProgress = Math.round((completedItems / totalItems) * 100);
+        progress.totalProgress = Math.min(100, Math.round((completedItems / totalItems) * 100));
+        
+        console.log(`[Progress Update] Student: ${progress.student}, Subject: ${progress.subject}, Progress: ${progress.totalProgress}%`);
     }
 
     static async updateTimeSpent(studentId, subjectId, minutes) {

@@ -77,7 +77,21 @@ const userSchema = new mongoose.Schema(
     verificationToken: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
-    refreshTokens: [String],
+    
+    // Security tracking
+    loginAttempts: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+    lockUntil: {
+      type: Number
+    },
+    
+    refreshTokens: {
+      type: [String],
+      default: []
+    },
     nativeLanguage: {
       type: String,
       default: "",
@@ -95,6 +109,10 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    earnings: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -119,7 +137,7 @@ userSchema.pre("save", async function (next) {
   }
 
   try {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
