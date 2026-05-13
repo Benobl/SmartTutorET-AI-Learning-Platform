@@ -55,7 +55,7 @@ export class AIController {
 
     static async generateResponse(req, res, next) {
         try {
-            const { question, studentQuery, context, conversationHistory, modelPreference } = req.body;
+            const { question, studentQuery, context, conversationHistory, modelPreference, performanceData } = req.body;
             const actualQuery = studentQuery || question;
             
             // Map the request body to the service expected format
