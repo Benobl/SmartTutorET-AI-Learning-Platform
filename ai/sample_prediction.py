@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # Load model
-MODEL_PATH = r'c:\Users\hp\SmartTutorET-AI-Learning-Platform\ai\performance_model.joblib'
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'performance_model.joblib')
 model = joblib.load(MODEL_PATH)
 
 # Sample student data from Kaggle features
