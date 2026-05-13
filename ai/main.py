@@ -13,7 +13,7 @@ app = FastAPI(title="SmartTutor AI Engine")
 
 # Load OpenAI Client
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # Load model
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'performance_model.joblib')
@@ -82,6 +82,8 @@ async def predict(data: StudentData):
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
+    if not client:
+        raise HTTPException(status_code=500, detail="OpenAI API key is missing on the server.")
     try:
         # Convert Pydantic models to dict for OpenAI API
         messages = [msg.dict() for msg in request.messages]
