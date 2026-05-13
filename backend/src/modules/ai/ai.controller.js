@@ -61,7 +61,7 @@ export class AIController {
             // Map the request body to the service expected format
             const studentResponse = await AIService.generateTutorResponse({
                 studentQuery: actualQuery,
-                performanceData: context ? { context } : null,
+                performanceData: performanceData || (context ? { context } : null),
                 conversationHistory,
                 modelPreference: modelPreference || "llama"
             });

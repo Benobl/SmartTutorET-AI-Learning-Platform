@@ -1,20 +1,22 @@
-import mongoose from 'mongoose';
-import User from './src/modules/users/user.model.js';
-import dotenv from 'dotenv';
+import mongoose from "mongoose";
+import User from "./src/modules/users/user.model.js";
+import dotenv from "dotenv";
+
 dotenv.config();
 
-async function check() {
+const checkUsers = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        const tutors = await User.find({ role: 'tutor' });
-        tutors.forEach(t => {
-            console.log(`Tutor: ${t.name}, Documents: `, JSON.stringify(t.documents, null, 2));
-        });
+        const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/smarttutor";
+        await mongoose.connect(mongoUri);
+        const count = await User.countDocuments();
+        console.log(`Total users: ${count}`);
+        const users = await User.find().limit(5).select("email role");
+        console.log("Users:", JSON.stringify(users, null, 2));
         process.exit(0);
     } catch (err) {
         console.error(err);
         process.exit(1);
     }
-}
+};
 
-check();
+checkUsers();

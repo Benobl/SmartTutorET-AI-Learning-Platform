@@ -2,10 +2,10 @@ import { z } from "zod";
 
 // Strict regex for emails: letters, numbers, and standard symbols only. No emojis/scripts.
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-// Strict regex for names: letters, spaces, and standard punctuation only. No emojis/scripts.
-const nameRegex = /^[a-zA-Z\s.'-]+$/;
-// Strict password regex: Uppercase, Lowercase, Number, Special Character, No spaces.
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+// Inclusive regex for names: letters (including Amharic), spaces, and standard punctuation.
+const nameRegex = /^[a-zA-Z\u1200-\u137F\s.'-]+$/;
+// Balanced password regex: At least 6 characters, can be more complex but let's keep it simple for now.
+const passwordRegex = /^.{6,}$/;
 
 export const signupSchema = z.object({
     body: z.object({

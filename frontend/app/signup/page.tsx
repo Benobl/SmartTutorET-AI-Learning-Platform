@@ -28,10 +28,10 @@ import { cn } from "@/lib/utils"
 
 // Strict regex for emails: letters, numbers, and standard symbols only. No emojis/scripts.
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-// Strict regex for names: letters, spaces, and standard punctuation.
-const nameRegex = /^[a-zA-Z\s.'-]+$/;
-// Strict password regex: Uppercase, Lowercase, Number, Special Character, No spaces.
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+// Inclusive regex for names: letters (including Amharic), spaces, and standard punctuation.
+const nameRegex = /^[a-zA-Z\u1200-\u137F\s.'-]+$/;
+// Balanced password regex: At least 6 characters.
+const passwordRegex = /^.{6,}$/;
 
 const signupSchema = z.object({
     role: z.enum(["student", "tutor"]),
@@ -233,12 +233,12 @@ export default function SignupPage() {
           setStep(totalSteps + 1)
         }
       } else {
-        setError("Email or password is incorrect")
+        setError(user && 'error' in user ? (user.error as string) : "Registration failed. Please try again.");
       }
-    } catch (err) {
-      setError("Email or password is incorrect")
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please check your details.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

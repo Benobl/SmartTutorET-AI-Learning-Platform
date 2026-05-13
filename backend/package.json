@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "dev": "fuser -k 5001/tcp || true; nodemon server.js",
+    "dev": "nodemon server.js",
     "start": "node server.js",
     "test:learning:e2e": "node scripts/test-learning-e2e.js"
   },

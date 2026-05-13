@@ -21,10 +21,9 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 const loginSchema = z.object({
   email: z.string()
-    .min(1, "Email or password is incorrect")
-    .email("Email or password is incorrect")
-    .regex(emailRegex, "Email or password is incorrect"),
-  password: z.string().min(1, "Email or password is incorrect"),
+    .min(1, "Email is required")
+    .email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -85,10 +84,10 @@ function LoginForm() {
                     window.location.href = redirectPath;
                 }, 800);
             } else {
-                setError("Invalid email or password")
+                setError(user && 'error' in user ? (user.error as string) : "Invalid email or password");
             }
         } catch (err: any) {
-            setError(err.message || "Invalid email or password")
+            setError(err.message || "An error occurred during login. Please try again.");
         } finally {
             setIsLoading(false)
         }
