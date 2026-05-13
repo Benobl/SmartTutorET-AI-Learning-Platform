@@ -6,7 +6,8 @@ import {
   BookOpen, Clock, Calendar, GraduationCap, ChevronRight,
   PlayCircle, Bell, FileText, AlertCircle, Sparkles,
   Zap, MessageSquare, Lightbulb, TrendingUp, Target, Users, Megaphone, Building2,
-  ArrowUpRight, Layout, LayoutGrid, Activity, Star, Video
+  ArrowUpRight, Layout, LayoutGrid, Activity, Star, Video,
+  BarChart3, Thermometer
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { userApi, courseApi, assignmentApi, assessmentApi, announcementApi } from "@/lib/api"
@@ -170,9 +171,6 @@ export default function StudentOverview() {
         </div>
 
         <div className="flex gap-4">
-          <Button onClick={() => setIsAIHubOpen(true)} className="h-12 px-8 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-sky-400" /> AI Performance Hub
-          </Button>
           <Button onClick={() => setIsAITutorOpen(true)} className="h-12 px-8 rounded-full bg-sky-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm">
             Ask Neural Assistant
           </Button>
@@ -207,6 +205,69 @@ export default function StudentOverview() {
         
         {/* Main Content: 8 Columns */}
         <div className="xl:col-span-8 space-y-8">
+
+          {/* AI PERFORMANCE HUB */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                <div className="w-1.5 h-6 bg-slate-900 rounded-full" />
+                <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-[0.2em]">AI Performance Hub</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">AI System Online</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 1: Live Metrics */}
+              <div className="p-8 rounded-[32px] bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+                <BarChart3 className="w-6 h-6 text-sky-400 mb-4 group-hover:scale-110 transition-transform" />
+                <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Live Metrics</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-Time Pulse</p>
+              </div>
+
+              {/* Card 2: Predict Grade (Interactive) */}
+              <div 
+                onClick={() => setIsAIHubOpen(true)}
+                className="p-8 rounded-[32px] bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-900/10 group flex flex-col justify-center min-h-[160px]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center mb-4">
+                  <Target className="w-5 h-5 text-sky-400 group-hover:scale-110 transition-transform" />
+                </div>
+                <h5 className="text-sm font-black text-white uppercase tracking-wide">Predict Grade</h5>
+                <p className="text-[10px] font-bold text-sky-400/80 uppercase tracking-widest mt-1">AI Projection</p>
+              </div>
+
+              {/* Card 3: Goal Simulator */}
+              <div className="p-8 rounded-[32px] bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+                <Activity className="w-6 h-6 text-emerald-400 mb-4 group-hover:scale-110 transition-transform" />
+                <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Goal Simulator</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">What-If Analysis</p>
+              </div>
+
+              {/* Card 4: Study Planner */}
+              <div className="p-8 rounded-[32px] bg-indigo-50/50 border border-indigo-100 hover:bg-indigo-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+                <Clock className="w-6 h-6 text-indigo-400 mb-4 group-hover:scale-110 transition-transform" />
+                <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Study Planner</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Weekly Strategy</p>
+              </div>
+
+              {/* Card 5: Stress Pulse */}
+              <div className="p-8 rounded-[32px] bg-rose-50/50 border border-rose-100 hover:bg-rose-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+                <Thermometer className="w-6 h-6 text-rose-400 mb-4 group-hover:scale-110 transition-transform" />
+                <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Stress Pulse</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">AI Wellness</p>
+              </div>
+
+              {/* Card 6: Get Advice */}
+              <div onClick={() => setIsAITutorOpen(true)} className="p-8 rounded-[32px] bg-amber-50/50 border border-amber-100 hover:bg-amber-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+                <Lightbulb className="w-6 h-6 text-amber-400 mb-4 group-hover:scale-110 transition-transform" />
+                <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Get Advice</h5>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">AI Coaching</p>
+              </div>
+            </div>
+          </div>
 
           {/* Catalog Selection */}
           <div className="p-10 rounded-[48px] bg-white border border-slate-100 shadow-sm space-y-10">
