@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+// OpenAI import removed as it is not directly used here
 import dotenv from "dotenv";
 import ChatSession from "./chat.model.js";
 import axios from "axios";
@@ -10,9 +10,6 @@ const pdf = require("pdf-parse");
 
 dotenv.config();
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 export class TutorService {
     /**
