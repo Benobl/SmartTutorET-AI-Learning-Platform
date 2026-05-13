@@ -2,6 +2,7 @@ services:
   - type: web
     name: smarttutor-backend
     env: node
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -30,6 +31,7 @@ services:
   - type: web
     name: smarttutor-ai
     env: python
+    plan: free
     rootDir: ai
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
