@@ -24,3 +24,23 @@ services:
         sync: false
       - key: BASE_URL
         sync: false
+
+  - type: web
+    name: smarttutor-frontend
+    env: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://smarttutoret-ai-learning-platform.onrender.com/api
+      - key: NEXT_PUBLIC_SOCKET_URL
+        value: https://smarttutoret-ai-learning-platform.onrender.com
+      - key: NEXT_PUBLIC_STREAM_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
