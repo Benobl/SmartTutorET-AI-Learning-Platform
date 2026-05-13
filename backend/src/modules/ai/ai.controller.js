@@ -104,4 +104,13 @@ export class AIController {
             next(error);
         }
     }
+
+    static async getPerformanceInsights(req, res, next) {
+        try {
+            const insights = await AIService.getPerformanceInsights(req.user._id);
+            res.json({ success: true, data: insights });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

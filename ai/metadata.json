@@ -1,0 +1,16 @@
+{
+    "trained_at": "2026-05-12T06:35:36.414315",
+    "metrics": {
+        "mae": 4.435031802954956,
+        "mse": 31.94900356072951,
+        "r2": 0.891284385997497
+    },
+    "features": [
+        "lessons_completed",
+        "avg_assessment_score",
+        "time_spent_hours",
+        "attendance_rate",
+        "previous_grade"
+    ],
+    "dataset_size": 1000
+}

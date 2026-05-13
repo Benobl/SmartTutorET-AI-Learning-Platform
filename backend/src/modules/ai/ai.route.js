@@ -21,5 +21,6 @@ router.post("/resource-suggestions", verifyToken, AIController.getSuggestions);
 router.post("/generate-grade-curriculum", verifyToken, AIController.generateGradeCurriculum);
 router.post("/generate-grade-schedule", verifyToken, AIController.generateGradeSchedule);
 router.post("/generate-study-plan", verifyToken, AIController.generateStudyPlan);
+router.post("/performance-insights", verifyToken, AIController.getPerformanceInsights);
 
 export default router;

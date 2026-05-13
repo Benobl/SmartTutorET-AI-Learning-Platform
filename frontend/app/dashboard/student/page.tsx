@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 
 // New Interactive Components
 import { AITutorModal } from "@/components/dashboards/student/ai-tutor-modal"
+import { AIPerformanceHub } from "@/components/dashboards/student/ai-performance-hub"
 import { CollaborationModals } from "@/components/dashboards/student/collaboration-modals"
 import { ActivityHistoryModal } from "@/components/dashboards/student/activity-history-modal"
 import { AssessmentList } from "@/components/dashboards/student/assessment-list"
@@ -30,6 +31,7 @@ import { toast } from "sonner"
 export default function StudentOverview() {
   const [user, setUser] = useState<any>(null)
   const [isAITutorOpen, setIsAITutorOpen] = useState(false)
+  const [isAIHubOpen, setIsAIHubOpen] = useState(false)
   const [isStudyHubOpen, setIsStudyHubOpen] = useState(false)
   const [collabType, setCollabType] = useState<"create" | "invite">("create")
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
@@ -168,6 +170,9 @@ export default function StudentOverview() {
         </div>
 
         <div className="flex gap-4">
+          <Button onClick={() => setIsAIHubOpen(true)} className="h-12 px-8 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-sky-400" /> AI Performance Hub
+          </Button>
           <Button onClick={() => setIsAITutorOpen(true)} className="h-12 px-8 rounded-full bg-sky-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-sm">
             Ask Neural Assistant
           </Button>
@@ -395,6 +400,7 @@ export default function StudentOverview() {
       </div>
 
       {/* Interactive Modals */}
+      <AIPerformanceHub isOpen={isAIHubOpen} onOpenChange={setIsAIHubOpen} />
       <AITutorModal isOpen={isAITutorOpen} onOpenChange={setIsAITutorOpen} />
       <CollaborationModals isOpen={isStudyHubOpen} onOpenChange={setIsStudyHubOpen} type={collabType} />
       <ActivityHistoryModal isOpen={isActivityHistoryOpen} onOpenChange={setIsActivityHistoryOpen} />

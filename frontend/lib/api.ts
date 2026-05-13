@@ -284,6 +284,9 @@ export const aiApi = {
         body: JSON.stringify(data)
     }),
     getChatHistory: (subject?: string) => fetchWithAuth(`/ai/history${subject ? `?subject=${subject}` : ""}`),
+    getPerformanceInsights: () => fetchWithAuth("/ai/performance-insights", {
+        method: "POST"
+    }),
 };
 
 export const gamificationApi = {

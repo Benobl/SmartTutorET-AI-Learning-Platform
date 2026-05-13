@@ -474,4 +474,50 @@ JSON format:
         console.warn(`⚠️ [AI_QUIZ] All AI models failed. Last Error: ${lastError?.message}`);
         return AIService._buildFallbackQuestions(topic, subject, grade, count);
     }
+
+    static async getPerformanceInsights(studentId) {
+        const { UserService } = await import("../users/user.service.js");
+        const stats = await UserService.getStudentStats(studentId);
+        
+        // Fetch Attendance data
+        const Attendance = (await import("../attendance/attendance.model.js")).default;
+        const presentCount = await Attendance.countDocuments({ student: studentId, status: "present" });
+        
+        // Attendance rate heuristic: (present / 20 sessions baseline)
+        const attendanceRate = Math.min(1.0, presentCount / 20); 
+
+        // Fetch Progress/Time Spent
+        const Progress = (await import("../progress/progress.model.js")).default;
+        const progressRecords = await Progress.find({ student: studentId });
+        const totalMinutes = progressRecords.reduce((acc, curr) => acc + (curr.timeSpent || 0), 0);
+        const timeSpentHours = totalMinutes / 60;
+
+        // Prepare data for Python AI Engine
+        const studentData = {
+            lessons_completed: stats.avgProgress || 0,
+            avg_assessment_score: stats.percentage || 0,
+            time_spent_hours: Math.min(300, timeSpentHours),
+            attendance_rate: attendanceRate,
+            previous_grade: stats.gpa * 25 || 75 // Back-calculate or default to 75
+        };
+
+        try {
+            const pythonAiUrl = process.env.PYTHON_AI_URL || "http://localhost:8000";
+            const response = await axios.post(`${pythonAiUrl}/predict`, studentData);
+            return response.data;
+        } catch (error) {
+            console.error("AI Engine Error:", error.message);
+            // Fallback if Python engine is down or not found
+            return {
+                predicted_grade: stats.percentage || 80,
+                status: "AI Sync: Offline",
+                recommendations: [
+                    "Finish your pending modules to improve prediction accuracy.",
+                    "Review previous quizzes to strengthen your foundation.",
+                    "Maintain your study streak for consistent progress."
+                ],
+                confidence_score: 0.5
+            };
+        }
+    }
 }
