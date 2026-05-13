@@ -29,6 +29,7 @@ interface Message {
 interface AITutorModalProps {
     isOpen: boolean
     onOpenChange: (open: boolean) => void
+    initialPrompt?: string
 }
 
 const SUGGESTED_PROMPTS = [
@@ -38,7 +39,7 @@ const SUGGESTED_PROMPTS = [
     { icon: Lightbulb, label: "Exam Tips", prompt: "Give me tips for the Ethiopian National Exam preparation." },
 ]
 
-export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
+export function AITutorModal({ isOpen, onOpenChange, initialPrompt }: AITutorModalProps) {
     const user = getCurrentUser()
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -57,6 +58,18 @@ export function AITutorModal({ isOpen, onOpenChange }: AITutorModalProps) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
         }
     }, [messages, isTyping])
+
+    const lastProcessedPrompt = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (isOpen && initialPrompt && initialPrompt !== lastProcessedPrompt.current) {
+            lastProcessedPrompt.current = initialPrompt
+            handleSend(initialPrompt)
+        }
+        if (!isOpen) {
+            lastProcessedPrompt.current = null
+        }
+    }, [isOpen, initialPrompt])
 
     const handleSend = async (customPrompt?: string) => {
         const textToSend = typeof customPrompt === 'string' ? customPrompt : input

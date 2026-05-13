@@ -21,6 +21,7 @@ import { CollaborationModals } from "@/components/dashboards/student/collaborati
 import { ActivityHistoryModal } from "@/components/dashboards/student/activity-history-modal"
 import { AssessmentList } from "@/components/dashboards/student/assessment-list"
 import { Leaderboard } from "@/components/dashboards/student/leaderboard"
+import { AIStudyPlannerModal } from "@/components/dashboards/student/ai-study-planner-modal"
 
 import { getCurrentUser } from "@/lib/auth-utils"
 import { initializeSocket, getSocket } from "@/lib/socket"
@@ -32,7 +33,9 @@ import { toast } from "sonner"
 export default function StudentOverview() {
   const [user, setUser] = useState<any>(null)
   const [isAITutorOpen, setIsAITutorOpen] = useState(false)
+  const [tutorInitialPrompt, setTutorInitialPrompt] = useState<string>("")
   const [isAIHubOpen, setIsAIHubOpen] = useState(false)
+  const [isStudyPlannerOpen, setIsStudyPlannerOpen] = useState(false)
   const [isStudyHubOpen, setIsStudyHubOpen] = useState(false)
   const [collabType, setCollabType] = useState<"create" | "invite">("create")
   const [isActivityHistoryOpen, setIsActivityHistoryOpen] = useState(false)
@@ -221,7 +224,7 @@ export default function StudentOverview() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card 1: Live Metrics */}
-              <div className="p-8 rounded-[32px] bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+              <div onClick={() => setIsActivityHistoryOpen(true)} className="p-8 rounded-[32px] bg-sky-50/50 border border-sky-100 hover:bg-sky-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
                 <BarChart3 className="w-6 h-6 text-sky-400 mb-4 group-hover:scale-110 transition-transform" />
                 <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Live Metrics</h5>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-Time Pulse</p>
@@ -240,28 +243,28 @@ export default function StudentOverview() {
               </div>
 
               {/* Card 3: Goal Simulator */}
-              <div className="p-8 rounded-[32px] bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+              <div onClick={() => { setTutorInitialPrompt("Goal Simulator: I want to calculate my target GPA. If I improve my study time by 2 hours a day, what is my projected GPA?"); setIsAITutorOpen(true); }} className="p-8 rounded-[32px] bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
                 <Activity className="w-6 h-6 text-emerald-400 mb-4 group-hover:scale-110 transition-transform" />
                 <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Goal Simulator</h5>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">What-If Analysis</p>
               </div>
 
               {/* Card 4: Study Planner */}
-              <div className="p-8 rounded-[32px] bg-indigo-50/50 border border-indigo-100 hover:bg-indigo-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+              <div onClick={() => setIsStudyPlannerOpen(true)} className="p-8 rounded-[32px] bg-indigo-50/50 border border-indigo-100 hover:bg-indigo-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
                 <Clock className="w-6 h-6 text-indigo-400 mb-4 group-hover:scale-110 transition-transform" />
                 <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Study Planner</h5>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Weekly Strategy</p>
               </div>
 
               {/* Card 5: Stress Pulse */}
-              <div className="p-8 rounded-[32px] bg-rose-50/50 border border-rose-100 hover:bg-rose-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+              <div onClick={() => { setTutorInitialPrompt("Stress Pulse: I'm feeling a bit stressed about my studies. What wellness advice do you have?"); setIsAITutorOpen(true); }} className="p-8 rounded-[32px] bg-rose-50/50 border border-rose-100 hover:bg-rose-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
                 <Thermometer className="w-6 h-6 text-rose-400 mb-4 group-hover:scale-110 transition-transform" />
                 <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Stress Pulse</h5>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">AI Wellness</p>
               </div>
 
               {/* Card 6: Get Advice */}
-              <div onClick={() => setIsAITutorOpen(true)} className="p-8 rounded-[32px] bg-amber-50/50 border border-amber-100 hover:bg-amber-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
+              <div onClick={() => { setTutorInitialPrompt(""); setIsAITutorOpen(true); }} className="p-8 rounded-[32px] bg-amber-50/50 border border-amber-100 hover:bg-amber-50 transition-all cursor-pointer group flex flex-col justify-center min-h-[160px]">
                 <Lightbulb className="w-6 h-6 text-amber-400 mb-4 group-hover:scale-110 transition-transform" />
                 <h5 className="text-sm font-black text-slate-900 uppercase tracking-wide">Get Advice</h5>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">AI Coaching</p>
@@ -462,7 +465,8 @@ export default function StudentOverview() {
 
       {/* Interactive Modals */}
       <AIPerformanceHub isOpen={isAIHubOpen} onOpenChange={setIsAIHubOpen} />
-      <AITutorModal isOpen={isAITutorOpen} onOpenChange={setIsAITutorOpen} />
+      <AITutorModal isOpen={isAITutorOpen} onOpenChange={setIsAITutorOpen} initialPrompt={tutorInitialPrompt} />
+      <AIStudyPlannerModal isOpen={isStudyPlannerOpen} onOpenChange={setIsStudyPlannerOpen} />
       <CollaborationModals isOpen={isStudyHubOpen} onOpenChange={setIsStudyHubOpen} type={collabType} />
       <ActivityHistoryModal isOpen={isActivityHistoryOpen} onOpenChange={setIsActivityHistoryOpen} />
 
