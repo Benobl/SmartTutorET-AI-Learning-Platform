@@ -270,11 +270,11 @@ export default function SignupPage() {
         <AuthCard className="p-4 md:p-6">
           <div className="flex flex-col items-center mb-3 md:mb-4">
             <Link href="/" className="mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden hover:scale-105 transition-all duration-500">
-                <Image src="/logo.png" alt="SmartTutorET Logo" width={48} height={48} priority />
+              <div className="w-14 h-14 rounded-[1rem] bg-white flex items-center justify-center shadow-xl overflow-hidden hover:scale-105 transition-all duration-500">
+                <Image src="/logo.png" alt="SmartTutorET Logo" width={56} height={56} priority />
               </div>
             </Link>
-            <h1 className="text-2xl font-bold text-white mb-1">Create Your Account</h1>
+            <h1 className="text-2xl font-bold text-white mb-1.5">Create Your Account</h1>
             <p className="text-white/60 text-xs text-center">Join the future of AI-powered learning in Ethiopia</p>
           </div>
 
@@ -389,7 +389,7 @@ export default function SignupPage() {
                         {...register("firstName")}
                         placeholder="John"
                         className={cn(
-                          "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
+                          "rounded-lg border border-white/10 bg-transparent h-11 pl-10 text-sm text-white transition-smooth placeholder:text-white/30 hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
                           errors.firstName && "border-red-500/50"
                         )}
                       />
@@ -406,7 +406,7 @@ export default function SignupPage() {
                         {...register("lastName")}
                         placeholder="Doe"
                         className={cn(
-                          "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
+                          "rounded-lg border border-white/10 bg-transparent h-11 pl-10 text-sm text-white transition-smooth placeholder:text-white/30 hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
                           errors.lastName && "border-red-500/50"
                         )}
                       />
@@ -425,7 +425,7 @@ export default function SignupPage() {
                       {...register("email")}
                       placeholder="name@example.com"
                       className={cn(
-                        "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
+                        "rounded-lg border border-white/10 bg-transparent h-11 pl-10 text-sm text-white transition-smooth placeholder:text-white/30 hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
                         errors.email && "border-red-500/50"
                       )}
                     />
@@ -450,7 +450,7 @@ export default function SignupPage() {
                         render={({ field }) => (
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className={cn(
-                              "w-full rounded-xl border-white/10 bg-white/5 py-6 text-white focus:ring-sky-500/50",
+                              "w-full rounded-lg border border-white/10 bg-transparent h-11 text-sm text-white hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
                               errors.grade && "border-red-500/50"
                             )}>
                               <SelectValue placeholder="Select Class" />
@@ -477,7 +477,7 @@ export default function SignupPage() {
                           render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className={cn(
-                                "w-full rounded-xl border-white/10 bg-white/5 py-6 text-white focus:ring-sky-500/50",
+                                "w-full rounded-lg border border-white/10 bg-transparent h-11 text-sm text-white hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
                                 errors.stream && "border-red-500/50"
                               )}>
                                 <SelectValue placeholder="Select Stream" />
@@ -506,7 +506,7 @@ export default function SignupPage() {
                             {...register("degree")}
                             placeholder="e.g. BSc in Math"
                             className={cn(
-                              "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-emerald-500/50",
+                              "rounded-2xl border border-white/20 bg-transparent py-6 pl-11 text-white transition-smooth placeholder:text-white/30 hover:border-white/30 focus:border-emerald-500/50 focus:ring-emerald-500/50 backdrop-blur-md",
                               errors.degree && "border-red-500/50"
                             )}
                           />
@@ -524,7 +524,7 @@ export default function SignupPage() {
                             type="number"
                             placeholder="0-50"
                             className={cn(
-                              "rounded-xl border-white/10 bg-white/5 py-6 pl-11 text-white transition-smooth placeholder:text-white/30 focus:ring-emerald-500/50",
+                              "rounded-2xl border border-white/20 bg-transparent py-6 pl-11 text-white transition-smooth placeholder:text-white/30 hover:border-white/30 focus:border-emerald-500/50 focus:ring-emerald-500/50 backdrop-blur-md",
                               errors.experience && "border-red-500/50"
                             )}
                           />
@@ -543,7 +543,7 @@ export default function SignupPage() {
                         render={({ field }) => (
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className={cn(
-                              "w-full rounded-xl border-white/10 bg-white/5 py-6 text-white focus:ring-emerald-500/50",
+                              "w-full rounded-2xl border border-white/20 bg-transparent py-6 text-white hover:border-white/30 focus:border-emerald-500/50 focus:ring-emerald-500/50 backdrop-blur-md",
                               errors.subject && "border-red-500/50"
                             )}>
                               <SelectValue placeholder="Select Subject" />
@@ -736,9 +736,9 @@ export default function SignupPage() {
                     type="button"
                     onClick={nextStep}
                     className={cn(
-                      "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
+                      "group w-full border-0 h-11 font-semibold rounded-lg text-sm text-white transition-smooth shadow-lg",
                       role === "student"
-                        ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
+                        ? "bg-[#0ea5e9] shadow-sky-500/20 hover:bg-sky-400"
                         : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
                     )}
                   >
@@ -752,9 +752,9 @@ export default function SignupPage() {
                     type="submit"
                     disabled={isLoading}
                     className={cn(
-                      "group w-full border-0 py-6 font-semibold text-white transition-smooth shadow-lg",
+                      "group w-full border-0 h-11 font-semibold rounded-lg text-sm text-white transition-smooth shadow-lg",
                       role === "student"
-                        ? "bg-sky-500 shadow-sky-500/20 hover:bg-sky-400"
+                        ? "bg-[#0ea5e9] shadow-sky-500/20 hover:bg-sky-400"
                         : "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-400"
                     )}
                   >
@@ -805,7 +805,7 @@ function SecuritySection({ register, showPassword, setShowPassword, password, er
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             className={cn(
-              "rounded-xl border-white/10 bg-white/5 py-6 pl-11 pr-12 text-white transition-smooth placeholder:text-white/30 focus:ring-sky-500/50",
+              "rounded-lg border border-white/10 bg-transparent h-11 pl-10 pr-10 text-sm text-white transition-smooth placeholder:text-white/30 hover:border-white/20 focus:border-sky-500/50 focus:ring-sky-500/50 backdrop-blur-md",
               errors.password && "border-red-500/50"
             )}
           />
