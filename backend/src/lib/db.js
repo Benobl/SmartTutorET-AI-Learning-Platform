@@ -108,6 +108,22 @@ export const connectDB = async () => {
             console.log("✅ Mock tutors seeded.");
         }
 
+        // --- Mock Managers Seeding ---
+        const managerCount = await User.countDocuments({ role: "manager" });
+        if (managerCount === 0) {
+            console.log("💼 Seeding mock managers...");
+            const managerPass = bcrypt.hashSync("managerpassword", 10);
+            await User.create({
+                name: "School Manager",
+                email: "manager@smarttutor.com",
+                password: managerPass,
+                role: "manager",
+                isApproved: true,
+                isVerified: true
+            });
+            console.log("✅ Mock managers seeded.");
+        }
+
 
         // --- Mock Subjects Seeding ---
         const Subject = (await import("../modules/courses/subject.model.js")).default;

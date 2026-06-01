@@ -14,6 +14,20 @@ This is a monorepo containing both the frontend and backend services:
 - [Backend Documentation](file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/README.md)
 - [Frontend Documentation](file:///home/nebil/SmartTutorET-AI-Learning-Platform/frontend/README.md)
 
+## Demo Accounts & Dashboards
+
+For easy evaluation during job applications and demos, the platform is seeded with pre-configured mock accounts for all dashboards. Use the credentials below to log in:
+
+| Dashboard / Role | Email Address | Password | Features & Access |
+| :--- | :--- | :--- | :--- |
+| **Admin Dashboard** | `admin@smarttutor.com` | `adminpassword` | Full system control, user management, global settings, platform monitoring |
+| **Manager Dashboard** | `manager@smarttutor.com` | `managerpassword` | School administration, tutor approvals, analytics, curriculum oversight |
+| **Tutor Dashboard** | `abrham@tutor.com` <br> *or* `tigist@tutor.com` | `tutorpassword` | Course creation, teaching schedule, student assessments, AI assistance |
+| **Student Dashboard** | `abel@student.com` <br> *or* `sara@student.com` | `studentpassword` | Interactive learning, AI chatbot tutor, quizzes, progress tracking, study groups |
+
+> [!NOTE]
+> All passwords and users are automatically seeded upon the first database connection. If needed, you can run a clean database seeding from the backend.
+
 ## Development
 
 To run the full project locally:
