@@ -51,7 +51,8 @@ const PORT = process.env.PORT || 5001;
 app.use(cookieParser());
 
 // --- CORS MUST BE FIRST ---
-const allowedOrigins = [
+// Build allowed origins dynamically — include localhost + any configured FRONTEND_URL
+const baseAllowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
@@ -59,12 +60,27 @@ const allowedOrigins = [
   "http://localhost:3004",
 ];
 
+// Add FRONTEND_URL from env (handles Vercel, Render, or any custom domain)
+if (process.env.FRONTEND_URL) {
+  const frontendUrl = process.env.FRONTEND_URL.trim().replace(/\/$/, "");
+  if (!baseAllowedOrigins.includes(frontendUrl)) {
+    baseAllowedOrigins.push(frontendUrl);
+  }
+}
+
 const corsOptions = {
   origin: function (origin, callback) {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
-      return callback(null, true);
-    }
+    // Allow localhost on any port
+    if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+    // Allow any vercel.app subdomain (preview deployments)
+    if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+    // Allow any onrender.com subdomain
+    if (/\.onrender\.com$/.test(origin)) return callback(null, true);
+    // Allow explicitly listed origins
+    if (baseAllowedOrigins.includes(origin)) return callback(null, true);
+    logger.warn(`[CORS] Blocked origin: ${origin}`);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,

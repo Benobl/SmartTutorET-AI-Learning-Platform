@@ -163,7 +163,7 @@ export class AuthService {
         const user = await User.findOne({ email: email.toLowerCase().trim() });
         
         // Always return success to prevent enumeration
-        if (!user) return true;
+        if (!user) return { emailSent: true };
 
         const rawToken = crypto.randomBytes(32).toString("hex");
         const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
@@ -172,9 +172,19 @@ export class AuthService {
         user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 Hour
         await user.save();
 
-        // Send RAW token to user
-        sendPasswordResetEmail(user.email, rawToken).catch(err => logger.error("Reset email error:", err));
-        return true;
+        const isEmailConfigured = !!(process.env.EMAIL && process.env.EMAIL_PASS);
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+        const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+
+        if (isEmailConfigured) {
+            // Send email with RAW token — don't await so it doesn't block response
+            sendPasswordResetEmail(user.email, rawToken).catch(err => logger.error("Reset email error:", err));
+            return { emailSent: true };
+        } else {
+            // No email service configured — return reset link directly for demo mode
+            logger.warn(`[ForgotPassword] Email not configured. Reset link for ${email}: ${resetLink}`);
+            return { emailSent: false, resetLink };
+        }
     }
 
     static async resetPassword(rawToken, newPassword) {

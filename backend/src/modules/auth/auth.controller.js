@@ -189,8 +189,17 @@ export class AuthController {
 
     static async forgotPassword(req, res, next) {
         try {
-            await AuthService.forgotPassword(req.body.email);
-            res.json({ success: true, message: "Password reset email sent" });
+            const result = await AuthService.forgotPassword(req.body.email);
+            if (result && !result.emailSent && result.resetLink) {
+                // No email configured — return link directly (demo/dev mode)
+                res.json({
+                    success: true,
+                    message: "Password reset link generated (email not configured)",
+                    resetLink: result.resetLink
+                });
+            } else {
+                res.json({ success: true, message: "Password reset email sent" });
+            }
         } catch (error) {
             next(error);
         }

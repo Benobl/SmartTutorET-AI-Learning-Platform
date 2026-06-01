@@ -28,6 +28,7 @@ export default function ForgotPasswordPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [directLink, setDirectLink] = useState<string | null>(null)
 
     const {
         register,
@@ -40,13 +41,17 @@ export default function ForgotPasswordPage() {
     const onSubmit = async (data: ForgotPasswordFormValues) => {
         setIsLoading(true)
         setError(null)
+        setDirectLink(null)
 
         try {
-            await authApi.forgotPassword(data.email)
-            // Always show success to prevent enumeration
+            const res = await authApi.forgotPassword(data.email)
+            // If backend returns a direct link (no email configured), show it
+            if (res?.resetLink) {
+                setDirectLink(res.resetLink)
+            }
             setSuccess(true)
         } catch (err: any) {
-            // Mask errors
+            // Mask errors for security
             setSuccess(true)
         } finally {
             setIsLoading(false)
@@ -137,11 +142,29 @@ export default function ForgotPasswordPage() {
                             <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                                 <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                             </div>
-                            <h1 className="text-2xl font-bold text-white mb-4">Check Your Mailbox</h1>
-                            <p className="text-white/60 mb-10 leading-relaxed">
-                                We've sent a secure reset link to your email. 
-                                <span className="block mt-4 text-emerald-400/80 text-sm">Please check your spam folder if you don't see it.</span>
-                            </p>
+                            {directLink ? (
+                                <>
+                                    <h1 className="text-2xl font-bold text-white mb-3">Reset Link Ready</h1>
+                                    <p className="text-white/60 mb-6 leading-relaxed text-sm">
+                                        No email service is configured on this server. Click the button below to reset your password directly.
+                                    </p>
+                                    <a
+                                        href={directLink}
+                                        className="block w-full py-4 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-base transition-all duration-300 shadow-xl shadow-sky-500/25 text-center mb-4"
+                                    >
+                                        Click Here to Reset Password →
+                                    </a>
+                                    <p className="text-white/30 text-xs">This link expires in 1 hour.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="text-2xl font-bold text-white mb-4">Check Your Mailbox</h1>
+                                    <p className="text-white/60 mb-10 leading-relaxed">
+                                        We've sent a secure reset link to your email. 
+                                        <span className="block mt-4 text-emerald-400/80 text-sm">Please check your spam folder if you don't see it.</span>
+                                    </p>
+                                </>
+                            )}
                             <Button
                                 asChild
                                 className="w-full py-7 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold transition-all duration-300 border border-white/10 hover:border-white/20 shadow-xl"
