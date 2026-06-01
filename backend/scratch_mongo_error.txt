@@ -1,5 +1,6 @@
-ReferenceError: adminExists is not defined
-ReferenceError: adminExists is not defined
-    at connectDB (file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/src/lib/db.js:18:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/server.js:199:3
+MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+    at _handleConnectionErrors (/home/noble/SmartTutorET-AI-Learning-Platform/backend/node_modules/mongoose/lib/connection.js:1169:11)
+    at NativeConnection.openUri (/home/noble/SmartTutorET-AI-Learning-Platform/backend/node_modules/mongoose/lib/connection.js:1100:11)
+    at async connectDB (file:///home/noble/SmartTutorET-AI-Learning-Platform/backend/src/lib/db.js:10:21)
+    at async startServer (file:///home/noble/SmartTutorET-AI-Learning-Platform/backend/server.js:185:5)

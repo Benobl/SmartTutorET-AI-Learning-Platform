@@ -103,7 +103,7 @@ export const StreamProvider = ({ children }: { children: React.ReactNode }) => {
         const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || (typeof window !== 'undefined' ? (window as any).NEXT_PUBLIC_STREAM_API_KEY : null)
 
         if (!apiKey || apiKey === 'your_stream_api_key') {
-            console.error("[StreamProvider] Missing API Key")
+            // Suppress the console error as requested, but keep the early return
             setInitError("Stream configuration error: API Key missing")
             return
         }

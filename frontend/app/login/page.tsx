@@ -98,9 +98,16 @@ function LoginForm() {
             setIsLoading(true);
             setError(null);
 
+            const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+            if (!clientId || clientId.includes("your-google-client-id-here")) {
+                setError("Google Sign-In is not configured yet (client_id missing in environment). Please log in with your seeded email and password.");
+                setIsLoading(false);
+                return;
+            }
+
             if (typeof window !== "undefined" && (window as any).google) {
                 (window as any).google.accounts.id.initialize({
-                    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+                    client_id: clientId,
                     context: 'signin',
                     ux_mode: 'popup',
                     callback: async (response: any) => {
@@ -140,7 +147,7 @@ function LoginForm() {
 
                 (window as any).google.accounts.id.prompt();
             } else {
-                setError("Google Sign-In is temporarily unavailable");
+                setError("Google Sign-In is temporarily unavailable (Google SDK not loaded)");
                 setIsLoading(false);
             }
         } catch (err) {
@@ -154,11 +161,10 @@ function LoginForm() {
       <meta name="referrer" content="no-referrer-when-downgrade" />
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
 
-
-        <AuthCard>
+        <AuthCard className="border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-white/20">
           <div className="flex flex-col items-center mb-8">
             <Link href="/" className="mb-4">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-white/20 overflow-hidden group-hover:scale-105 transition-all duration-500">
+              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/20 overflow-hidden group-hover:scale-105 transition-all duration-500">
                 <Image src="/logo.png" alt="SmartTutorET Logo" width={64} height={64} priority />
               </div>
             </Link>
@@ -186,9 +192,9 @@ function LoginForm() {
             type="button"
             variant="outline"
             onClick={handleGoogleLogin}
-            className="w-full mb-6 py-6 rounded-xl bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-smooth gap-3"
+            className="w-full mb-6 py-6 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-white hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all duration-300 gap-3"
           >
-            <Chrome className="w-5 h-5" />
+            <Chrome className="w-5 h-5 text-sky-400" />
             Continue with Google
           </Button>
 
@@ -211,7 +217,7 @@ function LoginForm() {
                   {...register("email")}
                   placeholder="name@example.com"
                   className={cn(
-                    "bg-white/5 border-white/10 text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/40",
+                    "bg-white/5 border border-white/10 hover:border-white/20 focus:border-sky-500/50 backdrop-blur-md text-white pl-11 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth placeholder:text-white/30",
                     errors.email && "border-red-500/50 focus:ring-red-500/50"
                   )}
                 />
@@ -238,7 +244,7 @@ function LoginForm() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className={cn(
-                    "bg-white/5 border-white/10 text-white pl-11 pr-12 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
+                    "bg-white/5 border border-white/10 hover:border-white/20 focus:border-sky-500/50 backdrop-blur-md text-white pl-11 pr-12 py-6 rounded-xl focus:ring-sky-500/50 transition-smooth",
                     errors.password && "border-red-500/50 focus:ring-red-500/50"
                   )}
                 />

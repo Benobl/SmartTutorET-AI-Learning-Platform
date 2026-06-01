@@ -6,6 +6,15 @@ import { AIService } from "./ai.service.js";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+try {
+    const { DOMMatrix } = require("@napi-rs/canvas");
+    if (typeof global.DOMMatrix === "undefined") {
+        global.DOMMatrix = DOMMatrix;
+        console.log("✅ Polyfilled DOMMatrix globally from @napi-rs/canvas");
+    }
+} catch (e) {
+    console.warn("⚠️ Failed to polyfill DOMMatrix:", e.message);
+}
 const pdf = require("pdf-parse");
 
 dotenv.config();

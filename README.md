@@ -2,21 +2,9 @@
 
 SmartTutorET is a production-ready educational platform offering personalized learning, AI tutoring, peer collaboration, gamification, and emotional well-being support for students, tutors, instructors, and administrators.
 
-## Project Structure
+## 🚀 Demo Accounts & Passwords (Working Credentials)
 
-This is a monorepo containing both the frontend and backend services:
-
-- **[frontend/](file:///home/nebil/SmartTutorET-AI-Learning-Platform/frontend)**: Next.js application with Tailwind CSS and Lucide React.
-- **[backend/](file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend)**: Node.js/Express API with MongoDB and Socket.io.
-
-## Documentation
-
-- [Backend Documentation](file:///home/nebil/SmartTutorET-AI-Learning-Platform/backend/README.md)
-- [Frontend Documentation](file:///home/nebil/SmartTutorET-AI-Learning-Platform/frontend/README.md)
-
-## Demo Accounts & Dashboards
-
-For easy evaluation during job applications and demos, the platform is seeded with pre-configured mock accounts for all dashboards. Use the credentials below to log in:
+For easy evaluation, the platform is automatically seeded with pre-configured mock accounts. **Use the credentials below to log in:**
 
 | Dashboard / Role | Email Address | Password | Features & Access |
 | :--- | :--- | :--- | :--- |
@@ -27,6 +15,8 @@ For easy evaluation during job applications and demos, the platform is seeded wi
 
 > [!NOTE]
 > All passwords and users are automatically seeded upon the first database connection. If needed, you can run a clean database seeding from the backend.
+
+## Project Structure
 
 ## Development
 
