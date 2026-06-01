@@ -8,10 +8,10 @@ For easy evaluation, the platform is automatically seeded with pre-configured mo
 
 | Dashboard / Role | Email Address | Password | Features & Access |
 | :--- | :--- | :--- | :--- |
-| **Admin Dashboard** | `admin@smarttutor.com` | `adminpassword` | Full system control, user management, global settings, platform monitoring |
+| **Admin Dashboard** | `admin@smarttutor.com` | `admin123` | Full system control, user management, global settings, platform monitoring |
 | **Manager Dashboard** | `manager@smarttutor.com` | `managerpassword` | School administration, tutor approvals, analytics, curriculum oversight |
-| **Tutor Dashboard** | `abrham@tutor.com` <br> *or* `tigist@tutor.com` | `tutorpassword` | Course creation, teaching schedule, student assessments, AI assistance |
-| **Student Dashboard** | `abel@student.com` <br> *or* `sara@student.com` | `studentpassword` | Interactive learning, AI chatbot tutor, quizzes, progress tracking, study groups |
+| **Tutor Dashboard** | `nobleabdoo@gmail.com` <br> *or* `abrham@tutor.com` | `tutorpassword` | Course creation, teaching schedule, student assessments, AI assistance |
+| **Student Dashboard** | `nebilbromance@gmail.com` <br> *or* `abel@student.com` | `studentpassword` | Interactive learning, AI chatbot tutor, quizzes, progress tracking, study groups |
 
 > [!NOTE]
 > All passwords and users are automatically seeded upon the first database connection. If needed, you can run a clean database seeding from the backend.

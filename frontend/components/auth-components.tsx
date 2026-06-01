@@ -23,8 +23,8 @@ export function AuthBackground({ imageSrc, children }: AuthBackgroundProps) {
                     className="object-cover"
                     quality={90}
                 />
-                {/* Modern Overlay Gradient for Readability */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-800/80 backdrop-blur-[2px]" />
+                {/* Modern Overlay Gradient for Readability - Lightened for better glass visibility */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-800/60 backdrop-blur-[1px]" />
             </div>
 
             {/* Content Area */}
@@ -43,8 +43,8 @@ interface AuthCardProps {
 export function AuthCard({ children, className }: AuthCardProps) {
     return (
         <div className={cn(
-            "glass border-white/20 shadow-2xl rounded-3xl overflow-hidden transition-smooth hover:border-white/30",
-            "bg-white/10 backdrop-blur-xl",
+            "glass shadow-2xl rounded-[2rem] overflow-hidden transition-all duration-500",
+            "bg-white/10 backdrop-blur-[24px] border border-white/20 hover:border-white/40 hover:bg-white/15",
             className
         )}>
             <div className="p-8 md:p-10">

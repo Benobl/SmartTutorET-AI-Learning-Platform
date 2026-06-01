@@ -161,7 +161,7 @@ function LoginForm() {
       <meta name="referrer" content="no-referrer-when-downgrade" />
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
 
-        <AuthCard className="border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-white/20">
+        <AuthCard className="border border-white/20 bg-white/5 backdrop-blur-[32px] shadow-[0_8px_32px_0_rgba(255,255,255,0.1)] hover:border-white/30 transition-all duration-500">
           <div className="flex flex-col items-center mb-8">
             <Link href="/" className="mb-4">
               <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/20 overflow-hidden group-hover:scale-105 transition-all duration-500">
@@ -188,15 +188,17 @@ function LoginForm() {
           )}
 
           {/* Social Login */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGoogleLogin}
-            className="w-full mb-6 py-6 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-white hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all duration-300 gap-3"
-          >
-            <Chrome className="w-5 h-5 text-sky-400" />
-            Continue with Google
-          </Button>
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID !== "your-google-client-id-here" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleLogin}
+              className="w-full mb-6 py-6 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-white hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all duration-300 gap-3"
+            >
+              <Chrome className="w-5 h-5 text-sky-400" />
+              Continue with Google
+            </Button>
+          )}
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
